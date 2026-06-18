@@ -22,6 +22,10 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 # Convenções de banco de dados
 
 - Nomes de tabelas do banco de dados devem estar no plural e em snake case (Exemplo: users, user_preferences).
+- Todas as tabelas devem ter os campos `created_at`, `modified_at` e `removed_at` do tipo timestamp.
+- O campo `status` deve ser utilizado para indicar o estado de um registro no banco de dados.
+- Ao alterar um registro, o campo `modified_at` deve ser atualizado com o timestamp atual.
+- Ao remover um registro, o campo `removed_at` deve ser atualizado com o timestamp atual e o campo `status` deve ser definido como false (0).
 - Exclusões devem ser feitas através de soft delete, utilizando um campo booleano chamado `status` e um campo de timestamp `removed_at`.
 
 # Convenções da API

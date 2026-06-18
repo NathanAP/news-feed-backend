@@ -14,6 +14,7 @@ Este arquivo descreve a estrutura atual do projeto. Ele é um guia para entender
 ├──.env.example
 ├──.gitignore
 ├──db/
+├──migrations/
 ├──models/
 ├──services/
 ├──sqlc/
