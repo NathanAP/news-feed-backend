@@ -20,44 +20,57 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.3.0
 
-- [ ] CRUD básico
-    - [ ] Autenticação Google + JWT (Bearer)
-    - [ ] Cadastro de usuários (apenas através do Google)
-        - Armazenar apenas dados da conta Google
+- [ ] Preparar banco de dados para receber migrações utilizando o `golang-migrate`
+- [ ] Criar uma migração para a tabela de usuários
+- [ ] Cadastro de usuários (lembrete: apenas através do Google)
+    - Armazenar apenas dados da conta Google e:
+        - id (UUID v7)
+        - status (true ou false)
+        - last_login_at (timestamp)
+        - created_at (timestamp)
+        - modified_at (timestamp opcional)
+        - removed_at (timestamp opcional)
 
 ## Versão 0.4.0
 
-    - [ ] Cadastro de preferências
-        - Modo light ou dark
-        - Idiomas preferidos
-        - Traduzir para o idioma preferido (true ou false)
-        - Personalidade preferida (mais divertido, mais informativo ou misto)
-        - Associação com usuário (1 preferência pertence a 1 usuário)
-    - [ ] Cadastro de categorias
-        - Nome da categoria
-        - Palavras-chaves da categoria (string)
-        - Associação com usuário (1 usuário possui N categorias)
-        - Exemplos: categoria "Metallica" com palavras-chaves "Metallica, Rock"; categoria "Anime" com palavras-chave "Naruto, Anime, Cosplay"
-    - [ ] Cadastro de fontes (URLs)
-        - URL base da fonte (Exemplo: https://g1.globo.com/politica/)
-        - URL da RSS (Exemplo: https://g1.globo.com/rss/g1/politica/)
-        - Sistema descobre automaticamente URL de RSS
-        - Valida a URL antes de salvar
-        - Tabela pública (todos os usuários podem cadastrar fontes)
-        - Associação com categorias (cardinalidade 'muitos para muitos')
-    - [ ] Cadastro de notícias
-        - Título da notícia
-        - Conteúdo da notícia, já personalizado e traduzido conforme o usuário preferiu
-        - URL da notícia original
-        - Notícia foi lida pelo usuário (true ou false)
-        - Associação com usuário (1 notícia pertence a 1 usuário)
+- [ ] Autenticação Google + JWT (Bearer)
+    - Lembrete: fluxo de login está em ´PROJECT.md`
+- [ ] Criar rota para logout
+- [ ] Criar uma forma de invalidar todos os JWT de uma vez
 
 ## Versão 0.5.0
+
+- [ ] Cadastro de preferências
+    - Modo light ou dark
+    - Idiomas preferidos
+    - Traduzir para o idioma preferido (true ou false)
+    - Personalidade preferida (mais divertido, mais informativo ou misto)
+    - Associação com usuário (1 preferência pertence a 1 usuário)
+- [ ] Cadastro de categorias
+    - Nome da categoria
+    - Palavras-chaves da categoria (string)
+    - Associação com usuário (1 usuário possui N categorias)
+    - Exemplos: categoria "Metallica" com palavras-chaves "Metallica, Rock"; categoria "Anime" com palavras-chave "Naruto, Anime, Cosplay"
+- [ ] Cadastro de fontes (URLs)
+    - URL base da fonte (Exemplo: https://g1.globo.com/politica/)
+    - URL da RSS (Exemplo: https://g1.globo.com/rss/g1/politica/)
+    - Sistema descobre automaticamente URL de RSS
+    - Valida a URL antes de salvar
+    - Tabela pública (todos os usuários podem cadastrar fontes)
+    - Associação com categorias (cardinalidade 'muitos para muitos')
+- [ ] Cadastro de notícias
+    - Título da notícia
+    - Conteúdo da notícia, já personalizado e traduzido conforme o usuário preferiu
+    - URL da notícia original
+    - Notícia foi lida pelo usuário (true ou false)
+    - Associação com usuário (1 notícia pertence a 1 usuário)
+
+## Versão 0.6.0
 
 - [ ] Criação de testes unitários
     - Utilizando o agent `test_manager`
 
-## Versão 0.6.0
+## Versão 0.7.0
 
 - [ ] Filtragem de notícias
     - [ ] Buscar notícias de todas as fontes cadastradas
@@ -69,7 +82,7 @@ Os níveis de tabulação indicam detalhes do assunto.
         - [ ] Personalização
         - [ ] Tradução
 
-## Versão 0.6.0
+## Versão 0.8.0
 
 - [ ] Deploy
     - [ ] Docker funcionando

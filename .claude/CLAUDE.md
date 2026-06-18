@@ -22,6 +22,7 @@ API SQLite com Go para newsletter personalizada usando fontes RSS.
 - `sqlite-web` - interface de visualização do banco de dados
 - `sqlc` - operações SQL
 - `gofeed` - parsing de RSS feeds
+- `golang-migrate` - migrações do banco de dados
 - `Gemini 2.5 Flash` - agente básico
 - `Docker + docker-compose` - orquestração
 - `testify` - biblioteca para testes
