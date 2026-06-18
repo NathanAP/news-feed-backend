@@ -94,6 +94,7 @@ certs/
 # Dados locais
 # ==========================================
 
+db/
 data/
 uploads/
 
