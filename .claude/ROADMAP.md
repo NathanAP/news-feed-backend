@@ -50,6 +50,8 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 - [ ] Filtragem de notícias
     - [ ] Buscar notícias de todas as fontes cadastradas
+        - O processo ocorre através de cron interna que é executada periodicamente
+        - Utilize as variáveis de ambiente para controlar a atividade da cron interna (RSS_FEED_CRON_ACTIVE e RSS_FEED_CRON_SCHEDULE)
     - [ ] Implementar filtragem por palavra-chave
     - [ ] Integrar Gemini 2.5 Flash para:
         - [ ] Validação inteligente

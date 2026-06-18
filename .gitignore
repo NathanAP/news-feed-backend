@@ -1,0 +1,107 @@
+# ==========================================
+# Go
+# ==========================================
+
+# Binários
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Binários gerados
+/bin/
+/dist/
+/build/
+/tmp/
+
+# Arquivos de teste
+*.test
+
+# Coverage
+*.out
+coverage.out
+coverage.html
+
+# Vendor (ignore apenas se NÃO versionar dependências)
+# vendor/
+
+# Workspace Go
+go.work
+go.work.sum
+
+# ==========================================
+# IDEs e Editores
+# ==========================================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# ==========================================
+# Sistema Operacional
+# ==========================================
+
+.DS_Store
+Thumbs.db
+
+# ==========================================
+# Docker
+# ==========================================
+
+.docker/
+
+# Arquivos locais de override
+docker-compose.override.yml
+
+# ==========================================
+# Ambiente
+# ==========================================
+
+.env
+.env.*
+!.env.example
+
+# ==========================================
+# Logs
+# ==========================================
+
+*.log
+logs/
+log/
+
+# ==========================================
+# Arquivos temporários
+# ==========================================
+
+tmp/
+temp/
+.cache/
+
+# ==========================================
+# Certificados locais
+# ==========================================
+
+*.pem
+*.key
+*.crt
+certs/
+
+# ==========================================
+# Dados locais
+# ==========================================
+
+data/
+uploads/
+
+# ==========================================
+# Ferramentas de observabilidade
+# ==========================================
+
+*.prof
+cpu.prof
+mem.prof
+trace.out
