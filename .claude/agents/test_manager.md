@@ -38,20 +38,19 @@ Este arquivo contém um guia da atual situação dos testes deste projeto.
 ## Estrutura de arquivos de testes
 
 /news-feed-backend/
-├──/src/
-├────...
-├────/tests/
-├──────unit
-├────────users_test.go
-├────────categories_test.go
-├────────...
-├──────integration/
-├────────handlers_test.go
-├──────fixtures/
-├──────mocks/
-├────────sample_llm_responses.json
-├────────sample_rss_feeds.json
-└────────sample_users.json
+├──...
+├──tests/
+├────unit
+├──────users_test.go
+├──────categories_test.go
+├──────...
+├────integration/
+├──────handlers_test.go
+├────fixtures/
+├────mocks/
+├──────sample_llm_responses.json
+├──────sample_rss_feeds.json
+└──────sample_users.json
 
 ## Como rodar
 

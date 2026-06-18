@@ -18,15 +18,6 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 - [x] Criar o projeto utilizando a stack principal com suas dependências e estrutura de pastas básicas (Exemplos: mod, .gitignore, Dockerfile, .env)
 
-## Versão 0.2.1
-
-- [ ] Corrigir estrutura do projeto conforme as mudanças no arquivo `./rules/structure.md`
-    - Talvez o .env precise estar presente ao lado de `main.go`?
-    - Decidir exatamente onde a pasta `/sqlc/` deve ficar
-        - Talvez na pasta `/database/`?
-    - Decidir se o `sqlc.yaml` e o `docker-compose.yaml` são realmente separados um do outro
-    - Alterar o `Dockerfile` e `docker-compose` conforme necessidade
-
 ## Versão 0.3.0
 
 - [ ] CRUD básico
