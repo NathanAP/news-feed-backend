@@ -39,6 +39,7 @@ Este arquivo contém um guia da atual situação dos testes deste projeto.
 
 /news-feed-backend/
 ├──/src/
+├────...
 ├────/tests/
 ├──────unit
 ├────────users_test.go
