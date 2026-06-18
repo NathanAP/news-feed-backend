@@ -12,12 +12,16 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.2.0
 
+- [ ] Criar o projeto Go com suas dependências e estrutura de pastas básicas (Exemplos: mod, .gitignore, Dockerfile, .env)
+
+## Versão 0.3.0
+
 - [ ] CRUD básico
     - [ ] Autenticação Google + JWT (Bearer)
     - [ ] Cadastro de usuários (apenas através do Google)
         - Armazenar apenas dados da conta Google
 
-## Versão 0.3.0
+## Versão 0.4.0
 
     - [ ] Cadastro de preferências
         - Modo light ou dark
@@ -42,7 +46,7 @@ Os níveis de tabulação indicam detalhes do assunto.
         - Notícia foi lida pelo usuário (true ou false)
         - Associação com usuário
 
-## Versão 0.4.0
+## Versão 0.5.0
 
 - [ ] Filtragem de notícias
     - [ ] Buscar notícias de todas as fontes cadastradas
@@ -52,7 +56,7 @@ Os níveis de tabulação indicam detalhes do assunto.
         - [ ] Personalização
         - [ ] Tradução
 
-## Versão 0.5.0
+## Versão 0.6.0
 
 - [ ] Deploy
     - [ ] Docker funcionando
