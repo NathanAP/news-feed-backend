@@ -4,7 +4,11 @@ Este arquivo contém o atual estado de features.
 Marcações em 'x' indica o que já está concluído.
 Os níveis de tabulação indicam detalhes do assunto.
 
-## Atual versão (0.1.0)
+# Atual versão
+
+0.2.0
+
+## Versão 0.1.0
 
 - [x] Setup inicial
     - [x] Criar o projeto para o Claude
@@ -12,7 +16,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.2.0
 
-- [ ] Criar o projeto utilizando a stack principal com suas dependências e estrutura de pastas básicas (Exemplos: mod, .gitignore, Dockerfile, .env)
+- [x] Criar o projeto utilizando a stack principal com suas dependências e estrutura de pastas básicas (Exemplos: mod, .gitignore, Dockerfile, .env)
 
 ## Versão 0.3.0
 
@@ -49,6 +53,11 @@ Os níveis de tabulação indicam detalhes do assunto.
         - Associação com usuário (1 notícia pertence a 1 usuário)
 
 ## Versão 0.5.0
+
+- [ ] Criação de testes unitários
+    - Utilizando o agent `test_manager`
+
+## Versão 0.6.0
 
 - [ ] Filtragem de notícias
     - [ ] Buscar notícias de todas as fontes cadastradas

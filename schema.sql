@@ -1,0 +1,2 @@
+-- Schema defined incrementally across versions.
+-- Tables will be added starting in v0.3.0.

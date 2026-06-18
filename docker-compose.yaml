@@ -1,0 +1,21 @@
+services:
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./db:/app/db
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  sqlite-web:
+    image: coleifer/sqlite-web
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./db:/data
+    command: ["-H", "0.0.0.0", "-p", "8080", "/data/news_feed.db"]
+    depends_on:
+      - api
+    restart: unless-stopped
