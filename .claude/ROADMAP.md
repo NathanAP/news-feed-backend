@@ -28,23 +28,25 @@ Os níveis de tabulação indicam detalhes do assunto.
         - Idiomas preferidos
         - Traduzir para o idioma preferido (true ou false)
         - Personalidade preferida (mais divertido, mais informativo ou misto)
-        - Associação com usuário
+        - Associação com usuário (1 preferência pertence a 1 usuário)
     - [ ] Cadastro de categorias
         - Nome da categoria
         - Palavras-chaves da categoria (string)
-        - Associação com usuário
+        - Associação com usuário (1 usuário possui N categorias)
         - Exemplos: categoria "Metallica" com palavras-chaves "Metallica, Rock"; categoria "Anime" com palavras-chave "Naruto, Anime, Cosplay"
     - [ ] Cadastro de fontes (URLs)
-        - Sistema descobre automaticamente RSS da URL
+        - URL base da fonte (Exemplo: https://g1.globo.com/politica/)
+        - URL da RSS (Exemplo: https://g1.globo.com/rss/g1/politica/)
+        - Sistema descobre automaticamente URL de RSS
         - Valida a URL antes de salvar
-        - Armazena RSS URL no banco
-        - Associação com categorias
+        - Tabela pública (todos os usuários podem cadastrar fontes)
+        - Associação com categorias (cardinalidade 'muitos para muitos')
     - [ ] Cadastro de notícias
         - Título da notícia
         - Conteúdo da notícia, já personalizado e traduzido conforme o usuário preferiu
         - URL da notícia original
         - Notícia foi lida pelo usuário (true ou false)
-        - Associação com usuário
+        - Associação com usuário (1 notícia pertence a 1 usuário)
 
 ## Versão 0.5.0
 
