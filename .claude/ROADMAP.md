@@ -12,7 +12,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.2.0
 
-- [ ] Criar o projeto Go com suas dependências e estrutura de pastas básicas (Exemplos: mod, .gitignore, Dockerfile, .env)
+- [ ] Criar o projeto utilizando a stack principal com suas dependências e estrutura de pastas básicas (Exemplos: mod, .gitignore, Dockerfile, .env)
 
 ## Versão 0.3.0
 
