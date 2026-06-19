@@ -31,7 +31,10 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 # Convenções de banco de dados
 
 - Nomes de tabelas do banco de dados devem estar no plural e em snake case (Exemplo: users, user_preferences).
-- Todas as tabelas devem ter os campos `created_at`, `modified_at` e `removed_at` do tipo timestamp.
+- Todas as tabelas comuns devem ter pelo menos os campos `id`, `status`, `created_at`, `modified_at` e `removed_at` do tipo timestamp.
+- Tabelas de relacionamento muitos para muitos devem ter pelo menos o campo `id`.
+- Tabelas de relacionamento muitos para muitos devem conter registros de `id` existentes nas tabelas relacionadas.
+- `id` deve ser do tipo UUID v7.
 - O campo `status` deve ser utilizado para indicar o estado de um registro no banco de dados.
 - Ao alterar um registro, o campo `modified_at` deve ser atualizado com o timestamp atual.
 - Ao remover um registro, o campo `removed_at` deve ser atualizado com o timestamp atual e o campo `status` deve ser definido como false (0).

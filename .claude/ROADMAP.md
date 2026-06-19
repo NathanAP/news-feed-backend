@@ -79,7 +79,7 @@ Os níveis de tabulação indicam detalhes do assunto.
         - status (`true` ou `false`)
         - user_id (`UUID` do usuário - 1 categoria pertence a 1 usuário, 1 usuário cria N categorias)
         - name (`string`)
-        - keywords (uma lista de `string`? O que você acha?)
+        - keywords (uma lista de `string` - formato `JSON array (TEXT)`)
         - created_at (`timestamp`)
         - modified_at (`timestamp` opcional)
         - removed_at (`timestamp` opcional)
@@ -107,8 +107,9 @@ Os níveis de tabulação indicam detalhes do assunto.
     - É basicamente a tabela relacional entre categoria e fonte de notícias
     - O arquivo `PROJECT.md` explica melhor como essa tabela funciona
     - Armazene os seguintes dados:
-        - id da categoria de notícia (`UUID` v7 existente)
-        - id da fonte de notícia (`UUID` v7 existente)
+        - id (`UUID` v7)
+        - id da categoria de notícia (`UUID` v7 existente em categorias de notícia)
+        - id da fonte de notícia (`UUID` v7 existente em fontes de notícia)
 
 ## Versão 0.6.0
 
