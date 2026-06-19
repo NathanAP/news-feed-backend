@@ -14,6 +14,11 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Utilize arquivos de ambiente local (arquivos .env) para guardar informações secretas ou confidenciais.
 - Utilize arquivos de ambiente local (arquivos .env) para preferências de modo desenvolvimento, homologação ou produção (Exemplo: ENVIRONMENT, MAILER_ACTIVE, NOTIFICATOR_ACTIVE).
 
+# Convenções de workaround
+
+- Workarounds são necessários mas a preferência é no ajuste do código para evitar essas necessidades. Sabemos que um refatoramento é demorado e perigoso, mas quando necessário, tem que ser feito o quanto antes para evitar problemas maiores no futuro.
+- Ao notar que um workaround é necessário, sempre avise e explique o motivo e a solução proposta. Caso seja muito grande ou seja considerada uma gambiarra de código, considere parar o processo para falar sobre isso.
+
 # Convenções de arquivos e pastas
 
 - Nomes de arquivos e pastas devem estar em snake case (Exemplo: user.go, user_preference.go).

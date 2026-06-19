@@ -37,7 +37,8 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [ ] Autenticação Google + JWT (Bearer)
     - Lembrete: fluxo de login está em ´PROJECT.md`
 - [ ] Criar rota para logout
-- [ ] Criar uma forma de invalidar todos os JWT de uma vez
+- [ ] Criar um invalidador de login, possibilitando derrubar a sesão de um usuário específico
+- [ ] Criar um invalidador de todos os JWT, possibilitando derrubar todas as sessões de uma vez
 
 ## Versão 0.5.0
 
