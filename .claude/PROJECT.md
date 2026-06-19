@@ -61,6 +61,12 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
 
 ## Preferências do usuário (user preferences)
 
+- Ao criar um usuário, suas preferências devem ser criadas automaticamente também.
+    - Valores padrão:
+        - modo dark
+        - idioma português
+        - traduzir conteúdo em `true`
+        - personalidade em `misto`
 - O usuário tem liberdade de alterar suas preferências para utilização do sistema da forma que preferir.
 - Usuários removidos (`status` em `false`) devem ficar com suas preferências excluídas também (`status` também deve ser setado para `false`)
 - O idioma preferido não afeta em nada das respostas da API.

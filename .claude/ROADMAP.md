@@ -71,6 +71,8 @@ Os níveis de tabulação indicam detalhes do assunto.
         - created_at (`timestamp`)
         - modified_at (`timestamp` opcional)
         - removed_at (`timestamp` opcional)
+- [ ] Criar rotas para as preferências do usuário
+    - Edição de preferências, que pode ser PUT em `base_url/v1/users/my/preferences`
 - [ ] Criar uma migração para a tabela de categorias de notícias
     - Acredito que o melhor nomenclatura aqui seja 'article categories', mas aceito melhores sugestões
     - O arquivo `PROJECT.md` explica melhor como essa tabela funciona
@@ -100,6 +102,9 @@ Os níveis de tabulação indicam detalhes do assunto.
         - status (`true` ou `false`)
         - url (Exemplo: https://g1.globo.com/politica/)
         - url_rss (Exemplo: https://g1.globo.com/rss/g1/politica/)
+        - created_at (`timestamp`)
+        - modified_at (`timestamp` opcional)
+        - removed_at (`timestamp` opcional)
     - Esta tabela possui um relacionamento muito para muitos (N to N) com categorias
     - Devemos ser capazes de encontrar automaticamente a URL de RSS
     - Valida a URL antes de salvar
