@@ -41,9 +41,11 @@ Os níveis de tabulação indicam detalhes do assunto.
         - user_id (UUID do usuário)
         - expires_at (timestamp)
         - created_at (timestamp)
+        - modified_at (timestamp opcional)
         - removed_at (timestamp opcional)
 - [ ] Autenticação Google + JWT (Bearer)
     - Lembrete: fluxo de login está em ´PROJECT.md`
+- [ ] Criar rota para visualizar os dados do usuário (`/me`)
 - [ ] Criar rota para logout
 - [ ] Renovação do JWT
 - [ ] Criar um invalidador de login, possibilitando derrubar a sesão de um usuário específico
