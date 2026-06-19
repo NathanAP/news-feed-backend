@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.3.0
+0.4.0
 
 ## Versão 0.1.0
 
@@ -34,7 +34,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.4.0
 
-- [ ] Criar uma migração para a tabela de `refresh_tokens`
+- [x] Criar uma migração para a tabela de `refresh_tokens`
     - Armazenar os seguintes dados:
         - id (UUID v7)
         - status (true ou false)
@@ -43,18 +43,18 @@ Os níveis de tabulação indicam detalhes do assunto.
         - created_at (timestamp)
         - modified_at (timestamp opcional)
         - removed_at (timestamp opcional)
-- [ ] Criar rota para visualizar os dados do usuário (GET `base_url/v1/users/me`)
-- [ ] Autenticação Google + JWT (Bearer)
+- [x] Criar rota para visualizar os dados do usuário (GET `base_url/v1/users/me`)
+- [x] Autenticação Google + JWT (Bearer)
     - Lembrete: fluxo de login está em ´PROJECT.md`
-- [ ] Criar rota para renovação do `access_token` (POST `base_url/v1/auth/refresh/` requirindo o `refresh_token` no body)
+- [x] Criar rota para renovação do `access_token` (POST `base_url/v1/auth/refresh/` requirindo o `refresh_token` no body)
     - Retorna o novo token renovado
     - `refresh_token` sofre alteração em `expires_at` para também ser renovado
     - Caso o `refresh_token` esteja expirado, o fluxo de login deve ser refeito
     - Lembrete: esse fluxo está presente em `PROJECT.md`
-- [ ] Criar rota para logout
-- [ ] Criar um invalidador de `refresh_token`, possibilitando derrubar a sessão de um usuário específico
+- [x] Criar rota para logout
+- [x] Criar um invalidador de `refresh_token`, possibilitando derrubar a sessão de um usuário específico
     - Vamos adicionar o usuário administrador depois, então essa rota por enquanto pode ficar aberta
-- [ ] Criar um invalidador de todos os `refresh_token`, possibilitando derrubar todas as sessões de uma vez
+- [x] Criar um invalidador de todos os `refresh_token`, possibilitando derrubar todas as sessões de uma vez
     - Vamos adicionar o usuário administrador depois, então essa rota por enquanto pode ficar aberta
 
 ## Versão 0.5.0
