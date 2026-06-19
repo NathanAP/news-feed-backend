@@ -39,7 +39,7 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 
 # Convenções da API
 
-- Todos os dados do usuário (incluindo suas preferências) e do `refresh_token` estão no `access_token`. Isso vai evitar consultas adicionais ao banco de dados para autenticação e autorização. Se um endpoint precisar de um dado ou uma preferência do usuário não mapeada no `access_token`, avise-nos para que possamos tomar as medidas necessárias, como invalidar tokens antigos ou renovar os tokens automaticamente.
+- Todos os dados e preferências públicas do usuário estão no `access_token`. Se um endpoint precisar de um dado ou uma preferência do usuário não mapeada no `access_token`, avise-nos para que possamos tomar as medidas necessárias, como invalidar tokens antigos ou renovar os tokens automaticamente.
 - É papel da API garantir que o `refresh_token` seja renovado antes de expirar, para evitar que o usuário perca a sessão.
 - É papel da API garantir que o `refresh_token` esteja válido a cada requisição, para evitar que um usuário com um `access_token` inativo ou inválido continue usando a API.
 - Seguir os padrões de respostas tradicionais para RESTful com os códigos de status HTTP apropriados.
