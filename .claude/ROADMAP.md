@@ -43,14 +43,18 @@ Os níveis de tabulação indicam detalhes do assunto.
         - created_at (timestamp)
         - modified_at (timestamp opcional)
         - removed_at (timestamp opcional)
+- [ ] Criar rota para visualizar os dados do usuário (`base_url/v1/users/me`)
 - [ ] Autenticação Google + JWT (Bearer)
     - Lembrete: fluxo de login está em ´PROJECT.md`
-- [ ] Criar rota para visualizar os dados do usuário (`/me`)
+- [ ] Criar rota para renovação do `access_token` (`base_url/v1/auth/refresh/{refresh_token_id}`)
+    - Retorna o novo token renovado
+    - `refresh_token` sofre alteração em `expires_at` para também ser renovado
+    - Caso o `refresh_token` esteja expirado, o fluxo de login deve ser refeito
+    - Lembrete: esse fluxo está presente em `PROJECT.md`
 - [ ] Criar rota para logout
-- [ ] Renovação do JWT
-- [ ] Criar um invalidador de login, possibilitando derrubar a sesão de um usuário específico
+- [ ] Criar um invalidador de `refresh_token`, possibilitando derrubar a sessão de um usuário específico
     - Vamos adicionar o usuário administrador depois, então essa rota por enquanto pode ficar aberta
-- [ ] Criar um invalidador de todos os JWT, possibilitando derrubar todas as sessões de uma vez
+- [ ] Criar um invalidador de todos os `refresh_token`, possibilitando derrubar todas as sessões de uma vez
     - Vamos adicionar o usuário administrador depois, então essa rota por enquanto pode ficar aberta
 
 ## Versão 0.5.0
