@@ -44,7 +44,10 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
 5. Verifica-se as prefêrencias do usuário que receberá a notícia e a personaliza.
 6. Usuário vê a notícia e ela é marcada como lida.
 
-## Fluxo de login
+## Fluxo de cadastro
 
 - Usuários são cadastrados exclusivamente pelo Google.
+
+## Fluxo de login
+
 - Fluxo do login: frontend redireciona o usuário para `/v1/auth/google` → Google autentica → Google redireciona para o nosso callback (`/v1/auth/google/callback`) → nosso callback retorna um JSON com o JWT → frontend captura esse token e passa a usar como header (`Authorization: Bearer <token>`) nas próximas chamadas.
