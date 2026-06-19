@@ -37,8 +37,9 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - `id` deve ser do tipo UUID v7.
 - O campo `status` deve ser utilizado para indicar o estado de um registro no banco de dados.
 - Ao alterar um registro, o campo `modified_at` deve ser atualizado com o timestamp atual.
-- Ao remover um registro, o campo `removed_at` deve ser atualizado com o timestamp atual e o campo `status` deve ser definido como false (0).
+- Tabelas de relacionamento muitos para muitos não sofrem alterações. Para "trocar" qualquer um dos `id` do relacionamento, o registro antigo deve ser removido e um novo registro deve ser criado.
 - Exclusões de registros em tabelas comuns devem ser feitas através de soft delete, utilizando um campo booleano chamado `status` e um campo de timestamp `removed_at`.
+    - Nesse caso, o campo `removed_at` deve ser atualizado com o timestamp atual e o campo `status` deve ser definido como false (0).
 - Exclusões de registros em tabelas de relacionamento muitos para muitos devem ser feitas através de remoção física, ou seja, o registro deve ser removido da tabela permanentemente.
 
 # Convenções da API
