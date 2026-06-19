@@ -1,6 +1,6 @@
 # Resumo
 
-API SQLite com Go para newsletter personalizada usando fontes RSS.
+API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
 
 # Regras de desenvolvimento
 

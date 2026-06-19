@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.2.0
+0.3.0
 
 ## Versão 0.1.0
 
@@ -20,9 +20,9 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.3.0
 
-- [ ] Preparar banco de dados para receber migrações utilizando o `golang-migrate`
-- [ ] Criar uma migração para a tabela de usuários
-- [ ] Cadastro de usuários (lembrete: apenas através do Google)
+- [x] Preparar banco de dados para receber migrações utilizando o `goose`
+- [x] Criar uma migração para a tabela de usuários
+- [x] Cadastro de usuários (lembrete: apenas através do Google)
     - Sem endpoints na API, apenas tabela
     - Armazenar apenas dados da conta Google e:
         - id (UUID v7)

@@ -1,4 +1,5 @@
-CREATE TABLE users (
+-- +goose Up
+CREATE TABLE IF NOT EXISTS users (
     id TEXT NOT NULL,
     google_id TEXT NOT NULL,
     email TEXT NOT NULL,
@@ -13,3 +14,6 @@ CREATE TABLE users (
     UNIQUE (google_id),
     UNIQUE (email)
 );
+
+-- +goose Down
+DROP TABLE IF EXISTS users;
