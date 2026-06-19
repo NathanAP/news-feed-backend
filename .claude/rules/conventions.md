@@ -14,6 +14,10 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Utilize arquivos de ambiente local (arquivos .env) para guardar informações secretas ou confidenciais.
 - Utilize arquivos de ambiente local (arquivos .env) para preferências de modo desenvolvimento, homologação ou produção (Exemplo: ENVIRONMENT, MAILER_ACTIVE, NOTIFICATOR_ACTIVE).
 
+# Versionamento
+
+- As versões devem seguir o padrão SemVer (MAJOR.MINOR.PATCH).
+
 # Convenções de workaround
 
 - Workarounds são necessários mas a preferência é no ajuste do código para evitar essas necessidades. Sabemos que um refatoramento é demorado e perigoso, mas quando necessário, tem que ser feito o quanto antes para evitar problemas maiores no futuro.
