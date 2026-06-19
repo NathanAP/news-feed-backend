@@ -72,7 +72,8 @@ Os níveis de tabulação indicam detalhes do assunto.
         - modified_at (`timestamp` opcional)
         - removed_at (`timestamp` opcional)
 - [ ] Criar rotas para as preferências do usuário
-    - Edição de preferências, que pode ser PUT em `base_url/v1/users/my/preferences`
+    - Edição, que pode ser PUT em `base_url/v1/users/me/preferences`
+    - Buscar, que pode ser GET em `base_url/v1/users/me/preferences`
 - [ ] Criar uma migração para a tabela de categorias de notícias
     - Acredito que o melhor nomenclatura aqui seja 'article categories', mas aceito melhores sugestões
     - O arquivo `PROJECT.md` explica melhor como essa tabela funciona
@@ -92,8 +93,8 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Criação
     - Edição
     - Remoção
-    - Busca por id
-    - Busca por filtro
+    - Buscar por id
+    - Buscar por filtro
 - [ ] Criar uma migração para a tabela de fonte de notícias
     - Acredito que o melhor nomenclatura aqui seja 'sources', mas aceito melhores sugestões
     - O arquivo `PROJECT.md` explica melhor como essa tabela funciona
@@ -112,8 +113,8 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Criação
     - Edição
     - Remoção
-    - Busca por id
-    - Busca por filtro
+    - Buscar por id
+    - Buscar por filtro
     - Descobrir automaticamente URL de RSS através da URL base
 - [ ] Criar uma migração para a tabela de categoria x fonte de notícias
     - É basicamente a tabela relacional entre categoria e fonte de notícias

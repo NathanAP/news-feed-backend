@@ -32,15 +32,15 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 
 - Nomes de tabelas do banco de dados devem estar no plural e em snake case (Exemplo: users, user_preferences).
 - Todas as tabelas comuns devem ter pelo menos os campos `id`, `status`, `created_at`, `modified_at` e `removed_at` do tipo timestamp.
-- Tabelas de relacionamento muitos para muitos devem ter pelo menos o campo `id`.
-- Tabelas de relacionamento muitos para muitos devem conter registros de `id` existentes nas tabelas relacionadas.
+- Tabelas de relacionamento (junction tables) devem ter pelo menos o campo `id`.
+- Tabelas de relacionamento (junction tables) devem conter registros de `id` existentes nas tabelas relacionadas.
 - `id` deve ser do tipo UUID v7.
 - O campo `status` deve ser utilizado para indicar o estado de um registro no banco de dados.
 - Ao alterar um registro, o campo `modified_at` deve ser atualizado com o timestamp atual.
-- Tabelas de relacionamento muitos para muitos não sofrem alterações. Para "trocar" qualquer um dos `id` do relacionamento, o registro antigo deve ser removido e um novo registro deve ser criado.
+- Tabelas de relacionamento (junction tables) não sofrem alterações. Para "trocar" qualquer um dos `id` do relacionamento, o registro antigo deve ser removido e um novo registro deve ser criado.
 - Exclusões de registros em tabelas comuns devem ser feitas através de soft delete, utilizando um campo booleano chamado `status` e um campo de timestamp `removed_at`.
     - Nesse caso, o campo `removed_at` deve ser atualizado com o timestamp atual e o campo `status` deve ser definido como false (0).
-- Exclusões de registros em tabelas de relacionamento muitos para muitos devem ser feitas através de remoção física, ou seja, o registro deve ser removido da tabela permanentemente.
+- Exclusões de registros em tabelas de relacionamento (junction tables) devem ser feitas através de remoção física, ou seja, o registro deve ser removido da tabela permanentemente.
 
 # Convenções da API
 

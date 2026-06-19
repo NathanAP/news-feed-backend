@@ -71,6 +71,7 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
 - Usuários removidos (`status` em `false`) devem ficar com suas preferências excluídas também (`status` também deve ser setado para `false`)
 - O idioma preferido não afeta em nada das respostas da API.
 - Apenas os próprios usuários podem alterar suas preferências.
+- Alterar as preferências do usuário faz com que um novo `access_token` seja gerado e retornado também pela rota, já com as novas informações atualizadas nele.
 
 ## Categorias de notícias
 
