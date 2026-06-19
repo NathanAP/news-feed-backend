@@ -48,6 +48,13 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
 
 - Usuários são cadastrados exclusivamente pelo Google.
 
-## Fluxo de login
+## Autenticação
 
-- Fluxo do login: frontend redireciona o usuário para `/v1/auth/google` → Google autentica → Google redireciona para o nosso callback (`/v1/auth/google/callback`) → nosso callback retorna um JSON com o JWT → frontend captura esse token e passa a usar como header (`Authorization: Bearer <token>`) nas próximas chamadas.
+- Client redireciona o usuário para `/v1/auth/google` → Google autentica → Google redireciona para o nosso callback (`/v1/auth/google/callback`) → nosso callback retorna um JSON com o JWT → client captura esse token e passa a usar como header (`Authorization: Bearer <token>`) nas próximas chamadas.
+- Tokens são divididos em dois níveis:
+    - o primeiro é um `access_token` que expira de acordo com a variável de ambiente `JWT_ACCESS_TOKEN_EXPIRY_MINUTES` (em minutos) e que é usado pelo client em todas as requisições através de Authorization, como citado acima.
+    - o segundo é um `refresh_token` que expira de acordo com a variável de ambiente `JWT_REFRESH_TOKEN_EXPIRY_DAYS` (em dias). É uma tabela simples chamada `refresh_tokens` que é usado silenciosamente quando for buscar um novo.
+- Ao expirar um `access_token` o client chama pela rota de refresh (`base_url/v1/auth/refresh`) e recebe um novo `access_token` renovado.
+    - Quando o `refresh_token` também tiver expirado, a mesma rota renova ambos os tokens automaticamente.
+- Logout faz com que o `refresh_token` seja removido de forma soft - através do campo status. O `access_token` será expirado em no máximo 1 hora naturalmente. Depois disso, o
+- O campo `status` da tabela `refresh_token` indica se o token está expirado ou não também.

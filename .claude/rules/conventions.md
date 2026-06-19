@@ -35,7 +35,9 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 
 # Convenções da API
 
-- Armazene todos os dados do usuário no JWT, evitando a necessidade de consultas adicionais ao banco de dados para autenticação e autorização.
+- Todos os dados do usuário (incluindo suas preferências) e do `refresh_token` estão no `access_token`. Isso vai evitar consultas adicionais ao banco de dados para autenticação e autorização. Se um endpoint precisar de um dado ou uma preferência do usuário não mapeada no `access_token`, avise-nos para que possamos tomar as medidas necessárias, como invalidar tokens antigos ou renovar os tokens automaticamente.
+- É papel da API garantir que o `refresh_token` seja renovado antes de expirar, para evitar que o usuário perca a sessão.
+- É papel da API garantir que o `refresh_token` esteja válido a cada requisição, para evitar que um usuário com um `access_token` inativo ou inválido continue usando a API.
 - Seguir os padrões de respostas tradicionais para RESTful com os códigos de status HTTP apropriados.
 - Middlewares devem estar na pasta `raiz/middlewares/` e seguir a convenção de nomeação de arquivos (Exemplo: `auth.go` para middleware de autenticação, `logging.go` para middleware de logging).
 - Endpoints devem estar em seu próprio arquivo, organizado dentro de uma pasta do modelo correspondente (Exemplo: `raiz/services/endpoints/v1/users/` para endpoints relacionados a usuários; arquivo `login.go` corresponde à rota de login do usuário).

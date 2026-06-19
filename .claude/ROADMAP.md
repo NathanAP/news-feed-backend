@@ -34,11 +34,22 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.4.0
 
+- [ ] Criar uma migração para a tabela de `refresh_tokens`
+    - Armazenar os seguintes dados:
+        - id (UUID v7)
+        - status (true ou false)
+        - user_id (UUID do usuário)
+        - expires_at (timestamp)
+        - created_at (timestamp)
+        - removed_at (timestamp opcional)
 - [ ] Autenticação Google + JWT (Bearer)
     - Lembrete: fluxo de login está em ´PROJECT.md`
 - [ ] Criar rota para logout
+- [ ] Renovação do JWT
 - [ ] Criar um invalidador de login, possibilitando derrubar a sesão de um usuário específico
+    - Vamos adicionar o usuário administrador depois, então essa rota por enquanto pode ficar aberta
 - [ ] Criar um invalidador de todos os JWT, possibilitando derrubar todas as sessões de uma vez
+    - Vamos adicionar o usuário administrador depois, então essa rota por enquanto pode ficar aberta
 
 ## Versão 0.5.0
 
@@ -96,6 +107,7 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
 
 - Logger e observabilidade
 - Swagger
+- Usuário administrador
 - Compartilhamento de notícias
 - Múltiplos modelos de IA (Claude, GPT)
 - LangChain para orquestração complexa

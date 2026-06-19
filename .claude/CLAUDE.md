@@ -20,10 +20,11 @@ API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
 - `Fiber` - framework web
 - `SQLite3` - banco de dados
 - `sqlite-web` - interface de visualização do banco de dados
-- `sqlc` - operações SQL
-- `Gemini 2.5 Flash` - agente básico
-- `gofeed` - parsing de RSS feeds
 - `goose` - migrações do banco de dados
+- `sqlc` - operações SQL
+- `jwt` - autenticação Bearer
+- `gofeed` - parsing de RSS feeds
+- `Gemini 2.5 Flash` - agente básico
 - `Docker + docker-compose` - orquestração
 - `testify` - biblioteca para testes
 
