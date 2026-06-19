@@ -6,11 +6,20 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 	"github.com/pressly/goose/v3"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 	_ "modernc.org/sqlite"
+
+	"github.com/nathanap/news-feed-backend/middlewares"
+	"github.com/nathanap/news-feed-backend/services/controllers"
+	authendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/auth"
+	userendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/users"
 )
 
 //go:embed migrations/*.sql
@@ -41,6 +50,35 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
+	accessTokenExpiry, err := parseMinutes(os.Getenv("JWT_ACCESS_TOKEN_EXPIRY_MINUTES"))
+	if err != nil {
+		log.Fatalf("Invalid JWT_ACCESS_TOKEN_EXPIRY_MINUTES: %v", err)
+	}
+
+	refreshTokenExpiry, err := parseDays(os.Getenv("JWT_REFRESH_TOKEN_EXPIRY_DAYS"))
+	if err != nil {
+		log.Fatalf("Invalid JWT_REFRESH_TOKEN_EXPIRY_DAYS: %v", err)
+	}
+
+	jwtSecret := []byte(os.Getenv("JWT_SECRET_KEY"))
+
+	oauth2Config := &oauth2.Config{
+		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		RedirectURL:  os.Getenv("GOOGLE_REDIRECT_URL"),
+		Scopes: []string{
+			"https://www.googleapis.com/auth/userinfo.email",
+			"https://www.googleapis.com/auth/userinfo.profile",
+		},
+		Endpoint: google.Endpoint,
+	}
+
+	userCtrl := controllers.NewUserController(database)
+	refreshTokenCtrl := controllers.NewRefreshTokenController(database, refreshTokenExpiry)
+	authCtrl := controllers.NewAuthController(oauth2Config, userCtrl, refreshTokenCtrl, jwtSecret, accessTokenExpiry)
+
+	authMiddleware := middlewares.NewAuthMiddleware(jwtSecret, refreshTokenCtrl)
+
 	app := fiber.New(fiber.Config{
 		AppName: os.Getenv("PROJECT_NAME"),
 	})
@@ -54,6 +92,17 @@ func main() {
 			"version": os.Getenv("PROJECT_VERSION"),
 		})
 	})
+
+	auth := api.Group("/auth")
+	auth.Get("/google", authendpoints.GoogleLogin(oauth2Config))
+	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl))
+	auth.Post("/refresh", authendpoints.RefreshToken(authCtrl))
+	auth.Post("/logout", append(authMiddleware, authendpoints.Logout(refreshTokenCtrl))...)
+	auth.Delete("/invalidate", authendpoints.Invalidate(refreshTokenCtrl))
+	auth.Delete("/invalidate-all", authendpoints.InvalidateAll(refreshTokenCtrl))
+
+	users := api.Group("/users")
+	users.Get("/me", append(authMiddleware, userendpoints.GetMe())...)
 
 	log.Fatal(app.Listen(":3000"))
 }
@@ -71,4 +120,20 @@ func runMigrations(database *sql.DB) error {
 
 	log.Println("Migrations applied successfully")
 	return nil
+}
+
+func parseMinutes(s string) (time.Duration, error) {
+	minutes, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, fmt.Errorf("expected integer, got %q", s)
+	}
+	return time.Duration(minutes) * time.Minute, nil
+}
+
+func parseDays(s string) (time.Duration, error) {
+	days, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, fmt.Errorf("expected integer, got %q", s)
+	}
+	return time.Duration(days) * 24 * time.Hour, nil
 }

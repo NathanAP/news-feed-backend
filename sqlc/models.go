@@ -9,6 +9,16 @@ import (
 	"time"
 )
 
+type RefreshToken struct {
+	ID         string       `json:"id"`
+	UserID     string       `json:"user_id"`
+	Status     int64        `json:"status"`
+	ExpiresAt  time.Time    `json:"expires_at"`
+	CreatedAt  time.Time    `json:"created_at"`
+	ModifiedAt sql.NullTime `json:"modified_at"`
+	RemovedAt  sql.NullTime `json:"removed_at"`
+}
+
 type User struct {
 	ID          string         `json:"id"`
 	GoogleID    string         `json:"google_id"`
