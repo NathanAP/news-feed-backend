@@ -58,4 +58,3 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
 - Ao expirar um `access_token` o client chama pela rota de refresh (`base_url/v1/auth/refresh`) e recebe um novo `access_token` renovado. Ao fazer essa operação, uma nova data de expiração é gerada ao `refresh_token`.
 - Logout faz com que o `refresh_token` seja removido de forma soft - através do campo status. Naturalmente, o `access_token` será expirado em no máximo 1 hora e o usuário terá que refazer o processo de login novamente.
 - O campo `status` da tabela `refresh_token` indica se o token está expirado ou não também.
-- Ao realizar login, todos os `refresh_token` daquele usuário que estão ativos devem ser marcados como expirados (ou seja, status = false).

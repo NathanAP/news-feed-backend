@@ -43,10 +43,10 @@ Os níveis de tabulação indicam detalhes do assunto.
         - created_at (timestamp)
         - modified_at (timestamp opcional)
         - removed_at (timestamp opcional)
-- [ ] Criar rota para visualizar os dados do usuário (`base_url/v1/users/me`)
+- [ ] Criar rota para visualizar os dados do usuário (GET `base_url/v1/users/me`)
 - [ ] Autenticação Google + JWT (Bearer)
     - Lembrete: fluxo de login está em ´PROJECT.md`
-- [ ] Criar rota para renovação do `access_token` (`base_url/v1/auth/refresh/{refresh_token_id}`)
+- [ ] Criar rota para renovação do `access_token` (POST `base_url/v1/auth/refresh/` requirindo o `refresh_token` no body)
     - Retorna o novo token renovado
     - `refresh_token` sofre alteração em `expires_at` para também ser renovado
     - Caso o `refresh_token` esteja expirado, o fluxo de login deve ser refeito
