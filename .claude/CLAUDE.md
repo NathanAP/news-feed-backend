@@ -33,14 +33,6 @@ API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
 - Dependências devem sempre estar na versão mais atualizada possível.
 - UUIDs devem estar na versão 7.
 
-### RSS Discovery
-
-- Quando um usuário cadastra uma fonte, tente descobrir automaticamente:
-    1. Padrões comuns: `/rss/`, `/feed/`, `/feed.xml`
-    2. Parse HTML para `<link rel="alternate" type="application/rss+xml">`
-    3. Fallback: retorne erro se não encontrar
-- Use `gofeed` para parsing robusta
-
 ### Filtragem de notícias
 
 - **Primeira camada**: Filtragem por keywords (rápido)
