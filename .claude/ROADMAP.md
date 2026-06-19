@@ -108,6 +108,13 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Esta tabela possui um relacionamento muito para muitos (N to N) com categorias
     - Devemos ser capazes de encontrar automaticamente a URL de RSS
     - Valida a URL antes de salvar
+- [ ] Criar rotas para as fontes de notícias
+    - Criação
+    - Edição
+    - Remoção
+    - Busca por id
+    - Busca por filtro
+    - Descobrir automaticamente URL de RSS através da URL base
 - [ ] Criar uma migração para a tabela de categoria x fonte de notícias
     - É basicamente a tabela relacional entre categoria e fonte de notícias
     - O arquivo `PROJECT.md` explica melhor como essa tabela funciona
@@ -118,13 +125,6 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.6.0
 
-- [ ] Criar rotas para as fontes de notícias
-    - Criação
-    - Edição
-    - Remoção
-    - Busca por id
-    - Busca por filtro
-    - Descobrir automaticamente URL de RSS através da URL base
 - [ ] Cadastro de notícias
     - Acho que a melhor nomenclatura para essa tabela é 'Article'
     - Título da notícia
