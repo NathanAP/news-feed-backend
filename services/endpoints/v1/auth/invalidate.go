@@ -9,7 +9,7 @@ type invalidateRequest struct {
 	RefreshTokenID string `json:"refresh_token_id"`
 }
 
-func Invalidate(refreshTokenCtrl *controllers.RefreshTokenController) fiber.Handler {
+func Invalidate(refreshTokenCtrl controllers.RefreshTokenControllerInterface) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var req invalidateRequest
 		if err := c.BodyParser(&req); err != nil || req.RefreshTokenID == "" {

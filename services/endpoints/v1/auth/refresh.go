@@ -8,7 +8,7 @@ import (
 	"github.com/nathanap/news-feed-backend/services/controllers"
 )
 
-func RefreshToken(authCtrl *controllers.AuthController) fiber.Handler {
+func RefreshToken(authCtrl controllers.AuthControllerInterface) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var req schemas.RefreshRequest
 		if err := c.BodyParser(&req); err != nil || req.RefreshToken == "" {

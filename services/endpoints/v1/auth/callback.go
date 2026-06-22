@@ -5,7 +5,7 @@ import (
 	"github.com/nathanap/news-feed-backend/services/controllers"
 )
 
-func GoogleCallback(authCtrl *controllers.AuthController) fiber.Handler {
+func GoogleCallback(authCtrl controllers.AuthControllerInterface) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		code := c.Query("code")
 		if code == "" {

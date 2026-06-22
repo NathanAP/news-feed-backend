@@ -20,6 +20,7 @@ import (
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	authendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/auth"
 	userendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/users"
+	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
 //go:embed migrations/*.sql
@@ -73,8 +74,9 @@ func main() {
 		Endpoint: google.Endpoint,
 	}
 
-	userCtrl := controllers.NewUserController(database)
-	refreshTokenCtrl := controllers.NewRefreshTokenController(database, refreshTokenExpiry)
+	queries := db.New(database)
+	userCtrl := controllers.NewUserController(queries)
+	refreshTokenCtrl := controllers.NewRefreshTokenController(queries, refreshTokenExpiry)
 	authCtrl := controllers.NewAuthController(oauth2Config, userCtrl, refreshTokenCtrl, jwtSecret, accessTokenExpiry)
 
 	authMiddleware := middlewares.NewAuthMiddleware(jwtSecret, refreshTokenCtrl)

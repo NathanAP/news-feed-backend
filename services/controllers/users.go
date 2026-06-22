@@ -17,13 +17,11 @@ var (
 )
 
 type UserController struct {
-	queries *db.Queries
+	queries db.Querier
 }
 
-func NewUserController(database *sql.DB) *UserController {
-	return &UserController{
-		queries: db.New(database),
-	}
+func NewUserController(querier db.Querier) *UserController {
+	return &UserController{queries: querier}
 }
 
 func (c *UserController) CreateUser(ctx context.Context, googleID, email, name, picture string) (db.User, error) {

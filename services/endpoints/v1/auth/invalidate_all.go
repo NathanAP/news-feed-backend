@@ -5,7 +5,7 @@ import (
 	"github.com/nathanap/news-feed-backend/services/controllers"
 )
 
-func InvalidateAll(refreshTokenCtrl *controllers.RefreshTokenController) fiber.Handler {
+func InvalidateAll(refreshTokenCtrl controllers.RefreshTokenControllerInterface) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		userID := c.Query("user_id")
 		if userID == "" {

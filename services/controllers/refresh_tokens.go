@@ -11,21 +11,19 @@ import (
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
+
 var (
 	ErrRefreshTokenNotFound = errors.New("refresh token not found")
 	ErrRefreshTokenExpired  = errors.New("refresh token expired")
 )
 
 type RefreshTokenController struct {
-	queries *db.Queries
+	queries db.Querier
 	expiry  time.Duration
 }
 
-func NewRefreshTokenController(database *sql.DB, expiry time.Duration) *RefreshTokenController {
-	return &RefreshTokenController{
-		queries: db.New(database),
-		expiry:  expiry,
-	}
+func NewRefreshTokenController(querier db.Querier, expiry time.Duration) *RefreshTokenController {
+	return &RefreshTokenController{queries: querier, expiry: expiry}
 }
 
 func (c *RefreshTokenController) Create(ctx context.Context, userID string) (db.RefreshToken, error) {

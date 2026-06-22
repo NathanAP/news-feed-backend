@@ -11,7 +11,7 @@ import (
 	"github.com/nathanap/news-feed-backend/services/controllers"
 )
 
-func NewAuthMiddleware(jwtSecret []byte, refreshTokenCtrl *controllers.RefreshTokenController) []fiber.Handler {
+func NewAuthMiddleware(jwtSecret []byte, refreshTokenCtrl controllers.RefreshTokenControllerInterface) []fiber.Handler {
 	return []fiber.Handler{
 		parseJWT(jwtSecret),
 		validateSession(refreshTokenCtrl),
@@ -52,7 +52,7 @@ func parseJWT(secret []byte) fiber.Handler {
 	}
 }
 
-func validateSession(ctrl *controllers.RefreshTokenController) fiber.Handler {
+func validateSession(ctrl controllers.RefreshTokenControllerInterface) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		claims := GetClaims(c)
 		if claims.RefreshTokenID == "" {

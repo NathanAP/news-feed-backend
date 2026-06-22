@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.4.0.9
+0.5.0.0
 
 ## Versão 0.1.0.0
 
@@ -59,15 +59,15 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.5.0.0
 
-- [ ] Preparar testes criando `mocks`
+- [x] Preparar testes criando `mocks`
     - `google_oauth` (na pasta `external`)
     - `users` (na pasta `repositories`)
     - `refresh_tokens` (na pasta `repositories`)
     - `jwt`(na pasta services)
-- [ ] Preparar testes criando `fixtures`
+- [x] Preparar testes criando `fixtures`
     - `user`
     - `refresh_token`
-- [ ] Criar testes na pasta `unit` para as rotas `auth` e `users`
+- [x] Criar testes na pasta `unit` para as rotas `auth` e `users`
 
 ## Versão 0.6.0.0
 

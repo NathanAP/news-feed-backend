@@ -22,22 +22,22 @@ type googleUserInfo struct {
 }
 
 type AuthController struct {
-	oauth2Config      *oauth2.Config
-	userCtrl          *UserController
-	refreshTokenCtrl  *RefreshTokenController
+	oauth2Provider    OAuth2Provider
+	userCtrl          UserControllerInterface
+	refreshTokenCtrl  RefreshTokenControllerInterface
 	jwtSecret         []byte
 	accessTokenExpiry time.Duration
 }
 
 func NewAuthController(
-	oauth2Config *oauth2.Config,
-	userCtrl *UserController,
-	refreshTokenCtrl *RefreshTokenController,
+	oauth2Provider OAuth2Provider,
+	userCtrl UserControllerInterface,
+	refreshTokenCtrl RefreshTokenControllerInterface,
 	jwtSecret []byte,
 	accessTokenExpiry time.Duration,
 ) *AuthController {
 	return &AuthController{
-		oauth2Config:      oauth2Config,
+		oauth2Provider:    oauth2Provider,
 		userCtrl:          userCtrl,
 		refreshTokenCtrl:  refreshTokenCtrl,
 		jwtSecret:         jwtSecret,
@@ -46,7 +46,7 @@ func NewAuthController(
 }
 
 func (c *AuthController) HandleGoogleCallback(ctx context.Context, code string) (schemas.AuthResponse, error) {
-	googleToken, err := c.oauth2Config.Exchange(ctx, code)
+	googleToken, err := c.oauth2Provider.Exchange(ctx, code)
 	if err != nil {
 		return schemas.AuthResponse{}, fmt.Errorf("failed to exchange oauth2 code: %w", err)
 	}
@@ -142,8 +142,9 @@ func (c *AuthController) GenerateAccessToken(user db.User, refreshTokenID string
 }
 
 func (c *AuthController) fetchGoogleUserInfo(ctx context.Context, token *oauth2.Token) (*googleUserInfo, error) {
-	client := c.oauth2Config.Client(ctx, token)
-	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	httpClient := c.oauth2Provider.Client(ctx, token)
+
+	resp, err := httpClient.Get("https://www.googleapis.com/oauth2/v2/userinfo")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch google user info: %w", err)
 	}

@@ -6,7 +6,7 @@ import (
 	"github.com/nathanap/news-feed-backend/services/controllers"
 )
 
-func Logout(refreshTokenCtrl *controllers.RefreshTokenController) fiber.Handler {
+func Logout(refreshTokenCtrl controllers.RefreshTokenControllerInterface) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		claims := middlewares.GetClaims(c)
 
