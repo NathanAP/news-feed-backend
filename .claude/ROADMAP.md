@@ -6,19 +6,19 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.4.0
+0.4.0.9
 
-## Versão 0.1.0
+## Versão 0.1.0.0
 
 - [x] Setup inicial
     - [x] Criar o projeto para o Claude
     - [x] Definir arquitetura e padrões técnicos
 
-## Versão 0.2.0
+## Versão 0.2.0.0
 
 - [x] Criar o projeto utilizando a stack principal com suas dependências e estrutura de pastas básicas (Exemplos: mod, .gitignore, Dockerfile, .env)
 
-## Versão 0.3.0
+## Versão 0.3.0.0
 
 - [x] Preparar banco de dados para receber migrações utilizando o `goose`
 - [x] Criar uma migração para a tabela de usuários
@@ -32,7 +32,7 @@ Os níveis de tabulação indicam detalhes do assunto.
         - modified_at (`timestamp` opcional)
         - removed_at (`timestamp` opcional)
 
-## Versão 0.4.0
+## Versão 0.4.0.0
 
 - [x] Criar uma migração para a tabela de `refresh_tokens`
     - Armazenar os seguintes dados:
@@ -57,7 +57,13 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [x] Criar um invalidador de todos os `refresh_token`, possibilitando derrubar todas as sessões de uma vez
     - Vamos adicionar o usuário administrador depois, então essa rota por enquanto pode ficar aberta
 
-## Versão 0.5.0
+## Versão 0.5.0.0
+
+- [ ] Preparar testes criando `mocks`
+- [ ] Preparar testes criando `fixtures`
+- [ ] Criar testes na pasta `unit` para as rotas `auth` e `users`
+
+## Versão 0.6.0.0
 
 - [ ] Criar uma migração para a tabela de preferências do usuário
     - Armazene os seguintes dados:
@@ -124,7 +130,7 @@ Os níveis de tabulação indicam detalhes do assunto.
         - id da categoria de notícia (`UUID` v7 existente em categorias de notícia)
         - id da fonte de notícia (`UUID` v7 existente em fontes de notícia)
 
-## Versão 0.6.0
+## Versão 0.7.0.0
 
 - [ ] Cadastro de notícias
     - Acho que a melhor nomenclatura para essa tabela é 'Article'
@@ -134,12 +140,12 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Notícia foi lida pelo usuário (true ou false)
     - Associação com usuário (1 notícia pertence a 1 usuário)
 
-## Versão 0.7.0
+## Versão 0.8.0.0
 
 - [ ] Criação de testes unitários
     - Utilizando o agent `test_manager`
 
-## Versão 0.8.0
+## Versão 0.9.0.0
 
 - [ ] Filtragem de notícias
     - [ ] Buscar notícias de todas as fontes cadastradas
@@ -151,7 +157,7 @@ Os níveis de tabulação indicam detalhes do assunto.
         - [ ] Personalização
         - [ ] Tradução
 
-## Versão 0.9.0
+## Versão 0.10.0.0
 
 - [ ] Deploy
     - [ ] Docker funcionando
@@ -166,6 +172,7 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
 - Logger e observabilidade
 - Swagger
 - Usuário administrador
+- Teste de migrações
 - Opções de usuário administrador (desativar X, habilitar Y)
 - Compartilhamento de notícias
 - Múltiplos modelos de IA (Claude, GPT)

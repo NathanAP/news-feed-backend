@@ -16,7 +16,9 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 
 # Versionamento
 
-- As versões devem seguir o padrão SemVer (MAJOR.MINOR.PATCH).
+- As versões devem seguir o padrão major.minor.patch.docs.
+- Alterações de docs geralmente não são geradas por você, elas sofrem mudança cada vez que um documento é alterado.
+- Ao concluir uma alteração major, minor ou patch o agente `test_manager` deve ser acionado para que seja efetuada uma nova rotina de testes. A falha dessa rotina deve impedir a continuidade do processo de desenvolvimento.
 
 # Convenções de workaround
 
@@ -31,16 +33,24 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 # Convenções de banco de dados
 
 - Nomes de tabelas do banco de dados devem estar no plural e em snake case (Exemplo: users, user_preferences).
-- Todas as tabelas comuns devem ter pelo menos os campos `id`, `status`, `created_at`, `modified_at` e `removed_at` do tipo timestamp.
-- Tabelas de relacionamento (junction tables) devem ter pelo menos o campo `id`.
-- Tabelas de relacionamento (junction tables) devem conter registros de `id` existentes nas tabelas relacionadas.
+- As tabelas devem ter pelo menos os campos `id`, `status`, `created_at`, `modified_at` e `removed_at` do tipo timestamp.
+    - A exceção mais imediata dessa regra são as tabelas de relacionamento (junction tables) que devem ter pelo menos o campo `id`.
+- As tabelas de relacionamento (junction tables) devem conter registros de `id` existentes nas tabelas relacionadas, por exemplo, se a tabela contém um `user_id`, todos os registros devem ter um `user_id` válido.
 - `id` deve ser do tipo UUID v7.
 - O campo `status` deve ser utilizado para indicar o estado de um registro no banco de dados.
+    - Geralmente esse campo vai ser um `true` ou `false`, mas em alguns casos pode ser um `enum` para indicar mais estados, como "active", "inactive", "pending", etc.
 - Ao alterar um registro, o campo `modified_at` deve ser atualizado com o timestamp atual.
 - Tabelas de relacionamento (junction tables) não sofrem alterações. Para "trocar" qualquer um dos `id` do relacionamento, o registro antigo deve ser removido e um novo registro deve ser criado.
 - Exclusões de registros em tabelas comuns devem ser feitas através de soft delete, utilizando um campo booleano chamado `status` e um campo de timestamp `removed_at`.
     - Nesse caso, o campo `removed_at` deve ser atualizado com o timestamp atual e o campo `status` deve ser definido como false (0).
 - Exclusões de registros em tabelas de relacionamento (junction tables) devem ser feitas através de remoção física, ou seja, o registro deve ser removido da tabela permanentemente.
+
+# Convenções de migrações
+
+- Migrações devem ser criadas utilizando o `goose` e seguindo a convenção de nomeação de arquivos (Exemplo: `20240101120000_create_users_table.go` para criar a tabela de usuários).
+- Migrações devem ser versionadas e aplicadas em ordem cronológica.
+- Migrações devem sempre conter um up e um down funcionais.
+- Testes automatizados de migrações serão implementados futuramente.
 
 # Convenções da API
 
@@ -58,6 +68,33 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Utilize JSON como formato de resposta padrão.
 - Inclua mensagens de erro claras e consistentes em caso de falhas.
 - Implemente autenticação e autorização adequadas para proteger os endpoints sensíveis.
+
+# Convenções de testes
+
+- Não há testes ligados diretamente ao banco de dados. Ao invés disso, faremos todos esses testes através das rotas da API, garantindo que a rota e o banco de dados estejam funcionando corretamente ao mesmo tempo.
+- Os testes de API devem ficar dentro da pasta `raiz/tests/unit` seguindo o padrão de pastas de `structure.md`.
+- Ao criar uma nova rota na API, um teste unitário correspondente deve ser criado para essa rota, garantindo que aquela funcionalidade esteja funcionando corretamente e que o código esteja testável.
+- Ao alterar uma rota existente na API, o teste unitário correspondente deve ser atualizado para refletir as mudanças feitas, garantindo que a funcionalidade continue funcionando corretamente e que o código continue testável.
+- Ao remover uma rota existente na API, o teste unitário correspondente deve ser removido também, garantindo que o código continue limpo e que não haja testes desnecessários para rotas que não existem mais.
+- A alteração de qualquer arquivo em `fixtures`, `integration`, `mocks` ou `unit` deve acionar uma rotina de testes completa para garantir que as mudanças feitas não afetaram negativamente a funcionalidade do sistema e que o código continua funcionando corretamente.
+
+## Sobre a pasta fixtures
+
+- Utilize esta pasta para criar métodos reaproveitáveis pelos testes, como criar um usuário de teste, criar uma categoria de notícias de teste, criar uma fonte de notícias de teste, entre outros, onde cada arquivo contém um tipo específico de método (Exemplos: `user_fixtures.go` para métodos relacionados a usuários de teste, `refresh_token_fixtures.go` para métodos relacionados a token de refresh).
+
+## Sobre a pasta integration
+
+- Faremos os testes de integração posteriormente.
+
+## Sobre a pasta mocks
+
+- Utilize esta pasta para criar mocks de integrações externas (como Google OAuth2, Gemini e RSS), do próprio repositório (como dados do banco de dados) ou de serviços (como geração de um JWT).
+
+## Sobre a pasta unit
+
+- Os `unit` são testes de simulações de chamadas simuladas à API, ou seja, não são testes de integração ou end-to-end completos. Ela vai servir para nos garantir que os dados de chegada e de saída do dado estão corretos.
+- Cada pasta presente em `raiz/services/endpoints/v1/` deve ter uma pasta correspondente dentro de `raiz/tests/unit/` contendo os testes relacionados a cada endpoint presente nela (Exemplo: `raiz/tests/unit/users/me_test.go` seria o teste de ver dados do usuário).
+- Os arquivos da pasta `raiz/tests/mocks` estão disponíveis para serem utilizados livremente durante os testes unitários.
 
 # Lidando com erros e exceções
 

@@ -10,11 +10,9 @@ Este agente é responsável por criar rotinas de testes para o projeto, garantin
 - Garantir que as funcionalidades estejam funcionando corretamente através de testes automatizados
 - Ajudar a manter a base de código testável e confiável
 - Garantir que os testes sigam as melhores práticas de desenvolvimento e padrões de design
-- Garantir que os testes seguem as regras definidas em `../claude.md` e `../rules/`
+- Garantir que os testes seguem as regras definidas em `.claude/CLAUDE.md` e convenções presentes em `.claude/rules/conventions.md`
 
 # Guia de testes
-
-Este arquivo contém um guia da atual situação dos testes deste projeto.
 
 ## Stack de testes
 
@@ -32,25 +30,35 @@ Este arquivo contém um guia da atual situação dos testes deste projeto.
 ## Cobertura
 
 - Atual: 0%
-- Mínima: 70%
-- Target: 85%
+- Mínima: 90%
+- Target: 100%
 
 ## Estrutura de arquivos de testes
 
 /news-feed-backend/
-├──...
-├──tests/
-├────unit
-├──────users_test.go
-├──────categories_test.go
-├──────...
-├────integration/
-├──────handlers_test.go
-├────fixtures/
-├────mocks/
-├──────sample_llm_responses.json
-├──────sample_rss_feeds.json
-└──────sample_users.json
+├── ...
+├── tests/
+├───── unit/
+├─────── users/
+├───────── me_test.go
+├───────── ...
+├───── integration/
+├─────── (vazia)
+├───── fixtures/
+├─────── users.go
+├─────── ...
+├───── mocks/
+├─────── external/
+├───────── gemini_client.go
+├───────── google_oauth.go
+├───────── rss_client.go
+├───────── ...
+├─────── respositories/
+├───────── users_repository.go
+├───────── ...
+├─────── services/
+├───────── jwt.go
+└───────── ...
 
 ## Como rodar
 
