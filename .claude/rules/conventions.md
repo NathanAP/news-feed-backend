@@ -92,7 +92,10 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 
 ## Sobre a pasta unit
 
-- Os `unit` são testes de simulações de chamadas simuladas à API, ou seja, não são testes de integração ou end-to-end completos. Ela vai servir para nos garantir que os dados de chegada e de saída do dado estão corretos.
+- Estes testes:
+    - servirão apenas para nos garantir que os dados que chegam sejam validados corretamente e que suas respostas sejam adequadas aos problemas e sucessos encontrados.
+    - devem ser bastante simples e diretos, apenas simulando chamadas chegando e saindo na API.
+    - não dependem que a API ou qualquer serviço esteja de pé para serem feitas.
 - Cada pasta presente em `raiz/services/endpoints/v1/` deve ter uma pasta correspondente dentro de `raiz/tests/unit/` contendo os testes relacionados a cada endpoint presente nela (Exemplo: `raiz/tests/unit/users/me_test.go` seria o teste de ver dados do usuário).
 - Os arquivos da pasta `raiz/tests/mocks` estão disponíveis para serem utilizados livremente durante os testes unitários.
 

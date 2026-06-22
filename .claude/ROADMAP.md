@@ -60,10 +60,24 @@ Os níveis de tabulação indicam detalhes do assunto.
 ## Versão 0.5.0.0
 
 - [ ] Preparar testes criando `mocks`
+    - `google_oauth` (na pasta `external`)
+    - `users` (na pasta `repositories`)
+    - `refresh_tokens` (na pasta `repositories`)
+    - `jwt`(na pasta services)
 - [ ] Preparar testes criando `fixtures`
+    - `user`
+    - `refresh_token`
 - [ ] Criar testes na pasta `unit` para as rotas `auth` e `users`
 
 ## Versão 0.6.0.0
+
+- [ ] Implementaremos os testes de integração
+    - `users`
+    - `refresh_tokens`
+- [ ] Implementaremos os testes end-to-end de autenticação
+    - Todas as atuais rotas mas com mock para dependências externas (como Google)
+
+## Versão 0.7.0.0
 
 - [ ] Criar uma migração para a tabela de preferências do usuário
     - Armazene os seguintes dados:
@@ -130,7 +144,7 @@ Os níveis de tabulação indicam detalhes do assunto.
         - id da categoria de notícia (`UUID` v7 existente em categorias de notícia)
         - id da fonte de notícia (`UUID` v7 existente em fontes de notícia)
 
-## Versão 0.7.0.0
+## Versão 0.8.0.0
 
 - [ ] Cadastro de notícias
     - Acho que a melhor nomenclatura para essa tabela é 'Article'
@@ -140,12 +154,12 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Notícia foi lida pelo usuário (true ou false)
     - Associação com usuário (1 notícia pertence a 1 usuário)
 
-## Versão 0.8.0.0
+## Versão 0.9.0.0
 
 - [ ] Criação de testes unitários
     - Utilizando o agent `test_manager`
 
-## Versão 0.9.0.0
+## Versão 0.10.0.0
 
 - [ ] Filtragem de notícias
     - [ ] Buscar notícias de todas as fontes cadastradas
@@ -157,7 +171,7 @@ Os níveis de tabulação indicam detalhes do assunto.
         - [ ] Personalização
         - [ ] Tradução
 
-## Versão 0.10.0.0
+## Versão 0.11.0.0
 
 - [ ] Deploy
     - [ ] Docker funcionando
@@ -172,7 +186,6 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
 - Logger e observabilidade
 - Swagger
 - Usuário administrador
-- Teste de migrações
 - Opções de usuário administrador (desativar X, habilitar Y)
 - Compartilhamento de notícias
 - Múltiplos modelos de IA (Claude, GPT)
