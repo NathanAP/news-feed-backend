@@ -31,6 +31,13 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
 
 # Como funciona
 
+## Ambiente
+
+- O atual ambiente sempre está na variável de ambiente chamada `ENVIRONMENT` e devem estar sempre em um desses três valores:
+    - "development": ambiente de desenvolvimento.
+    - "staging": ambiente de homologação.
+    - "production": ambiente de produção.
+
 ## Fluxo principal
 
 0. O usuário se cadastra através da sua conta Google.
@@ -103,3 +110,22 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
 - Ações que deveriam ser feitas pelos usuários administradores por enquanto podem ser feitas por qualquer usuário "comum".
 - Endpoints que deveriam ser acessados pelos usuários administradores por enquanto podem ser feitas por qualquer usuário "comum".
     - Atualmente são eles: `DELETE base_url/v1/auth/invalidate`, `DELETE base_url/v1/auth/invalidate_all`, `POST base_url/v1/sources/create`, `PUT base_url/v1/sources/{id}`, `DELETE base_url/v1/sources/{id}`
+
+# Ambiente de testes
+
+## Mocks
+
+- Servem para simular dados reais mas sem precisar de um serviço para obtenção.
+- Devem ser o mais próximo da realidade possível.
+- Não podem conter informações ou dados considerados sensíveis, proibidos ou ofensivos.
+
+## Fixtures
+
+- Servem como um atalho para diversas operações repetitivas dos testes, como por exemplo simular a criação de um usuário ou a renovação de um `access_token`.
+
+## Unitários
+
+- Servem apenas para nos garantir que os dados que chegam sejam validados corretamente e que suas respostas sejam adequadas aos problemas e sucessos encontrados.
+- Devem ser bastante simples e diretos, apenas simulando chamadas chegando e saindo na API.
+- Não dependem que a API ou qualquer serviço esteja de pé para serem feitas.
+- Devem garantir que não podem ser executados em ambiente de produção ou homologação.

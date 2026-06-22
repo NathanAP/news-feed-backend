@@ -71,6 +71,7 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 
 # Convenções de testes
 
+- Testes nunca podem ser executados em ambientes de homologação ou produção.
 - Não há testes ligados diretamente ao banco de dados. Ao invés disso, faremos todos esses testes através das rotas da API, garantindo que a rota e o banco de dados estejam funcionando corretamente ao mesmo tempo.
 - Os testes de API devem ficar dentro da pasta `raiz/tests/unit` seguindo o padrão de pastas de `structure.md`.
 - Ao criar uma nova rota na API, um teste unitário correspondente deve ser criado para essa rota, garantindo que aquela funcionalidade esteja funcionando corretamente e que o código esteja testável.
@@ -92,10 +93,6 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 
 ## Sobre a pasta unit
 
-- Estes testes:
-    - servirão apenas para nos garantir que os dados que chegam sejam validados corretamente e que suas respostas sejam adequadas aos problemas e sucessos encontrados.
-    - devem ser bastante simples e diretos, apenas simulando chamadas chegando e saindo na API.
-    - não dependem que a API ou qualquer serviço esteja de pé para serem feitas.
 - Cada pasta presente em `raiz/services/endpoints/v1/` deve ter uma pasta correspondente dentro de `raiz/tests/unit/` contendo os testes relacionados a cada endpoint presente nela (Exemplo: `raiz/tests/unit/users/me_test.go` seria o teste de ver dados do usuário).
 - Os arquivos da pasta `raiz/tests/mocks` estão disponíveis para serem utilizados livremente durante os testes unitários.
 

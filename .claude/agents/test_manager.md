@@ -18,13 +18,14 @@ Este agente é responsável por criar rotinas de testes para o projeto, garantin
 
 - testify
 
-## Objetivo atual
+## Tipos de testes
 
-- **Unitários**: testes de todas as endpoints, garantindo que as respostas estão corretas e consistentes.
+- **Unitários**: testes simplificados sem nenhum serviço de pé e com a maioria dos dados mockados, apenas para garantir que payloads de chegada e saída funcionam corretamente.
+- **Integração**: testes um pouco mais automatizados para garantir a fluidez lógica das rotas, do handler, dos serviços internos, dos modelos e das operações do banco de dados. Dados de fontes externas são mockados.
+- **End-to-end**: testes finais e completos sem nenhum tipo de mock ou simulação, apenas no banco de dados local.
 
-## Objetivo futuro
+## Futuro
 
-- **Integração**: testes de integração com as RSS feeds e LLMs.
 - **Inteligência artificial**: Resultados de interpretação de LLMs.
 
 ## Cobertura

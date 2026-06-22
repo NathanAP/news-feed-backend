@@ -72,10 +72,10 @@ Os níveis de tabulação indicam detalhes do assunto.
 ## Versão 0.6.0.0
 
 - [ ] Implementaremos os testes de integração
-    - `users`
-    - `refresh_tokens`
+    - Para `users` e `refresh_tokens`
+    - Mock para o OAuth
 - [ ] Implementaremos os testes end-to-end de autenticação
-    - Todas as atuais rotas mas com mock para dependências externas (como Google)
+    - Sem mock de dados apenas simulação nos dados gerados durante o teste
 
 ## Versão 0.7.0.0
 
