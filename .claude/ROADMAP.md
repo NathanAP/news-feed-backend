@@ -71,6 +71,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.6.0.0
 
+- [ ] Garantir que todas as atuais rotas estão preparadas para receber dados mockados
 - [ ] Implementaremos os testes de integração
     - Para `users` e `refresh_tokens`
     - Mock para o OAuth

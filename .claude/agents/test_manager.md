@@ -54,7 +54,7 @@ Este agente é responsável por criar rotinas de testes para o projeto, garantin
 ├───────── google_oauth.go
 ├───────── rss_client.go
 ├───────── ...
-├─────── respositories/
+├─────── repositories/
 ├───────── users_repository.go
 ├───────── ...
 ├─────── services/

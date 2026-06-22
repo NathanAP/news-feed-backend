@@ -51,7 +51,7 @@ Você não precisa alterar esse arquivo. A ideia é que eu possa atualizar ele c
 ├───────── google_oauth.go
 ├───────── rss_client.go
 ├───────── ...
-├─────── respositories/
+├─────── repositories/
 ├───────── users_repository.go
 ├───────── ...
 ├─────── services/
