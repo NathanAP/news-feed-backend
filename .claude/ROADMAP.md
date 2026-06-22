@@ -75,7 +75,8 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Para `users` e `refresh_tokens`
     - Mock para o OAuth
 - [ ] Implementaremos os testes end-to-end de autenticação
-    - Sem mock de dados apenas simulação nos dados gerados durante o teste
+    - 100% livre de qualquer mock ou simulação de informações
+    - Testado diretamente pelas rotas
 
 ## Versão 0.7.0.0
 
@@ -156,11 +157,6 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.9.0.0
 
-- [ ] Criação de testes unitários
-    - Utilizando o agent `test_manager`
-
-## Versão 0.10.0.0
-
 - [ ] Filtragem de notícias
     - [ ] Buscar notícias de todas as fontes cadastradas
         - O processo ocorre através de cron interna que é executada periodicamente
@@ -171,7 +167,7 @@ Os níveis de tabulação indicam detalhes do assunto.
         - [ ] Personalização
         - [ ] Tradução
 
-## Versão 0.11.0.0
+## Versão 0.10.0.0
 
 - [ ] Deploy
     - [ ] Docker funcionando
