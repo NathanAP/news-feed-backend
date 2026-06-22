@@ -64,6 +64,9 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Endpoints de remoção deve sempre ser um DELETE e seguir o padrão `base_url/versao_da_api/modelo/{id}` (Exemplo: `http://localhost:3000/v1/sources/{id}`).
 - Endpoints de pesquisa por ID deve sempre ser um GET e seguir o padrão `base_url/versao_da_api/modelo/{id}` (Exemplo: `http://localhost:3000/v1/sources/{id}`).
 - Endpoints de pesquisa por múltiplos parâmetros deve sempre ser um GET e seguir o padrão `base_url/versao_da_api/modelo?parametro1=valor1&parametro2=valor2` (Exemplo: `http://localhost:3000/v1/sources?name=example&status=true`).
+- Endpoints criados devem ser acrescentados nos testes da pasta `tests/` seguindo as convenções de testes abaixo.
+- Endpoints alterados devem ser corrigidos (caso necessário) nos testes da pasta `tests/` seguindo as convenções de testes abaixo.
+- Endpoints removidos devem ser removidos dos testes da pasta `tests/`.
 - Utilize verbos HTTP adequados para cada ação (GET para leitura, POST para criação, PUT/PATCH para atualização, DELETE para remoção).
 - Utilize JSON como formato de resposta padrão.
 - Inclua mensagens de erro claras e consistentes em caso de falhas.
