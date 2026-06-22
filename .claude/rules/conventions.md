@@ -34,7 +34,7 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 
 - Nomes de tabelas do banco de dados devem estar no plural e em snake case (Exemplo: users, user_preferences).
 - As tabelas devem ter pelo menos os campos `id`, `status`, `created_at`, `modified_at` e `removed_at` do tipo timestamp.
-    - A exceção mais imediata dessa regra são as tabelas de relacionamento (junction tables) que devem ter pelo menos o campo `id`.
+    - A exceção imediata dessa regra são as tabelas de relacionamento (junction tables) que devem ter pelo menos o campo `id`.
 - As tabelas de relacionamento (junction tables) devem conter registros de `id` existentes nas tabelas relacionadas, por exemplo, se a tabela contém um `user_id`, todos os registros devem ter um `user_id` válido.
 - `id` deve ser do tipo UUID v7.
 - O campo `status` deve ser utilizado para indicar o estado de um registro no banco de dados.
@@ -43,7 +43,7 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Tabelas de relacionamento (junction tables) não sofrem alterações. Para "trocar" qualquer um dos `id` do relacionamento, o registro antigo deve ser removido e um novo registro deve ser criado.
 - Exclusões de registros em tabelas comuns devem ser feitas através de soft delete, utilizando um campo booleano chamado `status` e um campo de timestamp `removed_at`.
     - Nesse caso, o campo `removed_at` deve ser atualizado com o timestamp atual e o campo `status` deve ser definido como false (0).
-- Exclusões de registros em tabelas de relacionamento (junction tables) devem ser feitas através de remoção física, ou seja, o registro deve ser removido da tabela permanentemente.
+    - A exceção imediata dessa regra são as tabelas de relacionamento (junction tables) que devem ser feitas através de hard delete, ou seja, o registro deve ser removido da tabela permanentemente.
 
 # Convenções de migrações
 

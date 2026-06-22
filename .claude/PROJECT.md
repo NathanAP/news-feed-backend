@@ -92,9 +92,10 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
 ## Categorias de notícias x Fontes de notícias
 
 - As categorias e fontes de notícias se relacionam de forma múltipla, ou seja, uma categoria pode possui diversas fontes e as fontes podem estar presentes em diversas categorias.
-- Isso implica em uma tabela relacional na qual armazenamos o `id` da categoria assim como o `id` da fonte.
+- Isso implica em uma tabela relacional (junction table) na qual armazenamos o `id` da categoria assim como o `id` da fonte.
     - Essa tabela é preenchida automaticamente quando um usuário associa em sua categoria uma fonte.
     - Essa tabela perde o registro automaticamente quando um usuário desassocia em sua categoria uma fonte.
+- Registros nesta tabela são removidos permanentemente ao serem excluídos (hard remove).
 
 # Administradores
 
