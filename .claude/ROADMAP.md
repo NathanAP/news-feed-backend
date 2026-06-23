@@ -100,7 +100,8 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.7.0.0
 
-- [ ] Criar o sistema de log
+- [ ] Criar o sistema de log de acordo com as convenções e o project.md
+    - Precisamos de algum tipo de biblioteca para isso ou conseguimos fazer tudo pelo que o Go já oferece?
 
 ## Versão 0.8.0.0
 

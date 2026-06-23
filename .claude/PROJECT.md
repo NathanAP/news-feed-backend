@@ -165,7 +165,11 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
 
 - Servem como scripts utilitários para a execução de testes. Sinta-se livre para criar qualquer utilidade aqui, como subir uma instância SQLite temporária com as migrações, por exemplo.
 
-# Logs
+# Logs / debug manual
 
-- A pasta `middlewares` contém um handler simples que é capaz de ser chamado em qualquer lugar da aplicação.
+- O objetivo é ter melhor visão dos acontecimentos do que acontece na execução da aplicação, portanto não faz parte da observabilidade.
 - Serve apenas para mostrar qualquer tipo de dado em uma determinada cor (padrão azul) no terminal.
+
+# Observabilidade
+
+- Ainda não está implementado e será feito futuramente.

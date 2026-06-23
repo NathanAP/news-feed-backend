@@ -117,16 +117,21 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 
 - Esta pasta é sua para criar utilitários gerais que não tenham a ver especificamente com alguma parte dos testes.
 
-# Logs
+# Logs / debug manual
 
 - O sistema de logs é global e deve ser iniciado uma única vez, assim ele sempre está ativo ou sempre está inativo.
 - O sistema de logs se mantém ativado quando a variável de ambiente `VERBOSE_MODE` estiver com o valor `true`.
+- Aceitar todos os níveis de mensagens através do `fmt`. Você tem liberdade para decidir qual a melhor forma de se mostrar dados simples (primitivos) e complexos (map, struct, banco de dados).
 - O método chamado deve possuir dois parâmetros:
-    - um para indicar a mensagem a ser mostrada. Qualquer tipo de dado deve ser aceite, desde primitivos até complexos como um objeto do banco de dados.
-    - um para indicar a cor da mensagem a ser mostrada, com padrão em azul.
+    - um para indicar a mensagem a ser mostrada.
+    - um para indicar a cor da mensagem a ser mostrada, com padrão em azul (utilizando a classe Color).
 - Nas rotas:
     - Todas devem começar disparando uma chamada desse handler para indicar que a rota foi chamada. Exemplo de mensagem: "@@@ ROUTE START - /v1/users/me - 2026-01-01 12:00:00 @@@".
     - Todas devem terminar disparando uma chamada desse handler para indicar que a rota foi concluída. Exemplo de mensagem: "@@@ ROUTE END - /v1/users/me - 2026-01-01 12:00:01 @@@".
+
+# Observabilidade
+
+- Ainda não está implementado e será feito futuramente.
 
 # Lidando com erros e exceções
 
