@@ -22,7 +22,7 @@ Este agente é responsável por criar rotinas de testes para o projeto, garantin
 
 - **Unitários**: testes simplificados sem nenhum serviço de pé e com a maioria dos dados mockados, apenas para garantir que payloads de chegada e saída funcionam corretamente.
 - **Integração**: testes um pouco mais automatizados para garantir a fluidez lógica das rotas, do handler, dos serviços internos, dos modelos e das operações do banco de dados. Dados de fontes externas são mockados.
-- **End-to-end**: testes finais e completos sem nenhum tipo de mock ou simulação, apenas no banco de dados local.
+- **End-to-end**: testes finais e completos com uso de mock restrito e banco de dados próprio.
 
 ## Futuro
 
@@ -39,12 +39,18 @@ Este agente é responsável por criar rotinas de testes para o projeto, garantin
 /news-feed-backend/
 ├── ...
 ├── tests/
+├───── end-to-end/
+├─────── users/
+├───────── me_test.go
+├───────── ...
 ├───── unit/
 ├─────── users/
 ├───────── me_test.go
 ├───────── ...
 ├───── integration/
-├─────── (vazia)
+├─────── users/
+├───────── me_test.go
+├───────── ...
 ├───── fixtures/
 ├─────── users.go
 ├─────── ...

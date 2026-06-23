@@ -93,7 +93,16 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 
 ## Sobre a pasta integration
 
-- Faremos os testes de integração posteriormente.
+- Cada pasta presente em `raiz/services/endpoints/v1/` deve ter uma pasta correspondente dentro de `raiz/tests/integration/api` contendo os testes relacionados a cada endpoint presente nela (Exemplo: `raiz/tests/integration/api/users/me_test.go` seria o teste de ver dados do usuário).
+- Os arquivos da pasta `raiz/tests/mocks` estão disponíveis para serem utilizados livremente durante os testes unitários.
+
+## Sobre a pasta end-to-end
+
+- Cada pasta presente em `raiz/services/endpoints/v1/` deve ter uma pasta correspondente dentro de `raiz/tests/end-to-end/api` contendo os testes relacionados a cada endpoint presente nela (Exemplo: `raiz/tests/end-to-end/api/users/me_test.go` seria o teste de ver dados do usuário).
+- Os testes devem ser chamados na ordem que melhor couber para fazer o teste completo (Exemplo: primeiro cadastra um usuário, depois loga ele, depois cria um categoria e assim por diante).
+- Um novo banco de dados deve ser criado exclusivamente para cumprir este teste.
+- Os arquivos da pasta `raiz/tests/mocks` estão disponíveis para serem utilizados, porém apenas os seguintes mocks estão liberados:
+    - Autenticação via `OAuth2`: como é impossível fazer o processo de cliques e respostas do Google, vamos simular o login através da criação de um mock de `refresh_token` que ficará gravado no banco de dados e será utilizado para criar o `access_token` e dar prosseguimento aos testes que dependem disso. Enquanto isso, a rota de login deve simular que esse processo do Google foi realizado com sucesso e prosseguir naturalmente com a sequência lógica dele.
 
 ## Sobre a pasta mocks
 
