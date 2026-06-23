@@ -85,7 +85,6 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Criar helper (`make` ou `make help`)
     - Observação: não precisa rodar o up do Docker nesse momento, mas garanta que é possível rodar ele localmente
     - Observação 2: se tiver algum comando que você recomenda muito ser feito, pode me falar durante a etapa de planejamento
-- [ ] Garantir que todas as atuais rotas estão preparadas para receber dados mockados
 - [ ] Implementar os testes de integração
     - Para `users` e `refresh_tokens`
     - Mock para o OAuth2
