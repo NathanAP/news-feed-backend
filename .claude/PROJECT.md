@@ -104,37 +104,37 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
     - Essa tabela perde o registro automaticamente quando um usuário desassocia em sua categoria uma fonte.
 - Registros nesta tabela são removidos permanentemente ao serem excluídos (hard remove).
 
-# Administradores
+## Administradores
 
 - Ainda não há uma implementação de administradores por enquanto.
 - Ações que deveriam ser feitas pelos usuários administradores por enquanto podem ser feitas por qualquer usuário "comum".
 - Endpoints que deveriam ser acessados pelos usuários administradores por enquanto podem ser feitas por qualquer usuário "comum".
     - Atualmente são eles: `DELETE base_url/v1/auth/invalidate`, `DELETE base_url/v1/auth/invalidate_all`, `POST base_url/v1/sources/create`, `PUT base_url/v1/sources/{id}`, `DELETE base_url/v1/sources/{id}`
 
-# Ambiente de testes
+## Ambiente de testes
 
 As regras abaixo devem estar presente durante qualquer teste proposto:
 
 - Devem garantir que não podem ser executados em ambiente de produção ou homologação.
 - Durante a necessidade de banco de dados, devem garantir que estão sendo usados bases temporárias exclusivamente para cumprir seus objetivos.
 
-## Mocks
+### Mocks
 
 - Servem para simular dados reais mas sem precisar de um serviço para obtenção.
 - Devem ser o mais próximo da realidade possível.
 - Não podem conter informações ou dados considerados sensíveis, proibidos ou ofensivos.
 
-## Fixtures
+### Fixtures
 
 - Servem como um atalho para diversas operações repetitivas dos testes, como por exemplo simular a criação de um usuário ou a renovação de um `access_token`.
 
-## Unitários
+### Unitários
 
 - Servem apenas para nos garantir que os dados que chegam sejam validados corretamente e que suas respostas sejam adequadas aos problemas e sucessos encontrados.
 - Devem ser bastante simples e diretos, apenas simulando chamadas chegando e saindo na API.
 - Não dependem que a API ou qualquer serviço esteja de pé para serem feitas.
 
-## Integração
+### Integração
 
 - Servem para nos garantir que as integrações da aplicação cumprem seu papel mínimo. As atuais integrações e objetivos dos testes nelas são:
     - API interna: garantir a capacidade de ficar online, aceitar requisições e garantir respostas adequadas conforme cada situação proposta por cada endpoint.
@@ -145,7 +145,7 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
 - Devem ser menos simples e diretos em comparação aos unitários, mas acabam por abranger mais setores do código.
 - Dependem que os serviços estejam de pé para funcionamento garantido e correto.
 
-## End-to-end
+### End-to-end
 
 - Servem para nos garantir que a lógica das rotas e seus códigos estão em perfeito estado.
 - Devem evitar ao máximo o uso de mocks, apenas para casos especiais. São eles:
@@ -161,15 +161,23 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
     - Query ou filtragem inválida ou inexistente.
 - Dependem que os serviços estejam de pé para funcionamento garantido e correto.
 
-## Utils
+### Utils
 
 - Servem como scripts utilitários para a execução de testes. Sinta-se livre para criar qualquer utilidade aqui, como subir uma instância SQLite temporária com as migrações, por exemplo.
 
-# Logs / debug manual
+## Logs / debug manual
 
 - O objetivo é ter melhor visão dos acontecimentos do que acontece na execução da aplicação, portanto não faz parte da observabilidade.
 - Serve apenas para mostrar qualquer tipo de dado em uma determinada cor (padrão azul) no terminal.
 
-# Observabilidade
+## Observabilidade
 
 - Ainda não está implementado e será feito futuramente.
+
+# Apps externos
+
+## Bruno
+
+- O Bruno é um aplicativo usado para organizar coleções de requisições para potencializar e automatizar testes.
+- Uma documentação para o aplicativo é mantido na pasta `raiz/bruno` que utiliza os padrões do aplicativo e são gerenciados por você.
+- No atual momento, o aplicativo será usado internamente para testes rápidos, mas futuramente será criada rotinas de testes dentro do aplicativo para alavancar a manutenção e garantia da funcionalidade da aplicação.
