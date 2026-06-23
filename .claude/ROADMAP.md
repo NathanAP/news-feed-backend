@@ -103,8 +103,14 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [x] Criar o sistema de log de acordo com as convenções e o project.md
     - Observação: inclua a rota `/health`
 
+## Versão 0.7.1.0
+
+- [ ] Criar a pasta relacionada ao aplicativo Bruno
+
 ## Versão 0.8.0.0
 
+- [ ] Criar uma documentação da versão 0.7.1.0 na qual adicionamos o Bruno ao projeto
+- [ ] Conferir se as especificações em relação ao Bruno estão boas o suficiente
 - [ ] Criar uma migração para a tabela de preferências do usuário
     - Armazene os seguintes dados:
         - id (`UUID` v7)
