@@ -117,6 +117,17 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 
 - Esta pasta é sua para criar utilitários gerais que não tenham a ver especificamente com alguma parte dos testes.
 
+# Logs
+
+- O sistema de logs é global e deve ser iniciado uma única vez, assim ele sempre está ativo ou sempre está inativo.
+- O sistema de logs se mantém ativado quando a variável de ambiente `VERBOSE_MODE` estiver com o valor `true`.
+- O método chamado deve possuir dois parâmetros:
+    - um para indicar a mensagem a ser mostrada. Qualquer tipo de dado deve ser aceite, desde primitivos até complexos como um objeto do banco de dados.
+    - um para indicar a cor da mensagem a ser mostrada, com padrão em azul.
+- Nas rotas:
+    - Todas devem começar disparando uma chamada desse handler para indicar que a rota foi chamada. Exemplo de mensagem: "@@@ ROUTE START - /v1/users/me - 2026-01-01 12:00:00 @@@".
+    - Todas devem terminar disparando uma chamada desse handler para indicar que a rota foi concluída. Exemplo de mensagem: "@@@ ROUTE END - /v1/users/me - 2026-01-01 12:00:01 @@@".
+
 # Lidando com erros e exceções
 
 - Utilize tratamento de exceções em todas as operações críticas que envolvam banco de dados, integrações ou comunicação externa.

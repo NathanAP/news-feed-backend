@@ -164,3 +164,8 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
 ## Utils
 
 - Servem como scripts utilitários para a execução de testes. Sinta-se livre para criar qualquer utilidade aqui, como subir uma instância SQLite temporária com as migrações, por exemplo.
+
+# Logs
+
+- A pasta `middlewares` contém um handler simples que é capaz de ser chamado em qualquer lugar da aplicação.
+- Serve apenas para mostrar qualquer tipo de dado em uma determinada cor (padrão azul) no terminal.

@@ -13,6 +13,15 @@ tasks:
       - task --list
     silent: true
 
+  # ── Setup ──────────────────────────────────────────────────────────────────
+
+  setup:
+    desc: Install required Go tools (sqlc, task)
+    cmds:
+      - go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+      - go install github.com/go-task/task/v3/cmd/task@latest
+      - go mod download
+
   # ── Build ──────────────────────────────────────────────────────────────────
 
   build:
@@ -31,7 +40,7 @@ tasks:
     aliases: [ls]
     cmds:
       - task: build
-      - cmd: powershell -Command "New-Item -ItemType Directory -Force tmp | Out-Null; Start-Process -FilePath '{{.BINARY}}' -RedirectStandardOutput '{{.LOG_FILE}}' -WindowStyle Hidden -PassThru | ForEach-Object { $_.Id } | Out-File -FilePath '{{.PID_FILE}}' -Encoding ascii"
+      - cmd: powershell -Command "New-Item -ItemType Directory -Force tmp | Out-Null; (Start-Process -FilePath '{{.BINARY}}' -RedirectStandardOutput '{{.LOG_FILE}}' -WindowStyle Hidden -PassThru).Id | Out-File -FilePath '{{.PID_FILE}}' -Encoding ascii"
         platforms: [windows]
       - cmd: mkdir -p tmp && nohup {{.BINARY}} > {{.LOG_FILE}} 2>&1 & echo $! > {{.PID_FILE}}
         platforms: [linux, darwin]
@@ -43,6 +52,15 @@ tasks:
       - cmd: powershell -Command "if (Test-Path '{{.PID_FILE}}') { Stop-Process -Id (Get-Content '{{.PID_FILE}}') -Force -ErrorAction SilentlyContinue; Remove-Item '{{.PID_FILE}}' } else { Write-Host 'No running process found.' }"
         platforms: [windows]
       - cmd: "[ -f {{.PID_FILE}} ] && kill $(cat {{.PID_FILE}}) && rm {{.PID_FILE}} || echo 'No running process found.'"
+        platforms: [linux, darwin]
+
+  local-logs:
+    desc: Stream application logs (tail -f equivalent)
+    aliases: [ll]
+    cmds:
+      - cmd: powershell -Command "Get-Content '{{.LOG_FILE}}' -Wait"
+        platforms: [windows]
+      - cmd: tail -f {{.LOG_FILE}}
         platforms: [linux, darwin]
 
   local-restart:

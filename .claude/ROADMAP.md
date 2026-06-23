@@ -100,6 +100,10 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.7.0.0
 
+- [ ] Criar o sistema de log
+
+## Versão 0.8.0.0
+
 - [ ] Criar uma migração para a tabela de preferências do usuário
     - Armazene os seguintes dados:
         - id (`UUID` v7)
@@ -165,7 +169,7 @@ Os níveis de tabulação indicam detalhes do assunto.
         - id da categoria de notícia (`UUID` v7 existente em categorias de notícia)
         - id da fonte de notícia (`UUID` v7 existente em fontes de notícia)
 
-## Versão 0.8.0.0
+## Versão 0.9.0.0
 
 - [ ] Cadastro de notícias
     - Acho que a melhor nomenclatura para essa tabela é 'Article'
@@ -175,7 +179,7 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Notícia foi lida pelo usuário (true ou false)
     - Associação com usuário (1 notícia pertence a 1 usuário)
 
-## Versão 0.9.0.0
+## Versão 0.10.0.0
 
 - [ ] Filtragem de notícias
     - [ ] Buscar notícias de todas as fontes cadastradas
@@ -187,7 +191,7 @@ Os níveis de tabulação indicam detalhes do assunto.
         - [ ] Personalização
         - [ ] Tradução
 
-## Versão 0.10.0.0
+## Versão 0.11.0.0
 
 - [ ] Deploy
     - [ ] Docker funcionando
