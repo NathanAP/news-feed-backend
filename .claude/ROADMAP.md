@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.7.0.0
+0.7.1.2
 
 ## Versão 0.1.0.0
 
@@ -105,7 +105,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.7.1.0
 
-- [ ] Criar a pasta relacionada ao aplicativo Bruno
+- [x] Criar a pasta relacionada ao aplicativo Bruno
 
 ## Versão 0.8.0.0
 
@@ -175,6 +175,7 @@ Os níveis de tabulação indicam detalhes do assunto.
         - id (`UUID` v7)
         - id da categoria de notícia (`UUID` v7 existente em categorias de notícia)
         - id da fonte de notícia (`UUID` v7 existente em fontes de notícia)
+- [ ] Adicionar todas as rotas criadas ao Bruno
 
 ## Versão 0.9.0.0
 
