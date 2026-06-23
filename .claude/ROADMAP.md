@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.5.0.0
+0.5.0.8
 
 ## Versão 0.1.0.0
 
@@ -71,19 +71,21 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.6.0.0
 
-- [ ] Criar um Makefile (se tiver algo mais recomendado por favor me fale) para rodar os comandos básicos do projeto
-    - Subir aplicação toda localmente, sem Docker(`make ls`)
-    - Reiniciar aplicação toda localmente (`make lr`)
-    - Parar aplicação toca localmente (`make ld`)
-    - Subir aplicação toda via Docker (`make ds`)
-    - Reiniciar aplicação via Docker (`make dr`)
-    - Parar aplicação toca localmente (`make dd`)
-    - Prune do Docker (`make dp`)
-    - Rodar todos os testes (`make ta`)
-    - Rodar testes unitários (`make tu`)
-    - Rodar testes de integração (`make ti`)
-    - Rodar testes end-to-end (`make te2e`)
-    - Criar helper (`make` ou `make help`)
+- [ ] Criar um Taskfile.yaml para rodar os comandos básicos do projeto
+    - Versão mais atualizada possível caso necessite instalação local
+    - Descrições coerentes
+    - Subir aplicação toda localmente, sem Docker(`task local-start` e `task ls`)
+    - Reiniciar aplicação toda localmente (`task local-restart` e `task lr`)
+    - Parar aplicação toca localmente (`task local-down` e `task ld`)
+    - Subir aplicação toda via Docker (`task docker-start` e `task ds`)
+    - Reiniciar aplicação via Docker (`task docker-restart` e `task dr`)
+    - Parar aplicação toca localmente (`task docker-down` e `task dd`)
+    - Prune do Docker (`task docker-prune` e `task dp`)
+    - Rodar todos os testes (`task test-all` e `task ta`)
+    - Rodar testes unitários (`task test-units` e `task tu`)
+    - Rodar testes de integração (`task test-integration` e `task ti`)
+    - Rodar testes end-to-end (`task test-end-to-end` e `task te2e`)
+    - Criar helper (`task` ou `task help`)
     - Observação: não precisa rodar o up do Docker nesse momento, mas garanta que é possível rodar ele localmente
     - Observação 2: se tiver algum comando que você recomenda muito ser feito, pode me falar durante a etapa de planejamento
 - [ ] Implementar os testes de integração

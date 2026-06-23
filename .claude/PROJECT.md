@@ -141,7 +141,7 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
         - Exemplo: se o endpoint `base_url/v1/users/me` se propõe a responder por 200 e 401, ambas as situações devem ser testadas adequadamente.
         - A nuance de simplicidade entre o teste unitário e teste de integração neste caso é bem baixa e isso pode ser considerado normal.
     - Banco de dados interno: garantir a capacidade de fazer o CRUD básico proposto pela pasta e arquivos presentes em `raiz/sqlc/`.
-    - `OAuth2`: garantir que a configuração atende aos requisitos mínimos para funcionamento natural do processo.
+    - `OAuth2`: garantir que a configuração atende aos requisitos mínimos para funcionamento natural do processo de testes (Exemplo: checagem de variáveis de ambiente `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e `GOOGLE_REDIRECT_URL`).
 - Devem ser menos simples e diretos em comparação aos unitários, mas acabam por abranger mais setores do código.
 - Dependem que os serviços estejam de pé para funcionamento garantido e correto.
 
