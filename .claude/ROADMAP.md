@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.5.0.8
+0.5.0.9
 
 ## Versão 0.1.0.0
 
@@ -81,6 +81,9 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Reiniciar aplicação via Docker (`task docker-restart` e `task dr`)
     - Parar aplicação toca localmente (`task docker-down` e `task dd`)
     - Prune do Docker (`task docker-prune` e `task dp`)
+    - Build (`task build` e `task b`)
+    - Rodar `sqlc generate` (`task sqlc-generate` e `task sg`)
+    - Lint do Go em ./... (`task vet-all` e `task va`)
     - Rodar todos os testes (`task test-all` e `task ta`)
     - Rodar testes unitários (`task test-units` e `task tu`)
     - Rodar testes de integração (`task test-integration` e `task ti`)

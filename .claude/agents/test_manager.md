@@ -65,6 +65,9 @@ Este agente é responsável por criar rotinas de testes para o projeto, garantin
 ├───────── ...
 ├─────── services/
 ├───────── jwt.go
+├───────── ...
+├───── utils/
+├───────── db.go
 └───────── ...
 
 ## Como rodar

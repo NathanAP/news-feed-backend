@@ -160,3 +160,7 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
     - Body inválido, inexistente ou inútil.
     - Query ou filtragem inválida ou inexistente.
 - Dependem que os serviços estejam de pé para funcionamento garantido e correto.
+
+## Utils
+
+- Servem como scripts utilitários para a execução de testes. Sinta-se livre para criar qualquer utilidade aqui, como subir uma instância SQLite temporária com as migrações, por exemplo.

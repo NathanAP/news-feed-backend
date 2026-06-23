@@ -113,6 +113,10 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Cada pasta presente em `raiz/services/endpoints/v1/` deve ter uma pasta correspondente dentro de `raiz/tests/unit/` contendo os testes relacionados a cada endpoint presente nela (Exemplo: `raiz/tests/unit/users/me_test.go` seria o teste de ver dados do usuário).
 - Os arquivos da pasta `raiz/tests/mocks` estão disponíveis para serem utilizados livremente durante os testes unitários.
 
+## Sobre a pasta utils
+
+- Esta pasta é sua para criar utilitários gerais que não tenham a ver especificamente com alguma parte dos testes.
+
 # Lidando com erros e exceções
 
 - Utilize tratamento de exceções em todas as operações críticas que envolvam banco de dados, integrações ou comunicação externa.
