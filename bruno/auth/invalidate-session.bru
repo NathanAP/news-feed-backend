@@ -1,0 +1,17 @@
+meta {
+  name: Invalidate Session
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/v1/auth/invalidate
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "refresh_token_id": "{{refreshTokenId}}"
+  }
+}

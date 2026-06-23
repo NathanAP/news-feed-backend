@@ -1,0 +1,18 @@
+meta {
+  name: Google Login (redirect)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/auth/google
+  body: none
+  auth: none
+}
+
+docs {
+  Abre o fluxo de autenticação Google. Abra essa URL no navegador — não funciona
+  como requisição direta pois requer o redirect do Google. Após autenticar, copie
+  o access_token e refresh_token da resposta do callback e salve nas variáveis
+  de ambiente do Bruno.
+}
