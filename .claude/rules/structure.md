@@ -16,6 +16,7 @@ Você não precisa alterar esse arquivo. A ideia é que eu possa atualizar ele c
 ├── .env.example
 ├── .gitignore
 ├── db/
+├── logger/
 ├── middlewares/
 ├──── auth.go
 ├── migrations/

@@ -16,6 +16,7 @@ import (
 	"golang.org/x/oauth2/google"
 	_ "modernc.org/sqlite"
 
+	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/middlewares"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	authendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/auth"
@@ -30,6 +31,8 @@ func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using environment variables")
 	}
+
+	logger.Setup()
 
 	if err := os.MkdirAll("db", os.ModePerm); err != nil {
 		log.Fatalf("Failed to create db directory: %v", err)
@@ -89,6 +92,8 @@ func main() {
 	api := app.Group("/" + apiVersion)
 
 	api.Get("/health", func(c *fiber.Ctx) error {
+		logger.RouteStart(c.Path())
+		defer logger.RouteEnd(c.Path())
 		return c.JSON(fiber.Map{
 			"status":  "ok",
 			"version": os.Getenv("PROJECT_VERSION"),

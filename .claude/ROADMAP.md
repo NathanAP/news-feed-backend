@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.6.0.1
+0.7.0.0
 
 ## Versão 0.1.0.0
 
@@ -100,8 +100,8 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.7.0.0
 
-- [ ] Criar o sistema de log de acordo com as convenções e o project.md
-    - Precisamos de algum tipo de biblioteca para isso ou conseguimos fazer tudo pelo que o Go já oferece?
+- [x] Criar o sistema de log de acordo com as convenções e o project.md
+    - Observação: inclua a rota `/health`
 
 ## Versão 0.8.0.0
 

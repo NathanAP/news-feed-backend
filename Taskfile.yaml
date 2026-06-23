@@ -4,6 +4,7 @@ vars:
   BINARY: ./tmp/api{{exeExt}}
   PID_FILE: .pid
   LOG_FILE: ./tmp/app.log
+  ERR_FILE: ./tmp/app.error.log
 
 tasks:
   default:
@@ -40,7 +41,7 @@ tasks:
     aliases: [ls]
     cmds:
       - task: build
-      - cmd: powershell -Command "New-Item -ItemType Directory -Force tmp | Out-Null; (Start-Process -FilePath '{{.BINARY}}' -RedirectStandardOutput '{{.LOG_FILE}}' -WindowStyle Hidden -PassThru).Id | Out-File -FilePath '{{.PID_FILE}}' -Encoding ascii"
+      - cmd: powershell -Command "New-Item -ItemType Directory -Force tmp | Out-Null; (Start-Process -FilePath '{{.BINARY}}' -RedirectStandardOutput '{{.LOG_FILE}}' -RedirectStandardError '{{.ERR_FILE}}' -WindowStyle Hidden -PassThru).Id | Out-File -FilePath '{{.PID_FILE}}' -Encoding ascii"
         platforms: [windows]
       - cmd: mkdir -p tmp && nohup {{.BINARY}} > {{.LOG_FILE}} 2>&1 & echo $! > {{.PID_FILE}}
         platforms: [linux, darwin]
@@ -55,12 +56,12 @@ tasks:
         platforms: [linux, darwin]
 
   local-logs:
-    desc: Stream application logs (tail -f equivalent)
+    desc: Stream application logs including errors (tail -f equivalent)
     aliases: [ll]
     cmds:
-      - cmd: powershell -Command "Get-Content '{{.LOG_FILE}}' -Wait"
+      - cmd: powershell -Command "Get-Content '{{.LOG_FILE}}', '{{.ERR_FILE}}' -Wait"
         platforms: [windows]
-      - cmd: tail -f {{.LOG_FILE}}
+      - cmd: tail -f {{.LOG_FILE}} {{.ERR_FILE}}
         platforms: [linux, darwin]
 
   local-restart:

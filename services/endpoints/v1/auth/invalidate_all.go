@@ -2,11 +2,15 @@ package auth
 
 import (
 	"github.com/gofiber/fiber/v2"
+
+	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 )
 
 func InvalidateAll(refreshTokenCtrl controllers.RefreshTokenControllerInterface) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		logger.RouteStart(c.Path())
+		defer logger.RouteEnd(c.Path())
 		userID := c.Query("user_id")
 		if userID == "" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{

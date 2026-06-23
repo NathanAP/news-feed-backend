@@ -72,10 +72,17 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Endpoints criados devem ser acrescentados nos testes da pasta `tests/` seguindo as convenções de testes abaixo.
 - Endpoints alterados devem ser corrigidos (caso necessário) nos testes da pasta `tests/` seguindo as convenções de testes abaixo.
 - Endpoints removidos devem ser removidos dos testes da pasta `tests/`.
+- Endpoints devem possuir logs como especificado na sessão de logs / debug manual.
 - Utilize verbos HTTP adequados para cada ação (GET para leitura, POST para criação, PUT/PATCH para atualização, DELETE para remoção).
 - Utilize JSON como formato de resposta padrão.
 - Inclua mensagens de erro claras e consistentes em caso de falhas.
 - Implemente autenticação e autorização adequadas para proteger os endpoints sensíveis.
+
+# Convenções de datas
+
+- Todas as datas devem ser tratadas como UTC nesta aplicação.
+- Endpoints que recebem em valor de data em algum header, body ou query devem garantir que o valor está em UTC, mesmo que uma conversão seja necessária.
+- Endpoints que respondem valores de data devem garantir que o valor está em UTC.
 
 # Convenções de testes
 

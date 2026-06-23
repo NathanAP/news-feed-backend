@@ -2,11 +2,15 @@ package auth
 
 import (
 	"github.com/gofiber/fiber/v2"
+
+	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 )
 
 func GoogleCallback(authCtrl controllers.AuthControllerInterface) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		logger.RouteStart(c.Path())
+		defer logger.RouteEnd(c.Path())
 		code := c.Query("code")
 		if code == "" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{

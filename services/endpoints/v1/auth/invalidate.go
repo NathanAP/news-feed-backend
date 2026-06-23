@@ -2,6 +2,8 @@ package auth
 
 import (
 	"github.com/gofiber/fiber/v2"
+
+	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 )
 
@@ -11,6 +13,8 @@ type invalidateRequest struct {
 
 func Invalidate(refreshTokenCtrl controllers.RefreshTokenControllerInterface) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		logger.RouteStart(c.Path())
+		defer logger.RouteEnd(c.Path())
 		var req invalidateRequest
 		if err := c.BodyParser(&req); err != nil || req.RefreshTokenID == "" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
