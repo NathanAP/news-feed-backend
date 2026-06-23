@@ -202,7 +202,8 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 
-- Transportar a iniciação de endpoints para outro lugar
+- Limpar o main
+- Transportar a iniciação de endpoints para outro lugar, health para /api
 - Criar uma rota para aceitar sugestões de fontes de notícias
 - Logger e observabilidade
 - Swagger

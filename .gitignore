@@ -80,6 +80,7 @@ log/
 tmp/
 temp/
 .cache/
+.pid
 
 # ==========================================
 # Certificados locais

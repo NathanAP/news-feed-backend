@@ -50,9 +50,9 @@ tasks:
     desc: Stop the locally running application
     aliases: [ld]
     cmds:
-      - cmd: powershell -Command "if (Test-Path '{{.PID_FILE}}') { Stop-Process -Id (Get-Content '{{.PID_FILE}}') -Force -ErrorAction SilentlyContinue; Remove-Item '{{.PID_FILE}}' } else { Write-Host 'No running process found.' }"
+      - cmd: powershell -Command "if (Test-Path '{{.PID_FILE}}') { Stop-Process -Id (Get-Content '{{.PID_FILE}}') -Force -ErrorAction SilentlyContinue; Remove-Item '{{.PID_FILE}}' }; Get-Process -Id (Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess) -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; Write-Host 'Done.'"
         platforms: [windows]
-      - cmd: "[ -f {{.PID_FILE}} ] && kill $(cat {{.PID_FILE}}) && rm {{.PID_FILE}} || echo 'No running process found.'"
+      - cmd: "[ -f {{.PID_FILE}} ] && kill $(cat {{.PID_FILE}}) && rm {{.PID_FILE}} || true; lsof -ti:3000 | xargs kill -9 2>/dev/null || true"
         platforms: [linux, darwin]
 
   local-logs:
