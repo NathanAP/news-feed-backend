@@ -1,0 +1,122 @@
+version: '3'
+
+vars:
+  BINARY: ./tmp/api{{exeExt}}
+  PID_FILE: .pid
+  LOG_FILE: ./tmp/app.log
+
+tasks:
+  default:
+    desc: Show available tasks
+    aliases: [help]
+    cmds:
+      - task --list
+    silent: true
+
+  # ── Build ──────────────────────────────────────────────────────────────────
+
+  build:
+    desc: Compile the application binary into ./tmp/
+    aliases: [b]
+    cmds:
+      - cmd: powershell -Command "New-Item -ItemType Directory -Force tmp | Out-Null; go build -o {{.BINARY}} ."
+        platforms: [windows]
+      - cmd: mkdir -p tmp && go build -o {{.BINARY}} .
+        platforms: [linux, darwin]
+
+  # ── Local (no Docker) ──────────────────────────────────────────────────────
+
+  local-start:
+    desc: Build and start the application locally in background
+    aliases: [ls]
+    cmds:
+      - task: build
+      - cmd: powershell -Command "New-Item -ItemType Directory -Force tmp | Out-Null; Start-Process -FilePath '{{.BINARY}}' -RedirectStandardOutput '{{.LOG_FILE}}' -WindowStyle Hidden -PassThru | ForEach-Object { $_.Id } | Out-File -FilePath '{{.PID_FILE}}' -Encoding ascii"
+        platforms: [windows]
+      - cmd: mkdir -p tmp && nohup {{.BINARY}} > {{.LOG_FILE}} 2>&1 & echo $! > {{.PID_FILE}}
+        platforms: [linux, darwin]
+
+  local-down:
+    desc: Stop the locally running application
+    aliases: [ld]
+    cmds:
+      - cmd: powershell -Command "if (Test-Path '{{.PID_FILE}}') { Stop-Process -Id (Get-Content '{{.PID_FILE}}') -Force -ErrorAction SilentlyContinue; Remove-Item '{{.PID_FILE}}' } else { Write-Host 'No running process found.' }"
+        platforms: [windows]
+      - cmd: "[ -f {{.PID_FILE}} ] && kill $(cat {{.PID_FILE}}) && rm {{.PID_FILE}} || echo 'No running process found.'"
+        platforms: [linux, darwin]
+
+  local-restart:
+    desc: Restart the locally running application
+    aliases: [lr]
+    cmds:
+      - task: local-down
+      - task: local-start
+
+  # ── Docker ─────────────────────────────────────────────────────────────────
+
+  docker-start:
+    desc: Start the application via Docker Compose
+    aliases: [ds]
+    cmds:
+      - docker-compose up -d
+
+  docker-down:
+    desc: Stop Docker Compose services
+    aliases: [dd]
+    cmds:
+      - docker-compose down
+
+  docker-restart:
+    desc: Restart Docker Compose services
+    aliases: [dr]
+    cmds:
+      - docker-compose restart
+
+  docker-prune:
+    desc: Stop containers and prune unused Docker resources
+    aliases: [dp]
+    cmds:
+      - docker-compose down --volumes --remove-orphans
+      - docker system prune -f
+
+  # ── Code quality ───────────────────────────────────────────────────────────
+
+  sqlc-generate:
+    desc: Run sqlc generate to produce type-safe DB code
+    aliases: [sg]
+    cmds:
+      - sqlc generate
+
+  vet-all:
+    desc: Run go vet on all packages
+    aliases: [va]
+    cmds:
+      - go vet ./...
+
+  # ── Tests ──────────────────────────────────────────────────────────────────
+
+  test-units:
+    desc: Run unit tests
+    aliases: [tu]
+    cmds:
+      - go test ./tests/unit/... -v
+
+  test-integration:
+    desc: Run integration tests
+    aliases: [ti]
+    cmds:
+      - go test ./tests/integration/... -v
+
+  test-end-to-end:
+    desc: Run end-to-end tests
+    aliases: [te2e]
+    cmds:
+      - go test ./tests/end-to-end/... -v
+
+  test-all:
+    desc: Run all tests (unit + integration + end-to-end)
+    aliases: [ta]
+    cmds:
+      - task: test-units
+      - task: test-integration
+      - task: test-end-to-end

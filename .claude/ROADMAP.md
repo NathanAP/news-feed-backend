@@ -71,7 +71,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.6.0.0
 
-- [ ] Criar um Taskfile.yaml para rodar os comandos básicos do projeto
+- [x] Criar um Taskfile.yaml para rodar os comandos básicos do projeto
     - Versão mais atualizada possível caso necessite instalação local
     - Descrições coerentes
     - Subir aplicação toda localmente, sem Docker(`task local-start` e `task ls`)
@@ -91,11 +91,11 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Criar helper (`task` ou `task help`)
     - Observação: não precisa rodar o up do Docker nesse momento, mas garanta que é possível rodar ele localmente
     - Observação 2: se tiver algum comando que você recomenda muito ser feito, pode me falar durante a etapa de planejamento
-- [ ] Implementar os testes de integração
+- [x] Implementar os testes de integração
     - Para `users` e `refresh_tokens`
     - Mock para o OAuth2
-- [ ] Implementar os testes end-to-end de autenticação
-- [ ] Criar os primeiros arquivos em `.claude/versions` para especificar o que foi feito até agora
+- [x] Implementar os testes end-to-end de autenticação
+- [x] Criar os primeiros arquivos em `.claude/versions` para especificar o que foi feito até agora
     - Não tem problema você não saber o timestamp das outras versões, coloque de forma que fique em ordem e tá tudo certo
 
 ## Versão 0.7.0.0
