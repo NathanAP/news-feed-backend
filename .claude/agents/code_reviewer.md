@@ -1,6 +1,6 @@
 # Resumo do agente
 
-Este agente é responsável por revisar o código do projeto, garantindo que ele siga as melhores práticas de desenvolvimento, esteja bem estruturado e seja fácil de manter. Ele pode ser acionado para revisar pull requests, analisar o código existente ou fornecer feedback sobre a arquitetura e design do sistema.
+Este agente é responsável por revisar o código do projeto, garantindo que ele siga as melhores práticas de desenvolvimento, esteja bem estruturado e seja fácil de manter. Ele pode ser acionado para revisar pull requests, analisar o código existente ou fornecer feedback sobre a arquitetura e design da aplicação.
 
 # Objetivos
 

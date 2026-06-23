@@ -85,7 +85,7 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Ao criar uma nova rota na API, um teste unitário correspondente deve ser criado para essa rota, garantindo que aquela funcionalidade esteja funcionando corretamente e que o código esteja testável.
 - Ao alterar uma rota existente na API, o teste unitário correspondente deve ser atualizado para refletir as mudanças feitas, garantindo que a funcionalidade continue funcionando corretamente e que o código continue testável.
 - Ao remover uma rota existente na API, o teste unitário correspondente deve ser removido também, garantindo que o código continue limpo e que não haja testes desnecessários para rotas que não existem mais.
-- A alteração de qualquer arquivo em `fixtures`, `integration`, `mocks` ou `unit` deve acionar uma rotina de testes completa para garantir que as mudanças feitas não afetaram negativamente a funcionalidade do sistema e que o código continua funcionando corretamente.
+- A alteração de qualquer arquivo em `fixtures`, `integration`, `mocks` ou `unit` deve acionar uma rotina de testes completa para garantir que as mudanças feitas não afetaram negativamente a funcionalidade da aplicação e que o código continua funcionando corretamente.
 
 ## Sobre a pasta fixtures
 
@@ -100,7 +100,7 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 
 - Cada pasta presente em `raiz/services/endpoints/v1/` deve ter uma pasta correspondente dentro de `raiz/tests/end-to-end/api` contendo os testes relacionados a cada endpoint presente nela (Exemplo: `raiz/tests/end-to-end/api/users/me_test.go` seria o teste de ver dados do usuário).
 - Os testes devem ser chamados na ordem que melhor couber para fazer o teste completo (Exemplo: primeiro cadastra um usuário, depois loga ele, depois cria um categoria e assim por diante).
-- Um novo banco de dados deve ser criado exclusivamente para cumprir este teste.
+- Um banco de dados temporário deve ser criado exclusivamente para cumprir este teste.
 - Os arquivos da pasta `raiz/tests/mocks` estão disponíveis para serem utilizados, porém apenas os seguintes mocks estão liberados:
     - Autenticação via `OAuth2`: como é impossível fazer o processo de cliques e respostas do Google, vamos simular o login através da criação de um mock de `refresh_token` que ficará gravado no banco de dados e será utilizado para criar o `access_token` e dar prosseguimento aos testes que dependem disso. Enquanto isso, a rota de login deve simular que esse processo do Google foi realizado com sucesso e prosseguir naturalmente com a sequência lógica dele.
 
@@ -117,7 +117,7 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 
 - Utilize tratamento de exceções em todas as operações críticas que envolvam banco de dados, integrações ou comunicação externa.
 - Exceções devem retornar erro 500 como padrão da API.
-- Exceções não devem derrubar o sistema.
-- Feeds indisponíveis não devem derrubar o sistema.
+- Exceções não devem derrubar a aplicação.
+- Feeds indisponíveis não devem derrubar a aplicação.
 - Implemente retry com backoff exponencial.
 - Log detalhado de falhas.

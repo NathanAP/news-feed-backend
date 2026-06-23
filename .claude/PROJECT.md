@@ -113,6 +113,11 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
 
 # Ambiente de testes
 
+As regras abaixo devem estar presente durante qualquer teste proposto:
+
+- Devem garantir que não podem ser executados em ambiente de produção ou homologação.
+- Durante a necessidade de banco de dados, devem garantir que estão sendo usados bases temporárias exclusivamente para cumprir seus objetivos.
+
 ## Mocks
 
 - Servem para simular dados reais mas sem precisar de um serviço para obtenção.
@@ -128,4 +133,30 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
 - Servem apenas para nos garantir que os dados que chegam sejam validados corretamente e que suas respostas sejam adequadas aos problemas e sucessos encontrados.
 - Devem ser bastante simples e diretos, apenas simulando chamadas chegando e saindo na API.
 - Não dependem que a API ou qualquer serviço esteja de pé para serem feitas.
-- Devem garantir que não podem ser executados em ambiente de produção ou homologação.
+
+## Integração
+
+- Servem para nos garantir que as integrações da aplicação cumprem seu papel mínimo. As atuais integrações e objetivos dos testes nelas são:
+    - API interna: garantir a capacidade de ficar online, aceitar requisições e garantir respostas adequadas conforme cada situação proposta por cada endpoint.
+        - Exemplo: se o endpoint `base_url/v1/users/me` se propõe a responder por 200 e 401, ambas as situações devem ser testadas adequadamente.
+        - A nuance de simplicidade entre o teste unitário e teste de integração neste caso é bem baixa e isso pode ser considerado normal.
+    - Banco de dados interno: garantir a capacidade de fazer o CRUD básico proposto pela pasta e arquivos presentes em `raiz/sqlc/`.
+    - `OAuth2`: garantir que a configuração atende aos requisitos mínimos para funcionamento natural do processo.
+- Devem ser menos simples e diretos em comparação aos unitários, mas acabam por abranger mais setores do código.
+- Dependem que os serviços estejam de pé para funcionamento garantido e correto.
+
+## End-to-end
+
+- Servem para nos garantir que a lógica das rotas e seus códigos estão em perfeito estado.
+- Devem evitar ao máximo o uso de mocks, apenas para casos especiais. São eles:
+    - `OAuth2`: é impossível simular os cliques e processos da autenticação feita no Google. A simulação aqui pode cobrir estas situações de forma totalmente aceitável:
+        - a de que um usuário fez este processo com sucesso.
+        - a de que um usuário fez este processo com falhas.
+        - a de que um usuário cancelou este processo.
+- Devem representar o máximo de situações que uma rota pode oferecer, aqui estão alguns exemplos para abrir sua mente:
+    - Rota inexistente.
+    - Falta de autenticação quando há obrigatoriedade, `access_token` inválido ou `refresh_token` inválido ou inexistente.
+    - Header inválido, inexistente ou inútil.
+    - Body inválido, inexistente ou inútil.
+    - Query ou filtragem inválida ou inexistente.
+- Dependem que os serviços estejam de pé para funcionamento garantido e correto.
