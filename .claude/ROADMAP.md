@@ -88,7 +88,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [ ] Garantir que todas as atuais rotas estão preparadas para receber dados mockados
 - [ ] Implementar os testes de integração
     - Para `users` e `refresh_tokens`
-    - Mock para o OAuth
+    - Mock para o OAuth2
 - [ ] Implementar os testes end-to-end de autenticação
 - [ ] Criar os primeiros arquivos em `.claude/versions` para especificar o que foi feito até agora
     - Não tem problema você não saber o timestamp das outras versões, coloque de forma que fique em ordem e tá tudo certo
