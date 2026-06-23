@@ -16,6 +16,11 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 
 # Versionamento
 
+- Utilize a pasta `.claude/versions` para especificar o que foi feito em cada versão por você.
+    - Arquivos nesta pasta sempre em formato `md`.
+    - A nomenclatura de arquivos nesta pasta deve ser `timestamp_versão`, por exemplo `20260623090000_0.1.0.0.md`.
+    - Perceba que este arquivo também é uma ótima fonte de informações para entender as mudanças em qualquer altura da vida útil da aplicação.
+    - Pode colocar bastante detalhes caso ache necessário.
 - As versões devem seguir o padrão major.minor.patch.docs.
 - Alterações de docs geralmente não são geradas por você, elas sofrem mudança cada vez que um documento é alterado.
 - Ao concluir uma alteração major, minor ou patch o agente `test_manager` deve ser acionado para que seja efetuada uma nova rotina de testes. A falha dessa rotina deve impedir a continuidade do processo de desenvolvimento.

@@ -4,6 +4,23 @@ API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
 
 # Regras de desenvolvimento
 
+- Leia o arquivo `ROADMAP.md` para entender qual sua próxima missão.
+- Faça apenas uma versão por vez conforme especificado. Esta regra é restrita.
+- Você pode está livre para indicar problemas que versões futuras podem trazer ou estejam mal planejadas.
+- Ao desenvolver tente entender um pouco como as próximas versões e as até os planejamentos de longo prazo afetam seu código.
+- Você tem liberdade para indicar a mim problemas de planejamento.
+- Você tem liberdade para durante a criação de testes unitários, de integração e end-to-end.
+- Durante a etapa de criação de testes, não tem problema se houver grande volume de código ou tempo para as tantas diversas situações que podem ocorrer em uma rota ou handler. O importante é garantir que ela cobre a maioria das situações.
+- O desenvolvimento deve seguir estas etapas:
+    - entendimento da tarefa.
+    - melhoria da clareza escrita na especificação da tarefa.
+    - planejamento de programação da tarefa.
+    - execução.
+    - atualização nos testes unitários, de integração e end-to-end.
+    - atualização de arquivos de controle de versão.
+    - criar um arquivo na pasta `versions` para resumir o que foi feito.
+- Sempre atualize a versão do arquivo `ROADMAP.md` conforme a versão desenvolvida.
+
 - Ao seguir o arquivo `ROADMAP.md`, desenvolva uma versão de cada vez e confirme comigo antes de avançar para a próxima etapa.
 
 ## Arquivos e pastas
@@ -13,6 +30,7 @@ API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
 - `ROADMAP.md`: contém o roadmap do projeto, que também pode ser visto como uma lista de TODO.
 - `agents/`: contém os agentes que dão suporte e estão presentes no desenvolvimento do projeto.
 - `rules/`: contém um conjunto de regras para ajudar no desenvolvimento do projeto.
+- `versions/`: contém um conjunto de arquivos especificando o que foi feito por você em cada versão do projeto.
 
 ## Stack
 

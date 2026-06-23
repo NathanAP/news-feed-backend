@@ -71,13 +71,29 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.6.0.0
 
+- [ ] Criar um Makefile (se tiver algo mais recomendado por favor me fale) para rodar os comandos básicos do projeto
+    - Subir aplicação toda localmente, sem Docker(`make ls`)
+    - Reiniciar aplicação toda localmente (`make lr`)
+    - Parar aplicação toca localmente (`make ld`)
+    - Subir aplicação toda via Docker (`make ds`)
+    - Reiniciar aplicação via Docker (`make dr`)
+    - Parar aplicação toca localmente (`make dd`)
+    - Prune do Docker (`make dp`)
+    - Rodar todos os testes (`make ta`)
+    - Rodar testes unitários (`make tu`)
+    - Rodar testes de integração (`make ti`)
+    - Criar helper (`make` ou `make help`)
+    - Observação: não precisa rodar o up do Docker nesse momento, mas garanta que é possível rodar ele localmente
+    - Observação 2: se tiver algum comando que você recomenda muito ser feito, pode me falar durante a etapa de planejamento
 - [ ] Garantir que todas as atuais rotas estão preparadas para receber dados mockados
-- [ ] Implementaremos os testes de integração
+- [ ] Implementar os testes de integração
     - Para `users` e `refresh_tokens`
     - Mock para o OAuth
-- [ ] Implementaremos os testes end-to-end de autenticação
+- [ ] Implementar os testes end-to-end de autenticação
     - 100% livre de qualquer mock ou simulação de informações
     - Testado diretamente pelas rotas
+- [ ] Criar os primeiros arquivos em `.claude/versions` para especificar o que foi feito até agora
+    - Não tem problema você não saber o timestamp das outras versões, coloque de forma que fique em ordem e tá tudo certo
 
 ## Versão 0.7.0.0
 
