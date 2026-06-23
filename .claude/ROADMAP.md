@@ -82,6 +82,7 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Rodar todos os testes (`make ta`)
     - Rodar testes unitários (`make tu`)
     - Rodar testes de integração (`make ti`)
+    - Rodar testes end-to-end (`make te2e`)
     - Criar helper (`make` ou `make help`)
     - Observação: não precisa rodar o up do Docker nesse momento, mas garanta que é possível rodar ele localmente
     - Observação 2: se tiver algum comando que você recomenda muito ser feito, pode me falar durante a etapa de planejamento
