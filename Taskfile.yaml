@@ -22,7 +22,6 @@ tasks:
             - go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
             - go install github.com/go-task/task/v3/cmd/task@latest
             - go mod download
-
             - pip install sqlite-web
 
     # ── Build ──────────────────────────────────────────────────────────────────
