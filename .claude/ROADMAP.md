@@ -133,8 +133,8 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Edição, que pode ser PUT em `base_url/v1/users/me/preferences`
     - Buscar, que pode ser GET em `base_url/v1/users/me/preferences`
 - [ ] Atualizar todas as rotas criadas ou alteradas ao Bruno
-- [ ] Atualiar testes unitários para todas as rotas criadas ou alteradas
-- [ ] Atualiar testes de integarção para todas as rotas criadas ou alteradas
+- [ ] Atualizar testes unitários para todas as rotas criadas ou alteradas
+- [ ] Atualizar testes de integarção para todas as rotas criadas ou alteradas
 
 ## Versão 0.11.0.0
 
@@ -188,8 +188,8 @@ Os níveis de tabulação indicam detalhes do assunto.
         - id da categoria de notícia (`UUID` v7 existente em categorias de notícia)
         - id da fonte de notícia (`UUID` v7 existente em fontes de notícia)
 - [ ] Atualizar todas as rotas criadas ou alteradas ao Bruno
-- [ ] Atualiar testes unitários para todas as rotas criadas ou alteradas
-- [ ] Atualiar testes de integarção para todas as rotas criadas ou alteradas
+- [ ] Atualizar testes unitários para todas as rotas criadas ou alteradas
+- [ ] Atualizar testes de integarção para todas as rotas criadas ou alteradas
 
 ## Versão 0.12.0.0
 
