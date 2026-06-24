@@ -93,6 +93,8 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Ao alterar uma rota existente na API, o teste unitário correspondente deve ser atualizado para refletir as mudanças feitas, garantindo que a funcionalidade continue funcionando corretamente e que o código continue testável.
 - Ao remover uma rota existente na API, o teste unitário correspondente deve ser removido também, garantindo que o código continue limpo e que não haja testes desnecessários para rotas que não existem mais.
 - A alteração de qualquer arquivo em `fixtures`, `integration`, `mocks` ou `unit` deve acionar uma rotina de testes completa para garantir que as mudanças feitas não afetaram negativamente a funcionalidade da aplicação e que o código continua funcionando corretamente.
+- Cada teste individual deve conter sua própria instância do banco de dados em memória, ou seja, se no teste A foi criado um usuário, o teste B não o verá. Caso o teste B precise de um usuário, ele deve criar novamente este usuário na sua própria instância.
+    - Boas `fixtures` são essenciais para esta regra ser seguida.
 
 ## Sobre a pasta fixtures
 
