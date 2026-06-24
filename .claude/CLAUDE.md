@@ -37,11 +37,12 @@ API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
 - O revisor deve elencar problemas de fluxo não notados anteriormente (exceções de fluxos ou situações adversas).
 - O revisor deve garantir que o versionamento (`.claude/versions`) está consistente.
 - Bugs graves devem ter preferência e podem garantir uma versão única de patch.
-- Código inutilizado pode ser elencado como problema.
-- Gambiarra explícita pode ser elencada como problema.
-- Inconsistência de versionamento (como `UUID4` ao invés de `UUID7`) pode ser elencado como problema.
-- Código considerado depreciado pela biblioteca ou semi-depreciado (ou seja, que vai se tornar depreciado) pode ser elencado como problema.
 - Refatorações estão liberadas conforme necessário, mas faz-se necessário o planejamento junto a mim.
+- O revisor tem total incentivo para elencar também os seguintes pontos como problema:
+    - Código inutilizado ou morto.
+    - Gambiarra explícita.
+    - Inconsistência de versionamento (como `UUID4` ao invés de `UUID7`).
+    - Código considerado depreciado pela biblioteca ou semi-depreciado (ou seja, que vai se tornar depreciado).
 
 ## Arquivos e pastas
 
