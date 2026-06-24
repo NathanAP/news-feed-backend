@@ -129,12 +129,16 @@ Os níveis de tabulação indicam detalhes do assunto.
         - created_at (`timestamp`)
         - modified_at (`timestamp` opcional)
         - removed_at (`timestamp` opcional)
+    - Na mesma migração passar em cada usuário do banco de dados atual e criar uma preferência para cada um deles utilizando os valores padrão de preferências
 - [ ] Criar rotas para as preferências do usuário
     - Edição, que pode ser PUT em `base_url/v1/users/me/preferences`
+        - Lembrete: o fluxo desta rota exige que um novo `access_token` seja gerado contendo as novas informações de preferências do usuário, então além das preferences, esta rota já retorna também esse `access_token` atualizado
     - Buscar, que pode ser GET em `base_url/v1/users/me/preferences`
+        - Lembrete: os dados já estão no JWT, você pode fazer ele ler diretamente no `access_token` sem precisar ir ao banco de dados
 - [ ] Atualizar todas as rotas criadas ou alteradas ao Bruno
 - [ ] Atualizar testes unitários para todas as rotas criadas ou alteradas
 - [ ] Atualizar testes de integração para todas as rotas criadas ou alteradas
+- [ ] Atualizar testes E2E para todas as rotas criadas ou alteradas
 
 ## Versão 0.11.0.0
 
@@ -190,6 +194,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [ ] Atualizar todas as rotas criadas ou alteradas ao Bruno
 - [ ] Atualizar testes unitários para todas as rotas criadas ou alteradas
 - [ ] Atualizar testes de integração para todas as rotas criadas ou alteradas
+- [ ] Atualizar testes E2E para todas as rotas criadas ou alteradas
 
 ## Versão 0.12.0.0
 
@@ -223,6 +228,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 
+- Editar informações básicas do usuário
 - Limpar o main
 - Transportar a iniciação de endpoints para outro lugar, health para /api
 - Criar uma rota para aceitar sugestões de fontes de notícias
