@@ -21,6 +21,7 @@ API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
     - criar um arquivo na pasta `versions` para resumir o que foi feito.
 - Sempre atualize a versão do arquivo `ROADMAP.md` conforme a versão desenvolvida.
 - Ao seguir o arquivo `ROADMAP.md`, desenvolva uma versão de cada vez e confirme comigo antes de avançar para a próxima etapa.
+- Ao analisar as srpints do arquivo `ROADMAP.md`, você tem liberdade para criticar ou corrigir tamanho de sprint, altas complexidades de código, regras de negócio, conflito de convenções e até mesmo dificuldades futuras. Isso fará com que nós possamos pensar juntos em soluções e deixará a aplicação melhor. Seu papel nisso é fundamental.
 - Ao final de uma atualização de código sempre me traga um resumo sobre o que foi feito.
 - Ao final de uma atualização do código, quando aplicável, me traga uma forma de como testar o que foi feito.
 
