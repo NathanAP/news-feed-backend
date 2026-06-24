@@ -78,6 +78,12 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
     - `ai_personality`: `enum` contendo a personalidade da IA e presente nas preferências do usuário relacionado.
 - Um struct chamado `Claims` mantém também esse mapeamento no código.
 
+## Dados do usuário
+
+- A edição de dados do usuário ainda não são possíveis e serão feitas futuramente.
+- Alterar os dados do usuário faz com que um novo `access_token` seja gerado e retornado também pela rota, já com as novas informações atualizadas nele.
+    - O `access_token` anterior (usado para ativar a atualização dos dados e agora possui informações desatualizadas) vai continuar válido até bater o tempo de expiração. Esse comportamento é considerado normal aqui pois fazem parte de um trecho não crítico da aplicação. Se em algum momento houver dados críticos ligado ao `access_token` e dados do usuário, isso terá que ser mudado.
+
 ## Preferências do usuário (user preferences)
 
 - Ao criar um usuário, suas preferências devem ser criadas automaticamente também.
@@ -90,7 +96,8 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
 - Usuários removidos (`status` em `false`) devem ficar com suas preferências excluídas também (`status` também deve ser setado para `false`)
 - O idioma preferido não afeta em nada das respostas da API.
 - Apenas os próprios usuários podem alterar suas preferências.
-- Alterar as preferências do usuário faz com que um novo `access_token` seja gerado e retornado também pela rota, já com as novas informações atualizadas nele.
+- Alterar as preferências do usuário faz com que um novo `access_token` seja gerado, retornando junto ao client, já com as novas informações atualizadas nele.
+    - O `access_token` anterior (usado para ativar a atualização das preferências e agora possui dados desatualizados) vai continuar válido até bater o tempo de expiração. Esse comportamento é considerado normal aqui pois fazem parte de um trecho não crítico da aplicação. Se em algum momento houver dados críticos ligado ao `access_token` e preferências do usuário, isso terá que ser mudado.
 
 ## Categorias de notícias
 
