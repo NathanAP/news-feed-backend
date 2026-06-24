@@ -75,7 +75,7 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
     - `refresh_token_id`: `UUID` do `refresh_token` relacionado.
     - `theme`: `enum` contendo o atual tema e presente nas preferências do usuário relacionado.
     - `language`: `enum` contendo o idioma preferido e presente nas preferências do usuário relacionado.
-    - `translate_content`: `bool` sobre a necessidade de tradução do conteudo das notícias e presente nas preferências do usuário relacionado.
+    - `translate_content`: `bool` sobre a necessidade de tradução do conteúdo das notícias e presente nas preferências do usuário relacionado.
     - `ai_personality`: `enum` contendo a personalidade da IA e presente nas preferências do usuário relacionado.
 - Um struct chamado `Claims` mantém também esse mapeamento no código.
 
@@ -109,7 +109,7 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
 ## Fontes de notícias (sources)
 
 - As fontes de notícias são nossa principal fonte para obtenção de informações brutas.
-- As visibilidade das fontes de notícias são públicas a todos os usuários do sistema.
+- A visibilidade das fontes de notícias são públicas a todos os usuários do sistema.
 - A manipulação (criação, edição ou remoção) de fonte de notícias é exclusiva para administradores do sistema, ou seja, para os usuários "comuns" as fontes de notícias parecem como pré-definidas.
 - Duas fontes de notícias não podem ter a mesma `url` ou o mesmo `url_rss`.
 - O payload de cadastro de uma fonte de notícias obriga o valor de `url_rss`. Para facilitar o encontro dessa URL, temos a rota `base_url/v1/sources/rss_discovery` que tenta descobrir automaticamente e fazer o parsing através do `gofeed` desse valor através dos seguintes padrões:
