@@ -1,141 +1,143 @@
-version: '3'
+version: "3"
 
 vars:
-  BINARY: ./tmp/api{{exeExt}}
-  PID_FILE: .pid
-  LOG_FILE: ./tmp/app.log
-  ERR_FILE: ./tmp/app.error.log
+    BINARY: ./tmp/api{{exeExt}}
+    PID_FILE: .pid
+    LOG_FILE: ./tmp/app.log
+    ERR_FILE: ./tmp/app.error.log
 
 tasks:
-  default:
-    desc: Show available tasks
-    aliases: [help]
-    cmds:
-      - task --list
-    silent: true
+    default:
+        desc: Show available tasks
+        aliases: [help]
+        cmds:
+            - task --list
+        silent: true
 
-  # ── Setup ──────────────────────────────────────────────────────────────────
+    # ── Setup ──────────────────────────────────────────────────────────────────
 
-  setup:
-    desc: Install required Go tools (sqlc, task)
-    cmds:
-      - go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
-      - go install github.com/go-task/task/v3/cmd/task@latest
-      - go mod download
+    setup:
+        desc: Install required Go tools (sqlc, task)
+        cmds:
+            - go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+            - go install github.com/go-task/task/v3/cmd/task@latest
+            - go mod download
 
-  # ── Build ──────────────────────────────────────────────────────────────────
+            - pip install sqlite-web
 
-  build:
-    desc: Compile the application binary into ./tmp/
-    aliases: [b]
-    cmds:
-      - cmd: powershell -Command "New-Item -ItemType Directory -Force tmp | Out-Null; go build -o {{.BINARY}} ."
-        platforms: [windows]
-      - cmd: mkdir -p tmp && go build -o {{.BINARY}} .
-        platforms: [linux, darwin]
+    # ── Build ──────────────────────────────────────────────────────────────────
 
-  # ── Local (no Docker) ──────────────────────────────────────────────────────
+    build:
+        desc: Compile the application binary into ./tmp/
+        aliases: [b]
+        cmds:
+            - cmd: powershell -Command "New-Item -ItemType Directory -Force tmp | Out-Null; go build -o {{.BINARY}} ."
+              platforms: [windows]
+            - cmd: mkdir -p tmp && go build -o {{.BINARY}} .
+              platforms: [linux, darwin]
 
-  local-start:
-    desc: Build and start the application locally in background
-    aliases: [ls]
-    cmds:
-      - task: build
-      - cmd: powershell -Command "New-Item -ItemType Directory -Force tmp | Out-Null; (Start-Process -FilePath '{{.BINARY}}' -RedirectStandardOutput '{{.LOG_FILE}}' -RedirectStandardError '{{.ERR_FILE}}' -WindowStyle Hidden -PassThru).Id | Out-File -FilePath '{{.PID_FILE}}' -Encoding ascii"
-        platforms: [windows]
-      - cmd: mkdir -p tmp && nohup {{.BINARY}} > {{.LOG_FILE}} 2>&1 & echo $! > {{.PID_FILE}}
-        platforms: [linux, darwin]
+    # ── Local (no Docker) ──────────────────────────────────────────────────────
 
-  local-down:
-    desc: Stop the locally running application
-    aliases: [ld]
-    cmds:
-      - cmd: powershell -Command "if (Test-Path '{{.PID_FILE}}') { Stop-Process -Id (Get-Content '{{.PID_FILE}}') -Force -ErrorAction SilentlyContinue; Remove-Item '{{.PID_FILE}}' }; Get-Process -Id (Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess) -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; Write-Host 'Done.'"
-        platforms: [windows]
-      - cmd: "[ -f {{.PID_FILE}} ] && kill $(cat {{.PID_FILE}}) && rm {{.PID_FILE}} || true; lsof -ti:3000 | xargs kill -9 2>/dev/null || true"
-        platforms: [linux, darwin]
+    local-start:
+        desc: Build and start the application locally in background
+        aliases: [ls]
+        cmds:
+            - task: build
+            - cmd: powershell -Command "New-Item -ItemType Directory -Force tmp | Out-Null; (Start-Process -FilePath '{{.BINARY}}' -RedirectStandardOutput '{{.LOG_FILE}}' -RedirectStandardError '{{.ERR_FILE}}' -WindowStyle Hidden -PassThru).Id | Out-File -FilePath '{{.PID_FILE}}' -Encoding ascii"
+              platforms: [windows]
+            - cmd: mkdir -p tmp && nohup {{.BINARY}} > {{.LOG_FILE}} 2>&1 & echo $! > {{.PID_FILE}}
+              platforms: [linux, darwin]
 
-  local-logs:
-    desc: Stream application logs including errors (tail -f equivalent)
-    aliases: [ll]
-    cmds:
-      - cmd: powershell -Command "Get-Content '{{.LOG_FILE}}', '{{.ERR_FILE}}' -Wait"
-        platforms: [windows]
-      - cmd: tail -f {{.LOG_FILE}} {{.ERR_FILE}}
-        platforms: [linux, darwin]
+    local-down:
+        desc: Stop the locally running application
+        aliases: [ld]
+        cmds:
+            - cmd: powershell -Command "if (Test-Path '{{.PID_FILE}}') { Stop-Process -Id (Get-Content '{{.PID_FILE}}') -Force -ErrorAction SilentlyContinue; Remove-Item '{{.PID_FILE}}' }; Get-Process -Id (Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess) -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; Write-Host 'Done.'"
+              platforms: [windows]
+            - cmd: "[ -f {{.PID_FILE}} ] && kill $(cat {{.PID_FILE}}) && rm {{.PID_FILE}} || true; lsof -ti:3000 | xargs kill -9 2>/dev/null || true"
+              platforms: [linux, darwin]
 
-  local-restart:
-    desc: Restart the locally running application
-    aliases: [lr]
-    cmds:
-      - task: local-down
-      - task: local-start
+    local-logs:
+        desc: Stream application logs including errors (tail -f equivalent)
+        aliases: [ll]
+        cmds:
+            - cmd: powershell -Command "Get-Content '{{.LOG_FILE}}', '{{.ERR_FILE}}' -Wait"
+              platforms: [windows]
+            - cmd: tail -f {{.LOG_FILE}} {{.ERR_FILE}}
+              platforms: [linux, darwin]
 
-  # ── Docker ─────────────────────────────────────────────────────────────────
+    local-restart:
+        desc: Restart the locally running application
+        aliases: [lr]
+        cmds:
+            - task: local-down
+            - task: local-start
 
-  docker-start:
-    desc: Start the application via Docker Compose
-    aliases: [ds]
-    cmds:
-      - docker-compose up -d
+    # ── Docker ─────────────────────────────────────────────────────────────────
 
-  docker-down:
-    desc: Stop Docker Compose services
-    aliases: [dd]
-    cmds:
-      - docker-compose down
+    docker-start:
+        desc: Start the application via Docker Compose
+        aliases: [ds]
+        cmds:
+            - docker-compose up -d
 
-  docker-restart:
-    desc: Restart Docker Compose services
-    aliases: [dr]
-    cmds:
-      - docker-compose restart
+    docker-down:
+        desc: Stop Docker Compose services
+        aliases: [dd]
+        cmds:
+            - docker-compose down
 
-  docker-prune:
-    desc: Stop containers and prune unused Docker resources
-    aliases: [dp]
-    cmds:
-      - docker-compose down --volumes --remove-orphans
-      - docker system prune -f
+    docker-restart:
+        desc: Restart Docker Compose services
+        aliases: [dr]
+        cmds:
+            - docker-compose restart
 
-  # ── Code quality ───────────────────────────────────────────────────────────
+    docker-prune:
+        desc: Stop containers and prune unused Docker resources
+        aliases: [dp]
+        cmds:
+            - docker-compose down --volumes --remove-orphans
+            - docker system prune -f
 
-  sqlc-generate:
-    desc: Run sqlc generate to produce type-safe DB code
-    aliases: [sg]
-    cmds:
-      - sqlc generate
+    # ── Code quality ───────────────────────────────────────────────────────────
 
-  vet-all:
-    desc: Run go vet on all packages
-    aliases: [va]
-    cmds:
-      - go vet ./...
+    sqlc-generate:
+        desc: Run sqlc generate to produce type-safe DB code
+        aliases: [sg]
+        cmds:
+            - sqlc generate
 
-  # ── Tests ──────────────────────────────────────────────────────────────────
+    vet-all:
+        desc: Run go vet on all packages
+        aliases: [va]
+        cmds:
+            - go vet ./...
 
-  test-units:
-    desc: Run unit tests
-    aliases: [tu]
-    cmds:
-      - go test ./tests/unit/... -v
+    # ── Tests ──────────────────────────────────────────────────────────────────
 
-  test-integration:
-    desc: Run integration tests
-    aliases: [ti]
-    cmds:
-      - go test ./tests/integration/... -v
+    test-units:
+        desc: Run unit tests
+        aliases: [tu]
+        cmds:
+            - go test ./tests/unit/... -v
 
-  test-end-to-end:
-    desc: Run end-to-end tests
-    aliases: [te2e]
-    cmds:
-      - go test ./tests/end-to-end/... -v
+    test-integration:
+        desc: Run integration tests
+        aliases: [ti]
+        cmds:
+            - go test ./tests/integration/... -v
 
-  test-all:
-    desc: Run all tests (unit + integration + end-to-end)
-    aliases: [ta]
-    cmds:
-      - task: test-units
-      - task: test-integration
-      - task: test-end-to-end
+    test-end-to-end:
+        desc: Run end-to-end tests
+        aliases: [te2e]
+        cmds:
+            - go test ./tests/end-to-end/... -v
+
+    test-all:
+        desc: Run all tests (unit + integration + end-to-end)
+        aliases: [ta]
+        cmds:
+            - task: test-units
+            - task: test-integration
+            - task: test-end-to-end
