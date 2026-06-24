@@ -110,7 +110,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 ## Versão 0.9.0.0
 
 - [ ] Criar uma documentação da versão 0.8.0.0 na qual adicionamos o Bruno ao projeto
-- [ ] Conferir se as especificações em relação ao Bruno estão boas o suficiente
+- [ ] Conferir se as especificações em relação ao Bruno estão boas o suficiente para fazer o básico
 - [ ] Criar uma migração para a tabela de preferências do usuário
     - Armazene os seguintes dados:
         - id (`UUID` v7)

@@ -148,3 +148,10 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Feeds indisponíveis não devem derrubar a aplicação.
 - Implemente retry com backoff exponencial.
 - Log detalhado de falhas.
+
+# Aplicativos externos
+
+## Bruno
+
+- Todas as requisições da aplicação devem estar mapeados e prontos para serem executados via Bruno.
+- O environment do Bruno deve possuir o mínimo de dados para reprodução de rotas básicas.

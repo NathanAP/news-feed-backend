@@ -174,7 +174,7 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
 
 - Ainda não está implementado e será feito futuramente.
 
-# Apps externos
+# Aplicativos externos
 
 ## Bruno
 
