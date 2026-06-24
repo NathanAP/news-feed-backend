@@ -111,6 +111,12 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 - [ ] Criar uma documentação da versão 0.8.0.0 na qual adicionamos o Bruno ao projeto
 - [ ] Conferir se as especificações em relação ao Bruno estão boas o suficiente para fazer o básico
+- [ ] Garantir que, no teste E2E do cadastro de usuários, além de simular que o usuário fez o processo da Google, também:
+    - grave um `user no banco de dados com o propósito de testar que esse processo está ocorrendo corretamente e possa ser usado nos próximos testes E2E.
+    - grave um `refresh_token`no banco de dados com o propósito de testar que esse processo está ocorrendo corretamente e possa usar nos próximos testes E2E.
+
+## Versão 0.10.0.0
+
 - [ ] Criar comando no Taskfile para iniciar o sqlite_web localmente
     - Comando `task local-start-sqlite` e `task lss`
 - [ ] Criar uma migração para a tabela de preferências do usuário
@@ -179,7 +185,7 @@ Os níveis de tabulação indicam detalhes do assunto.
         - id da fonte de notícia (`UUID` v7 existente em fontes de notícia)
 - [ ] Adicionar todas as rotas criadas ao Bruno
 
-## Versão 0.9.0.0
+## Versão 0.11.0.0
 
 - [ ] Cadastro de notícias
     - Acho que a melhor nomenclatura para essa tabela é 'Article'
@@ -189,7 +195,7 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Notícia foi lida pelo usuário (true ou false)
     - Associação com usuário (1 notícia pertence a 1 usuário)
 
-## Versão 0.10.0.0
+## Versão 0.12.0.0
 
 - [ ] Filtragem de notícias
     - [ ] Buscar notícias de todas as fontes cadastradas
@@ -201,7 +207,7 @@ Os níveis de tabulação indicam detalhes do assunto.
         - [ ] Personalização
         - [ ] Tradução
 
-## Versão 0.11.0.0
+## Versão 0.13.0.0
 
 - [ ] Deploy
     - [ ] Docker funcionando
