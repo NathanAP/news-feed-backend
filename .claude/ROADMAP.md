@@ -134,7 +134,7 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Buscar, que pode ser GET em `base_url/v1/users/me/preferences`
 - [ ] Atualizar todas as rotas criadas ou alteradas ao Bruno
 - [ ] Atualizar testes unitários para todas as rotas criadas ou alteradas
-- [ ] Atualizar testes de integarção para todas as rotas criadas ou alteradas
+- [ ] Atualizar testes de integração para todas as rotas criadas ou alteradas
 
 ## Versão 0.11.0.0
 
@@ -189,7 +189,7 @@ Os níveis de tabulação indicam detalhes do assunto.
         - id da fonte de notícia (`UUID` v7 existente em fontes de notícia)
 - [ ] Atualizar todas as rotas criadas ou alteradas ao Bruno
 - [ ] Atualizar testes unitários para todas as rotas criadas ou alteradas
-- [ ] Atualizar testes de integarção para todas as rotas criadas ou alteradas
+- [ ] Atualizar testes de integração para todas as rotas criadas ou alteradas
 
 ## Versão 0.12.0.0
 
