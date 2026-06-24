@@ -25,6 +25,18 @@ API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
 - Ao final de uma atualização de código sempre me traga um resumo sobre o que foi feito.
 - Ao final de uma atualização do código, quando aplicável, me traga uma forma de como testar o que foi feito.
 - Você tem liberdade para corrigir erros claros de ortografia na documentação, como falta de letras ou acentos.
+- Você tem liberdade em decidir que uma revisão de código usando um modelo maior é necessária quando uma nova versão for feita ou muito tempo tenha se passado desde a última revisão.
+
+# Regras de revisão
+
+- Modelo mínimo a ser usado: Claude Opus 4.8. Você deve parar a revisão caso o modelo selecionado tiver sido abaixo deste.
+- O revisor deve garantir a qualidade e consistência do código.
+- O revisor deve fornecer feedbacks construtivos em qualquer altura, seja sobre o fluxo do código ou até mesmo a documentação.
+- O revisor deve garantir que o código segue as regras, convenções e filosofias do projeto.
+- O revisor deve indicar quais são as melhorias, os motivos e como fazer elas.
+- O revisor deve elencar problemas de fluxo não notados anteriormente (exceções de fluxos ou situações adversas).
+- Bugs graves devem ter preferência e podem garantir uma versão única de patch.
+- Refatorações estão liberadas conforme necessário, mas faz-se necessário o planejamento junto a mim.
 
 ## Arquivos e pastas
 

@@ -62,8 +62,9 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
 - Tokens são divididos em dois níveis:
     - o primeiro é um `access_token` que expira de acordo com a variável de ambiente `JWT_ACCESS_TOKEN_EXPIRY_MINUTES` (em minutos) e que é usado pelo client em todas as requisições através de Authorization, como citado acima.
     - o segundo é um `refresh_token` que expira de acordo com a variável de ambiente `JWT_REFRESH_TOKEN_EXPIRY_DAYS` (em dias) e que é usado pelo client quando precisar renovar seu `access_token`. Esse token está presente em uma tabela simples chamada `refresh_tokens` que é usado silenciosamente quando for buscar um novo.
-- Ao expirar um `access_token` o client chama pela rota de refresh (`base_url/v1/auth/refresh`) e recebe um novo `access_token` renovado. Ao fazer essa operação, uma nova data de expiração é gerada ao `refresh_token`.
-- Logout faz com que o `refresh_token` seja removido de forma soft - através do campo `status`. Naturalmente, o `access_token` será expirado em no máximo 1 hora e o usuário terá que refazer o processo de login novamente.
+- Ao expirar um `access_token` o client chama pela endpoint de refresh (`base_url/v1/auth/refresh`) e recebe um novo `access_token` renovado. Ao fazer essa operação, uma nova data de expiração é gerada ao `refresh_token`.
+- O único responsável pela renovação da data de expiração do `refresh_token` é o endpoint de `refresh` (`base_url/v1/auth/refresh`); outras regenerações, como a de alteração de preferências de usuário, por exemplo, não o fazem.
+- Logout faz com que o `refresh_token` seja removido de forma soft (através do campo `status`). Naturalmente, o `access_token` será expirado em no máximo 1 hora e o usuário terá que refazer o processo de login novamente.
 - O campo `status` da tabela `refresh_token` indica se o token está expirado ou não também.
 - Ao gerar o `access_token` uma série de informações são inclusas nele durante sua geração. São eles:
     - `user_id`: `UUID` do usuário relacionado.
