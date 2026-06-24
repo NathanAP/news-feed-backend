@@ -24,6 +24,7 @@ API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
 - Ao analisar as srpints do arquivo `ROADMAP.md`, você tem liberdade para criticar ou corrigir tamanho de sprint, altas complexidades de código, regras de negócio, conflito de convenções e até mesmo dificuldades futuras. Isso fará com que nós possamos pensar juntos em soluções e deixará a aplicação melhor. Seu papel nisso é fundamental.
 - Ao final de uma atualização de código sempre me traga um resumo sobre o que foi feito.
 - Ao final de uma atualização do código, quando aplicável, me traga uma forma de como testar o que foi feito.
+- Você tem liberdade para corrigir erros claros de ortografia na documentação, como falta de letras ou acentos.
 
 ## Arquivos e pastas
 
