@@ -13,6 +13,8 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Use pointers para mutação, values para imutabilidade.
 - Utilize arquivos de ambiente local (arquivos .env) para guardar informações secretas ou confidenciais.
 - Utilize arquivos de ambiente local (arquivos .env) para preferências de modo desenvolvimento, homologação ou produção (Exemplo: ENVIRONMENT, MAILER_ACTIVE, NOTIFICATOR_ACTIVE).
+- Prefira manter fluxo de regras obrigatórias dentro dos arquivos de `controllers` presente em `raiz/services/controllers`, assim os mesmos fluxos sempre serão seguidos corretamente e nunca teremos problemas de dependências.
+    - Por exemplo: ao criar um usuário a regra obrigatória é criar também uma preferência de usuário em seguida, então essa lógica deve estar no arquivo `raiz/services/controllers/users.go`.
 
 # Versionamento
 
