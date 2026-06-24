@@ -154,4 +154,4 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 ## Bruno
 
 - Todas as requisições da aplicação devem estar mapeados e prontos para serem executados via Bruno.
-- O environment do Bruno deve possuir o mínimo de dados para reprodução de rotas básicas.
+- O environment do Bruno deve possuir o mínimo de dados para reprodução de rotas básicas, mas não pode possui dados sensíveis (como `access_token` ou qualquer tipo `api_key` salvo diretamente) ou informações indevidas (como ofensas ou apologias).
