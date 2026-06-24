@@ -98,6 +98,39 @@ func seedSession(t *testing.T, queries db.Querier, authCtrl *controllers.AuthCon
 	return token, rt.ID
 }
 
+// loginViaCallback performs a full Google OAuth2 login through the real callback endpoint
+// using MockGoogleOAuth. Verifies that the user and refresh_token were persisted in the DB
+// and returns both records along with the access_token. Use this fixture in tests that need
+// an authenticated session created through the real login flow.
+func loginViaCallback(t *testing.T, app *fiber.App, queries db.Querier) (user db.User, rt db.RefreshToken, accessToken string) {
+	t.Helper()
+
+	req, err := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?code=any-code", nil)
+	require.NoError(t, err)
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode, "callback should return 200")
+
+	var body map[string]interface{}
+	require.NoError(t, readJSON(resp, &body))
+
+	accessToken, _ = body["access_token"].(string)
+	refreshTokenID, _ := body["refresh_token"].(string)
+	require.NotEmpty(t, accessToken, "access_token missing from callback response")
+	require.NotEmpty(t, refreshTokenID, "refresh_token missing from callback response")
+
+	ctx := context.Background()
+
+	rt, err = queries.FindRefreshTokenByID(ctx, refreshTokenID)
+	require.NoError(t, err, "refresh_token should be persisted in DB after login")
+
+	user, err = queries.FindUserByID(ctx, rt.UserID)
+	require.NoError(t, err, "user should be persisted in DB after login")
+
+	return user, rt, accessToken
+}
+
 func readJSON(resp *http.Response, target any) error {
 	defer resp.Body.Close()
 	return json.NewDecoder(resp.Body).Decode(target)

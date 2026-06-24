@@ -22,19 +22,19 @@ func TestE2E_Callback_SuccessfulLogin(t *testing.T) {
 			Name: "E2E User", Picture: "https://example.com/pic.jpg",
 		},
 	}
-	app, _, _ := setupE2EApp(t, oauth)
+	app, queries, _ := setupE2EApp(t, oauth)
 
-	req, err := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?code=valid-code", nil)
-	require.NoError(t, err)
+	user, rt, accessToken := loginViaCallback(t, app, queries)
 
-	resp, err := app.Test(req)
-	require.NoError(t, err)
-
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	var body map[string]interface{}
-	require.NoError(t, readJSON(resp, &body))
-	assert.NotEmpty(t, body["access_token"])
-	assert.NotEmpty(t, body["refresh_token"])
+	// Verify the persisted data matches what the mock returned
+	assert.Equal(t, "e2e@example.com", user.Email)
+	assert.Equal(t, "E2E User", user.Name)
+	assert.True(t, user.Picture.Valid)
+	assert.Equal(t, "https://example.com/pic.jpg", user.Picture.String)
+	assert.Equal(t, int64(1), user.Status)
+	assert.Equal(t, user.ID, rt.UserID)
+	assert.Equal(t, int64(1), rt.Status)
+	assert.NotEmpty(t, accessToken)
 }
 
 func TestE2E_Callback_MissingCode(t *testing.T) {

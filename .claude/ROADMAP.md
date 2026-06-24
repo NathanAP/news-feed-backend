@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.8.0.0
+0.9.0.0
 
 ## Versão 0.1.0.0
 
@@ -109,9 +109,9 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.9.0.0
 
-- [ ] Criar uma documentação da versão 0.8.0.0 na qual adicionamos o Bruno ao projeto
-- [ ] Conferir se as especificações em relação ao Bruno estão boas o suficiente para fazer o básico
-- [ ] Garantir que, no teste E2E do cadastro de usuários, além de simular que o usuário fez o processo da Google, também:
+- [x] Criar uma documentação da versão 0.8.0.0 na qual adicionamos o Bruno ao projeto
+- [x] Conferir se as especificações em relação ao Bruno estão boas o suficiente para fazer o básico
+- [x] Garantir que, no teste E2E do cadastro de usuários, além de simular que o usuário fez o processo da Google, também:
     - grave um `user no banco de dados com o propósito de testar que esse processo está ocorrendo corretamente.
     - grave um `refresh_token`no banco de dados com o propósito de testar que esse processo está ocorrendo corretamente.
 
