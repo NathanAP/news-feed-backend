@@ -37,6 +37,7 @@ API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
 - O revisor deve elencar problemas de fluxo não notados anteriormente (exceções de fluxos ou situações adversas).
 - Bugs graves devem ter preferência e podem garantir uma versão única de patch.
 - Refatorações estão liberadas conforme necessário, mas faz-se necessário o planejamento junto a mim.
+- Não precisa ser estritamente rígido. O papel do revisor é sobre "revisão de código" buscando a melhoria e não sobre "carnificina de código".
 
 ## Arquivos e pastas
 
