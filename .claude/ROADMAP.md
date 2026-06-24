@@ -135,6 +135,7 @@ Os níveis de tabulação indicam detalhes do assunto.
         - Lembrete: o fluxo desta rota exige que um novo `access_token` seja gerado contendo as novas informações de preferências do usuário, então além das preferences, esta rota já retorna também esse `access_token` atualizado
     - Buscar, que pode ser GET em `base_url/v1/users/me/preferences`
         - Lembrete: os dados já estão no JWT, você pode fazer ele ler diretamente no `access_token` sem precisar ir ao banco de dados
+- [ ] Atualizar soft-remove do usuário para também dar soft-remove em suas preferências
 - [ ] Atualizar todas as rotas criadas ou alteradas ao Bruno
 - [ ] Atualizar testes unitários para todas as rotas criadas ou alteradas
 - [ ] Atualizar testes de integração para todas as rotas criadas ou alteradas
