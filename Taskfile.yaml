@@ -100,6 +100,13 @@ tasks:
             - docker-compose down --volumes --remove-orphans
             - docker system prune -f
 
+    # ── Database ───────────────────────────────────────────────────────────────
+
+    db:
+        desc: Open sqlite-web UI at http://localhost:8080
+        cmds:
+            - python -m sqlite_web ./db/news_feed.db --host 0.0.0.0 --port 8080
+
     # ── Code quality ───────────────────────────────────────────────────────────
 
     sqlc-generate:

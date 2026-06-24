@@ -111,6 +111,8 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 - [ ] Criar uma documentação da versão 0.8.0.0 na qual adicionamos o Bruno ao projeto
 - [ ] Conferir se as especificações em relação ao Bruno estão boas o suficiente para fazer o básico
+- [ ] Criar comando no Taskfile para iniciar o sqlite_web localmente
+    - Comando `task local-start-sqlite` e `task lss`
 - [ ] Criar uma migração para a tabela de preferências do usuário
     - Armazene os seguintes dados:
         - id (`UUID` v7)
