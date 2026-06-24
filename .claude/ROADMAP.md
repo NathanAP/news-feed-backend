@@ -181,7 +181,9 @@ Os níveis de tabulação indicam detalhes do assunto.
         - id (`UUID` v7)
         - id da categoria de notícia (`UUID` v7 existente em categorias de notícia)
         - id da fonte de notícia (`UUID` v7 existente em fontes de notícia)
-- [ ] Adicionar todas as rotas criadas ao Bruno
+- [ ] Atualizar todas as rotas criadas ou alteradas ao Bruno
+- [ ] Atualiar testes unitários para todas as rotas criadas ou alteradas
+- [ ] Atualiar testes de integarção para todas as rotas criadas ou alteradas
 
 ## Versão 0.11.0.0
 
