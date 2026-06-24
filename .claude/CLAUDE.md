@@ -35,6 +35,7 @@ API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
 - O revisor deve garantir que o código segue as regras, convenções e filosofias do projeto.
 - O revisor deve indicar quais são as melhorias, os motivos e como fazer elas.
 - O revisor deve elencar problemas de fluxo não notados anteriormente (exceções de fluxos ou situações adversas).
+- O revisor deve garantir que o versionamento (`.claude/versions`) está consistente.
 - Bugs graves devem ter preferência e podem garantir uma versão única de patch.
 - Refatorações estão liberadas conforme necessário, mas faz-se necessário o planejamento junto a mim.
 
@@ -90,4 +91,4 @@ go run main.go
 
 ## Porta
 
-- A API roda em `http://localhost:3000`.
+- A porta da API está presente na variável de ambiente `API_PORT`.
