@@ -65,6 +65,17 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
 - Ao expirar um `access_token` o client chama pela rota de refresh (`base_url/v1/auth/refresh`) e recebe um novo `access_token` renovado. Ao fazer essa operação, uma nova data de expiração é gerada ao `refresh_token`.
 - Logout faz com que o `refresh_token` seja removido de forma soft - através do campo `status`. Naturalmente, o `access_token` será expirado em no máximo 1 hora e o usuário terá que refazer o processo de login novamente.
 - O campo `status` da tabela `refresh_token` indica se o token está expirado ou não também.
+- Ao gerar o `access_token` uma série de informações são inclusas nele durante sua geração. São eles:
+    - `user_id`: `UUID` do usuário relacionado.
+    - `email`: e-mail do usuário relacionado.
+    - `name`: nome do usuário relacionado.
+    - `picture`: URL da foto do usuário relacionado.
+    - `created_at`: data de criação do usuário relacionado.
+    - `refresh_token_id`: `UUID` do `refresh_token` relacionado.
+    - `theme`: `enum` contendo o atual tema e presente nas preferências do usuário relacionado.
+    - `language`: `enum` contendo o idioma preferido e presente nas preferências do usuário relacionado.
+    - `translate_content`: `bool` sobre a necessidade de tradução do conteudo das notícias e presente nas preferências do usuário relacionado.
+    - `ai_personality`: `enum` contendo a personalidade da IA e presente nas preferências do usuário relacionado.
 
 ## Preferências do usuário (user preferences)
 
@@ -103,6 +114,7 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
     - Essa tabela é preenchida automaticamente quando um usuário associa em sua categoria uma fonte.
     - Essa tabela perde o registro automaticamente quando um usuário desassocia em sua categoria uma fonte.
 - Registros nesta tabela são removidos permanentemente ao serem excluídos (hard remove).
+- Para popular essa tabela, o usuário deve enviar junto da requisição de cadastro ou alteração de categoria pelo menos uma fonte de notícias. Isso garante que cada categoria tenha sempre uma fonte de notícias atrelada à ela.
 
 ## Administradores
 
