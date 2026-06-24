@@ -76,6 +76,7 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
     - `language`: `enum` contendo o idioma preferido e presente nas preferências do usuário relacionado.
     - `translate_content`: `bool` sobre a necessidade de tradução do conteudo das notícias e presente nas preferências do usuário relacionado.
     - `ai_personality`: `enum` contendo a personalidade da IA e presente nas preferências do usuário relacionado.
+- Um struct chamado `Claims` mantém também esse mapeamento no código.
 
 ## Preferências do usuário (user preferences)
 

@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.9.0.0
+0.10.0.0
 
 ## Versão 0.1.0.0
 
@@ -117,7 +117,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.10.0.0
 
-- [ ] Criar uma migração para a tabela de preferências do usuário
+- [x] Criar uma migração para a tabela de preferências do usuário
     - Armazene os seguintes dados:
         - id (`UUID` v7)
         - status (`true` ou `false`)
@@ -130,16 +130,16 @@ Os níveis de tabulação indicam detalhes do assunto.
         - modified_at (`timestamp` opcional)
         - removed_at (`timestamp` opcional)
     - Na mesma migração passar em cada usuário do banco de dados atual e criar uma preferência para cada um deles utilizando os valores padrão de preferências
-- [ ] Criar rotas para as preferências do usuário
+- [x] Criar rotas para as preferências do usuário
     - Edição, que pode ser PUT em `base_url/v1/users/me/preferences`
         - Lembrete: o fluxo desta rota exige que um novo `access_token` seja gerado contendo as novas informações de preferências do usuário, então além das preferences, esta rota já retorna também esse `access_token` atualizado
     - Buscar, que pode ser GET em `base_url/v1/users/me/preferences`
         - Lembrete: os dados já estão no JWT, você pode fazer ele ler diretamente no `access_token` sem precisar ir ao banco de dados
-- [ ] Atualizar soft-remove do usuário para também dar soft-remove em suas preferências
-- [ ] Atualizar todas as rotas criadas ou alteradas ao Bruno
-- [ ] Atualizar testes unitários para todas as rotas criadas ou alteradas
-- [ ] Atualizar testes de integração para todas as rotas criadas ou alteradas
-- [ ] Atualizar testes E2E para todas as rotas criadas ou alteradas
+- [x] Atualizar soft-remove do usuário para também dar soft-remove em suas preferências
+- [x] Atualizar todas as rotas criadas ou alteradas ao Bruno
+- [x] Atualizar testes unitários para todas as rotas criadas ou alteradas
+- [x] Atualizar testes de integração para todas as rotas criadas ou alteradas
+- [x] Atualizar testes E2E para todas as rotas criadas ou alteradas
 
 ## Versão 0.11.0.0
 

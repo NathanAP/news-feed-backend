@@ -17,11 +17,12 @@ var (
 )
 
 type UserController struct {
-	queries db.Querier
+	queries  db.Querier
+	prefCtrl UserPreferencesControllerInterface
 }
 
-func NewUserController(querier db.Querier) *UserController {
-	return &UserController{queries: querier}
+func NewUserController(querier db.Querier, prefCtrl UserPreferencesControllerInterface) *UserController {
+	return &UserController{queries: querier, prefCtrl: prefCtrl}
 }
 
 func (c *UserController) CreateUser(ctx context.Context, googleID, email, name, picture string) (db.User, error) {
@@ -44,6 +45,10 @@ func (c *UserController) CreateUser(ctx context.Context, googleID, email, name, 
 			return db.User{}, ErrUserAlreadyExists
 		}
 		return db.User{}, fmt.Errorf("failed to create user: %w", err)
+	}
+
+	if _, err := c.prefCtrl.CreateDefault(ctx, user.ID); err != nil {
+		return db.User{}, fmt.Errorf("failed to create user preferences: %w", err)
 	}
 
 	return user, nil
@@ -84,5 +89,10 @@ func (c *UserController) SoftDeleteUser(ctx context.Context, id string) error {
 	if err := c.queries.SoftDeleteUser(ctx, id); err != nil {
 		return fmt.Errorf("failed to delete user: %w", err)
 	}
+
+	if err := c.prefCtrl.SoftDelete(ctx, id); err != nil {
+		return fmt.Errorf("failed to delete user preferences: %w", err)
+	}
+
 	return nil
 }

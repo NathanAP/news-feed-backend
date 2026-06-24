@@ -56,6 +56,56 @@ func setupUsersApp() *fiber.App {
 	return app
 }
 
+// mockPrefCtrl for unit tests of preferences endpoints
+type mockPrefCtrl struct {
+	updateFn func(ctx context.Context, userID string, params controllers.UpdatePreferencesParams) (db.UserPreference, error)
+}
+
+func (m *mockPrefCtrl) CreateDefault(ctx context.Context, userID string) (db.UserPreference, error) {
+	return db.UserPreference{}, nil
+}
+func (m *mockPrefCtrl) FindByUserID(ctx context.Context, userID string) (db.UserPreference, error) {
+	return fixtures.NewTestUserPreferences(userID), nil
+}
+func (m *mockPrefCtrl) Update(ctx context.Context, userID string, params controllers.UpdatePreferencesParams) (db.UserPreference, error) {
+	if m.updateFn != nil {
+		return m.updateFn(ctx, userID, params)
+	}
+	return fixtures.NewTestUserPreferences(userID), nil
+}
+func (m *mockPrefCtrl) SoftDelete(ctx context.Context, userID string) error { return nil }
+
+var _ controllers.UserPreferencesControllerInterface = (*mockPrefCtrl)(nil)
+
+// mockAuthForPrefs implements only what UpdatePreferences needs
+type mockAuthForPrefs struct{}
+
+func (m *mockAuthForPrefs) HandleGoogleCallback(ctx context.Context, code string) (schemas.AuthResponse, error) {
+	return schemas.AuthResponse{}, nil
+}
+func (m *mockAuthForPrefs) RefreshAccessToken(ctx context.Context, id string) (schemas.AuthResponse, error) {
+	return schemas.AuthResponse{}, nil
+}
+func (m *mockAuthForPrefs) GenerateAccessToken(user db.User, id string, prefs db.UserPreference) (string, error) {
+	return "new-access-token", nil
+}
+func (m *mockAuthForPrefs) RegenerateFromClaims(ctx context.Context, claims *schemas.Claims, prefs db.UserPreference) (string, error) {
+	return "new-access-token", nil
+}
+
+var _ controllers.AuthControllerInterface = (*mockAuthForPrefs)(nil)
+
+func setupPreferencesApp() *fiber.App {
+	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{})
+
+	users := app.Group("/v1/users")
+	users.Get("/me/preferences", append(authMiddleware, userendpoints.GetPreferences())...)
+	users.Put("/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(&mockPrefCtrl{}, &mockAuthForPrefs{}, 3600))...)
+
+	return app
+}
+
 func TestGetMe_Success(t *testing.T) {
 	requireNotProduction(t)
 

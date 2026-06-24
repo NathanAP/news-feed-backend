@@ -31,3 +31,16 @@ type User struct {
 	ModifiedAt  sql.NullTime   `json:"modified_at"`
 	RemovedAt   sql.NullTime   `json:"removed_at"`
 }
+
+type UserPreference struct {
+	ID               string       `json:"id"`
+	UserID           string       `json:"user_id"`
+	Status           int64        `json:"status"`
+	Theme            string       `json:"theme"`
+	Language         string       `json:"language"`
+	TranslateContent int64        `json:"translate_content"`
+	AiPersonality    string       `json:"ai_personality"`
+	CreatedAt        time.Time    `json:"created_at"`
+	ModifiedAt       sql.NullTime `json:"modified_at"`
+	RemovedAt        sql.NullTime `json:"removed_at"`
+}

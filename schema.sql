@@ -14,6 +14,22 @@ CREATE TABLE users (
     UNIQUE (email)
 );
 
+CREATE TABLE user_preferences (
+    id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    status INTEGER NOT NULL DEFAULT 1,
+    theme TEXT NOT NULL DEFAULT 'dark',
+    language TEXT NOT NULL DEFAULT 'pt',
+    translate_content INTEGER NOT NULL DEFAULT 1,
+    ai_personality TEXT NOT NULL DEFAULT 'mixed',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    modified_at DATETIME,
+    removed_at DATETIME,
+    PRIMARY KEY (id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    UNIQUE (user_id)
+);
+
 CREATE TABLE refresh_tokens (
     id TEXT NOT NULL,
     user_id TEXT NOT NULL,

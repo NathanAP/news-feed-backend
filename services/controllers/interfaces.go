@@ -23,6 +23,13 @@ type UserControllerInterface interface {
 	SoftDeleteUser(ctx context.Context, id string) error
 }
 
+type UserPreferencesControllerInterface interface {
+	CreateDefault(ctx context.Context, userID string) (db.UserPreference, error)
+	FindByUserID(ctx context.Context, userID string) (db.UserPreference, error)
+	Update(ctx context.Context, userID string, params UpdatePreferencesParams) (db.UserPreference, error)
+	SoftDelete(ctx context.Context, userID string) error
+}
+
 type RefreshTokenControllerInterface interface {
 	Create(ctx context.Context, userID string) (db.RefreshToken, error)
 	FindByID(ctx context.Context, id string) (db.RefreshToken, error)
@@ -34,5 +41,6 @@ type RefreshTokenControllerInterface interface {
 type AuthControllerInterface interface {
 	HandleGoogleCallback(ctx context.Context, code string) (schemas.AuthResponse, error)
 	RefreshAccessToken(ctx context.Context, refreshTokenID string) (schemas.AuthResponse, error)
-	GenerateAccessToken(user db.User, refreshTokenID string) (string, error)
+	GenerateAccessToken(user db.User, refreshTokenID string, prefs db.UserPreference) (string, error)
+	RegenerateFromClaims(ctx context.Context, claims *schemas.Claims, updatedPrefs db.UserPreference) (string, error)
 }

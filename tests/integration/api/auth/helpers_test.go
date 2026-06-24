@@ -39,9 +39,10 @@ func setupIntegrationApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.A
 	database := testutils.SetupTestDB(t)
 	queries := db.New(database)
 
-	userCtrl := controllers.NewUserController(queries)
+	prefCtrl := controllers.NewUserPreferencesController(queries)
+	userCtrl := controllers.NewUserController(queries, prefCtrl)
 	refreshTokenCtrl := controllers.NewRefreshTokenController(queries, testRefreshTokenExpiry)
-	authCtrl := controllers.NewAuthController(&oauth, userCtrl, refreshTokenCtrl, []byte(jwtmock.TestJWTSecret), time.Hour)
+	authCtrl := controllers.NewAuthController(&oauth, userCtrl, refreshTokenCtrl, prefCtrl, []byte(jwtmock.TestJWTSecret), time.Hour)
 
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl)
 

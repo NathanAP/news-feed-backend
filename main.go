@@ -78,9 +78,10 @@ func main() {
 	}
 
 	queries := db.New(database)
-	userCtrl := controllers.NewUserController(queries)
+	prefCtrl := controllers.NewUserPreferencesController(queries)
+	userCtrl := controllers.NewUserController(queries, prefCtrl)
 	refreshTokenCtrl := controllers.NewRefreshTokenController(queries, refreshTokenExpiry)
-	authCtrl := controllers.NewAuthController(oauth2Config, userCtrl, refreshTokenCtrl, jwtSecret, accessTokenExpiry)
+	authCtrl := controllers.NewAuthController(oauth2Config, userCtrl, refreshTokenCtrl, prefCtrl, jwtSecret, accessTokenExpiry)
 
 	authMiddleware := middlewares.NewAuthMiddleware(jwtSecret, refreshTokenCtrl)
 
@@ -110,6 +111,8 @@ func main() {
 
 	users := api.Group("/users")
 	users.Get("/me", append(authMiddleware, userendpoints.GetMe())...)
+	users.Get("/me/preferences", append(authMiddleware, userendpoints.GetPreferences())...)
+	users.Put("/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(prefCtrl, authCtrl, int(accessTokenExpiry.Seconds())))...)
 
 	log.Fatal(app.Listen(":3000"))
 }

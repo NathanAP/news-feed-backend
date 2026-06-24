@@ -11,15 +11,19 @@ import (
 type Querier interface {
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	CreateUserPreferences(ctx context.Context, arg CreateUserPreferencesParams) (UserPreference, error)
 	ExtendRefreshToken(ctx context.Context, arg ExtendRefreshTokenParams) error
 	FindActiveRefreshTokenByUserID(ctx context.Context, userID string) (RefreshToken, error)
 	FindRefreshTokenByID(ctx context.Context, id string) (RefreshToken, error)
 	FindUserByGoogleID(ctx context.Context, googleID string) (User, error)
 	FindUserByID(ctx context.Context, id string) (User, error)
+	FindUserPreferencesByUserID(ctx context.Context, userID string) (UserPreference, error)
 	RevokeAllRefreshTokensByUserID(ctx context.Context, userID string) error
 	RevokeRefreshToken(ctx context.Context, id string) error
 	SoftDeleteUser(ctx context.Context, id string) error
+	SoftDeleteUserPreferences(ctx context.Context, userID string) error
 	UpdateUserLastLogin(ctx context.Context, id string) error
+	UpdateUserPreferences(ctx context.Context, arg UpdateUserPreferencesParams) (UserPreference, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -39,9 +39,10 @@ func testOAuth2Config() *oauth2.Config {
 
 // mockAuthCtrl implements AuthControllerInterface for unit tests.
 type mockAuthCtrl struct {
-	handleGoogleCallbackFn func(ctx context.Context, code string) (schemas.AuthResponse, error)
-	refreshAccessTokenFn   func(ctx context.Context, refreshTokenID string) (schemas.AuthResponse, error)
-	generateAccessTokenFn  func(user db.User, refreshTokenID string) (string, error)
+	handleGoogleCallbackFn  func(ctx context.Context, code string) (schemas.AuthResponse, error)
+	refreshAccessTokenFn    func(ctx context.Context, refreshTokenID string) (schemas.AuthResponse, error)
+	generateAccessTokenFn   func(user db.User, refreshTokenID string, prefs db.UserPreference) (string, error)
+	regenerateFromClaimsFn  func(ctx context.Context, claims *schemas.Claims, updatedPrefs db.UserPreference) (string, error)
 }
 
 func (m *mockAuthCtrl) HandleGoogleCallback(ctx context.Context, code string) (schemas.AuthResponse, error) {
@@ -52,11 +53,18 @@ func (m *mockAuthCtrl) RefreshAccessToken(ctx context.Context, refreshTokenID st
 	return m.refreshAccessTokenFn(ctx, refreshTokenID)
 }
 
-func (m *mockAuthCtrl) GenerateAccessToken(user db.User, refreshTokenID string) (string, error) {
+func (m *mockAuthCtrl) GenerateAccessToken(user db.User, refreshTokenID string, prefs db.UserPreference) (string, error) {
 	if m.generateAccessTokenFn != nil {
-		return m.generateAccessTokenFn(user, refreshTokenID)
+		return m.generateAccessTokenFn(user, refreshTokenID, prefs)
 	}
 	return "", nil
+}
+
+func (m *mockAuthCtrl) RegenerateFromClaims(ctx context.Context, claims *schemas.Claims, updatedPrefs db.UserPreference) (string, error) {
+	if m.regenerateFromClaimsFn != nil {
+		return m.regenerateFromClaimsFn(ctx, claims, updatedPrefs)
+	}
+	return "new-access-token", nil
 }
 
 // mockRefreshTokenCtrl implements RefreshTokenControllerInterface for unit tests.

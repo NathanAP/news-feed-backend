@@ -18,7 +18,7 @@ import (
 	"github.com/nathanap/news-feed-backend/middlewares"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	authendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/auth"
-	userendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/users"
+	userendpoints  "github.com/nathanap/news-feed-backend/services/endpoints/v1/users"
 	"github.com/nathanap/news-feed-backend/tests/mocks/external"
 	jwtmock "github.com/nathanap/news-feed-backend/tests/mocks/services"
 	testutils "github.com/nathanap/news-feed-backend/tests/utils"
@@ -43,10 +43,11 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 	database := testutils.SetupTestDB(t)
 	queries := db.New(database)
 
-	userCtrl := controllers.NewUserController(queries)
+	prefCtrl := controllers.NewUserPreferencesController(queries)
+	userCtrl := controllers.NewUserController(queries, prefCtrl)
 	refreshTokenCtrl := controllers.NewRefreshTokenController(queries, e2eRefreshExpiry)
 	authCtrl := controllers.NewAuthController(
-		&oauth, userCtrl, refreshTokenCtrl,
+		&oauth, userCtrl, refreshTokenCtrl, prefCtrl,
 		[]byte(jwtmock.TestJWTSecret), time.Hour,
 	)
 
@@ -64,6 +65,8 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 
 	users := app.Group("/v1/users")
 	users.Get("/me", append(authMiddleware, userendpoints.GetMe())...)
+	users.Get("/me/preferences", append(authMiddleware, userendpoints.GetPreferences())...)
+	users.Put("/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(prefCtrl, authCtrl, 3600))...)
 
 	return app, queries, authCtrl
 }
@@ -83,7 +86,8 @@ func testOAuth2Config() *oauth2.Config {
 func seedSession(t *testing.T, queries db.Querier, authCtrl *controllers.AuthController, googleID, email, name string) (accessToken, refreshTokenID string) {
 	t.Helper()
 
-	userCtrl := controllers.NewUserController(queries)
+	seedPrefCtrl := controllers.NewUserPreferencesController(queries)
+	userCtrl := controllers.NewUserController(queries, seedPrefCtrl)
 	refreshTokenCtrl := controllers.NewRefreshTokenController(queries, e2eRefreshExpiry)
 
 	user, err := userCtrl.CreateUser(context.Background(), googleID, email, name, "")
@@ -92,7 +96,10 @@ func seedSession(t *testing.T, queries db.Querier, authCtrl *controllers.AuthCon
 	rt, err := refreshTokenCtrl.Create(context.Background(), user.ID)
 	require.NoError(t, err)
 
-	token, err := authCtrl.GenerateAccessToken(user, rt.ID)
+	prefs, err := seedPrefCtrl.FindByUserID(context.Background(), user.ID)
+	require.NoError(t, err)
+
+	token, err := authCtrl.GenerateAccessToken(user, rt.ID, prefs)
 	require.NoError(t, err)
 
 	return token, rt.ID

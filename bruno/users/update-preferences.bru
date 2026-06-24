@@ -1,0 +1,35 @@
+meta {
+  name: Update My Preferences
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/v1/users/me/preferences
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "theme": "light",
+    "language": "pt",
+    "translate_content": true,
+    "ai_personality": "mixed"
+  }
+}
+
+docs {
+  Valores aceitos:
+  - theme: "light" | "dark"
+  - language: "pt" | "en" | "es" | "fr" | "de" | "it" | "ja" | "zh"
+  - translate_content: true | false
+  - ai_personality: "fun" | "informative" | "mixed"
+  
+  Retorna: { access_token, expires_in, preferences }
+  O access_token retornado já contém as preferências atualizadas.
+}
