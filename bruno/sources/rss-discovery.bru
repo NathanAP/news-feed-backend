@@ -1,0 +1,30 @@
+meta {
+  name: RSS Discovery
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/v1/sources/rss_discovery?url=https://g1.globo.com
+  body: none
+  auth: bearer
+}
+
+params:query {
+  url: https://g1.globo.com
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  Tenta descobrir automaticamente feeds RSS/Atom a partir da URL base informada.
+  Estratégia:
+  1. Busca tags <link rel="alternate" type="application/rss+xml"> no HTML da página
+  2. Se não encontrar, tenta paths comuns: /rss, /feed, /rss.xml, /feed.xml, etc.
+  3. Valida cada candidato com o parser gofeed
+  
+  Retorna sempre 200 com uma lista (pode ser vazia):
+  { "feeds": ["https://exemplo.com/rss.xml"] }
+}

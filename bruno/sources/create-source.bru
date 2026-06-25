@@ -1,0 +1,31 @@
+meta {
+  name: Create Source
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/v1/sources/create
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "url": "https://g1.globo.com",
+    "url_rss": "https://g1.globo.com/rss/g1/"
+  }
+}
+
+docs {
+  Campos obrigatórios:
+  - url: URL base da fonte (deve ser http ou https)
+  - url_rss: URL do feed RSS/Atom (deve ser http ou https)
+  
+  Retorna 409 se a URL já estiver cadastrada.
+  Use GET /v1/sources/rss_discovery para tentar descobrir o url_rss automaticamente.
+}

@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.10.1.0
+0.11.0.0
 
 ## Versão 0.1.0.0
 
@@ -148,31 +148,24 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.11.0.0
 
-- [ ] Criar uma migração para a tabela de fonte de notícias
-    - Acredito que o melhor nomenclatura aqui seja 'sources', mas aceito melhores sugestões
-    - O arquivo `PROJECT.md` explica melhor como essa tabela funciona
-    - Armazene os seguintes dados:
-        - id (`UUID` v7)
-        - status (`true` ou `false`)
-        - url (Exemplo: https://g1.globo.com/politica/)
-        - url_rss (Exemplo: https://g1.globo.com/rss/g1/politica/)
-        - created_at (`timestamp`)
-        - modified_at (`timestamp` opcional)
-        - removed_at (`timestamp` opcional)
-    - Esta tabela possui um relacionamento muito para muitos (N to N) com categorias
-    - Devemos ser capazes de encontrar automaticamente a URL de RSS
-    - Valida a URL antes de salvar
-- [ ] Criar rotas para as fontes de notícias
-    - Criação
-    - Edição
-    - Remoção
-    - Buscar por id
-    - Buscar por filtro
-    - Descobrir automaticamente URL de RSS através da URL base
-- [ ] Atualizar todas as rotas criadas ou alteradas ao Bruno
-- [ ] Atualizar testes unitários para todas as rotas criadas ou alteradas
-- [ ] Atualizar testes de integração para todas as rotas criadas ou alteradas
-- [ ] Atualizar testes E2E para todas as rotas criadas ou alteradas
+- [x] Criar uma migração para a tabela de fonte de notícias (`sources`)
+    - Nomenclatura: `sources`
+    - Campos: id, status, url, url_rss, created_at, modified_at, removed_at
+    - url e url_rss com constraint UNIQUE global
+    - Sem user_id (fontes são globais, gerenciadas por admins)
+- [x] Criar rotas para as fontes de notícias
+    - [x] Criação (`POST /v1/sources/create`)
+    - [x] Edição (`PUT /v1/sources/{id}`)
+    - [x] Remoção (`DELETE /v1/sources/{id}`) — soft delete
+    - [x] Buscar por id (`GET /v1/sources/{id}`)
+    - [x] Buscar por filtro (`GET /v1/sources?url=...&status=...`)
+    - [x] Descobrir automaticamente URL de RSS (`GET /v1/sources/rss_discovery?url=...`)
+        - Estratégia: HTML parsing → common paths → validação com gofeed
+        - Retorna 200 com lista vazia quando não encontra nada
+- [x] Atualizar todas as rotas criadas ao Bruno
+- [x] Criar testes unitários para todas as rotas
+- [x] Criar testes de integração para todas as rotas
+- [x] Criar testes E2E para todas as rotas
 
 ## Versão 0.12.0.0
 

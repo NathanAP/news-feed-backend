@@ -44,3 +44,11 @@ type AuthControllerInterface interface {
 	GenerateAccessToken(user db.User, refreshTokenID string, prefs db.UserPreference) (string, error)
 	RegenerateFromClaims(ctx context.Context, q db.Querier, claims *schemas.Claims, updatedPrefs db.UserPreference) (string, error)
 }
+
+type SourceControllerInterface interface {
+	Create(ctx context.Context, q db.Querier, url, urlRss string) (db.Source, error)
+	FindByID(ctx context.Context, q db.Querier, id string) (db.Source, error)
+	List(ctx context.Context, q db.Querier) ([]db.Source, error)
+	Update(ctx context.Context, q db.Querier, id, url, urlRss string) (db.Source, error)
+	SoftDelete(ctx context.Context, q db.Querier, id string) error
+}

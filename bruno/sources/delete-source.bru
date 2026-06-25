@@ -1,0 +1,24 @@
+meta {
+  name: Delete Source
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/v1/sources/:id
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:path {
+  id: {{sourceId}}
+}
+
+docs {
+  Soft delete: o registro permanece no banco com status = 0.
+  Retorna 204 em caso de sucesso.
+}

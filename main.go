@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -20,6 +21,7 @@ import (
 	"github.com/nathanap/news-feed-backend/middlewares"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	authendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/auth"
+	sourceendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/sources"
 	userendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/users"
 )
 
@@ -85,6 +87,7 @@ func main() {
 	userCtrl := controllers.NewUserController()
 	refreshTokenCtrl := controllers.NewRefreshTokenController(refreshTokenExpiry)
 	authCtrl := controllers.NewAuthController(oauth2Config, userCtrl, refreshTokenCtrl, prefCtrl, runTx, jwtSecret, accessTokenExpiry)
+	sourceCtrl := controllers.NewSourceController()
 
 	authMiddleware := middlewares.NewAuthMiddleware(jwtSecret, refreshTokenCtrl, runTx)
 
@@ -116,6 +119,14 @@ func main() {
 	users.Get("/me", append(authMiddleware, userendpoints.GetMe())...)
 	users.Get("/me/preferences", append(authMiddleware, userendpoints.GetPreferences())...)
 	users.Put("/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(prefCtrl, authCtrl, runTx, int(accessTokenExpiry.Seconds())))...)
+
+	sources := api.Group("/sources")
+	sources.Post("/create", append(authMiddleware, sourceendpoints.CreateSource(sourceCtrl, runTx))...)
+	sources.Get("/rss_discovery", append(authMiddleware, sourceendpoints.RSSDiscovery(&http.Client{}))...)
+	sources.Get("/:id", append(authMiddleware, sourceendpoints.GetSource(sourceCtrl, runTx))...)
+	sources.Get("", append(authMiddleware, sourceendpoints.ListSources(sourceCtrl, runTx))...)
+	sources.Put("/:id", append(authMiddleware, sourceendpoints.UpdateSource(sourceCtrl, runTx))...)
+	sources.Delete("/:id", append(authMiddleware, sourceendpoints.DeleteSource(sourceCtrl, runTx))...)
 
 	apiPort := os.Getenv("API_PORT")
 	if apiPort == "" {

@@ -44,3 +44,13 @@ type UserPreference struct {
 	ModifiedAt       sql.NullTime `json:"modified_at"`
 	RemovedAt        sql.NullTime `json:"removed_at"`
 }
+
+type Source struct {
+	ID         string       `json:"id"`
+	Status     int64        `json:"status"`
+	Url        string       `json:"url"`
+	UrlRss     string       `json:"url_rss"`
+	CreatedAt  time.Time    `json:"created_at"`
+	ModifiedAt sql.NullTime `json:"modified_at"`
+	RemovedAt  sql.NullTime `json:"removed_at"`
+}

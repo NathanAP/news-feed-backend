@@ -1,0 +1,31 @@
+meta {
+  name: List Sources
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/v1/sources
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  url:
+  status:
+}
+
+docs {
+  Filtros opcionais (query params):
+  - url: filtra por substring na URL da fonte (case-insensitive)
+  - status: "true" para ativas, "false" para inativas
+
+  Exemplos:
+  - /v1/sources?url=globo
+  - /v1/sources?status=true
+  - /v1/sources?url=g1&status=true
+}
