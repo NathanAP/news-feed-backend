@@ -130,6 +130,84 @@ func TestIntegration_CreateSource_DuplicateURL(t *testing.T) {
 	assert.Equal(t, http.StatusConflict, resp2.StatusCode)
 }
 
+// TestIntegration_CreateSource_AfterSoftDelete enforces the status convention at the
+// uniqueness level: a soft-deleted source must not block creating a new source with the
+// same url/url_rss. Regression test for the partial-unique-index fix (0.12.1.0).
+func TestIntegration_CreateSource_AfterSoftDelete(t *testing.T) {
+	requireNotProduction(t)
+
+	app, queries := setupIntegrationApp(t, http.DefaultClient)
+	_, token := seedUser(t, queries)
+
+	body := `{"url":"https://reused.com","url_rss":"https://reused.com/rss.xml"}`
+
+	// Create the source
+	create1, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
+	create1.Header.Set("Content-Type", "application/json")
+	create1.Header.Set("Authorization", "Bearer "+token)
+	resp1, err := app.Test(create1)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, resp1.StatusCode)
+
+	var created map[string]any
+	require.NoError(t, readJSON(resp1, &created))
+	firstID := created["id"].(string)
+
+	// Soft-delete it
+	delReq, _ := http.NewRequest(http.MethodDelete, "/v1/sources/"+firstID, nil)
+	delReq.Header.Set("Authorization", "Bearer "+token)
+	delResp, err := app.Test(delReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusNoContent, delResp.StatusCode)
+
+	// Re-create a source with the same url/url_rss — must succeed (not 409)
+	create2, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
+	create2.Header.Set("Content-Type", "application/json")
+	create2.Header.Set("Authorization", "Bearer "+token)
+	resp2, err := app.Test(create2)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, resp2.StatusCode)
+
+	var recreated map[string]any
+	require.NoError(t, readJSON(resp2, &recreated))
+	assert.NotEqual(t, firstID, recreated["id"], "re-created source should be a new record")
+
+	// The list must contain only the new active source
+	listReq, _ := http.NewRequest(http.MethodGet, "/v1/sources", nil)
+	listReq.Header.Set("Authorization", "Bearer "+token)
+	listResp, err := app.Test(listReq)
+	require.NoError(t, err)
+	var listed []map[string]any
+	require.NoError(t, readJSON(listResp, &listed))
+	require.Len(t, listed, 1)
+	assert.Equal(t, recreated["id"], listed[0]["id"])
+}
+
+func TestIntegration_CreateSource_DuplicateActiveStillRejected(t *testing.T) {
+	requireNotProduction(t)
+
+	app, queries := setupIntegrationApp(t, http.DefaultClient)
+	_, token := seedUser(t, queries)
+
+	body := `{"url":"https://active-dup.com","url_rss":"https://active-dup.com/rss.xml"}`
+
+	create1, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
+	create1.Header.Set("Content-Type", "application/json")
+	create1.Header.Set("Authorization", "Bearer "+token)
+	resp1, err := app.Test(create1)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, resp1.StatusCode)
+	readJSON(resp1, &map[string]any{})
+
+	// Second active source with same url — partial unique index must still reject it
+	create2, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
+	create2.Header.Set("Content-Type", "application/json")
+	create2.Header.Set("Authorization", "Bearer "+token)
+	resp2, err := app.Test(create2)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusConflict, resp2.StatusCode)
+}
+
 func TestIntegration_CreateSource_Unauthenticated(t *testing.T) {
 	requireNotProduction(t)
 

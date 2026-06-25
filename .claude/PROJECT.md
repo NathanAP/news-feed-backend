@@ -146,7 +146,10 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
     - Ser buscados individualmente (através do `id`).
     - Ser buscados em grupo (listados através de filtragem).
     - Participar de estatísticas, indicadores ou métricas.
+    - Bloquear a criação de novos registros através de constraints de unicidade.
 - Toda query de visualização ou busca deve considerar apenas campos em `status` considerados ativos (`1`, `active` ou equivalente) e com o campo `removed_at` nulo (vazio, `null` ou equivalente).
+- Campos de unicidade devem valer apenas entre registros ativos, ou seja, devem ser implementadas como índices únicos parciais com `WHERE removed_at IS NULL`. Assim, um registro soft-deleted nunca impede a criação de um novo registro equivalente.
+    - Exemplo: o campo `url` de souces é único mas ele não deve concorrer na unicidade com registros inativos.
 
 ## Ambiente de testes
 

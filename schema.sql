@@ -50,7 +50,10 @@ CREATE TABLE sources (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at DATETIME,
     removed_at DATETIME,
-    PRIMARY KEY (id),
-    UNIQUE (url),
-    UNIQUE (url_rss)
+    PRIMARY KEY (id)
 );
+
+-- Uniqueness applies only to active rows: a soft-deleted source must not block creating
+-- a new source with the same url/url_rss (status convention).
+CREATE UNIQUE INDEX idx_sources_url_active ON sources(url) WHERE removed_at IS NULL;
+CREATE UNIQUE INDEX idx_sources_url_rss_active ON sources(url_rss) WHERE removed_at IS NULL;

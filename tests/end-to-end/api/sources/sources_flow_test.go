@@ -218,6 +218,47 @@ func TestE2E_Sources_DuplicateURLRejected(t *testing.T) {
 	assert.Equal(t, http.StatusConflict, resp2.StatusCode)
 }
 
+// ── Re-create after soft delete (status convention / uniqueness) ───────────────
+
+func TestE2E_Sources_RecreateAfterSoftDelete(t *testing.T) {
+	requireNotProduction(t)
+
+	oauth := external.MockGoogleOAuth{
+		UserInfo: external.GoogleUserInfo{
+			ID: "e2e-sources-6", Email: "recreate@example.com", Name: "Recreate User",
+		},
+	}
+	app, queries := setupE2EApp(t, oauth, http.DefaultClient)
+	token := loginViaCallback(t, app, queries)
+
+	body := `{"url":"https://recreate.com","url_rss":"https://recreate.com/rss.xml"}`
+
+	// Create
+	c1, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
+	c1.Header.Set("Content-Type", "application/json")
+	c1.Header.Set("Authorization", "Bearer "+token)
+	r1, err := app.Test(c1)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, r1.StatusCode)
+	var first map[string]any
+	require.NoError(t, readJSON(r1, &first))
+
+	// Soft-delete
+	del, _ := http.NewRequest(http.MethodDelete, "/v1/sources/"+first["id"].(string), nil)
+	del.Header.Set("Authorization", "Bearer "+token)
+	rd, err := app.Test(del)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusNoContent, rd.StatusCode)
+
+	// Re-create with same url/url_rss — must succeed
+	c2, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
+	c2.Header.Set("Content-Type", "application/json")
+	c2.Header.Set("Authorization", "Bearer "+token)
+	r2, err := app.Test(c2)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, r2.StatusCode)
+}
+
 // ── Auth guard ────────────────────────────────────────────────────────────────
 
 func TestE2E_Sources_RequiresAuth(t *testing.T) {

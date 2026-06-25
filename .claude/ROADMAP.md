@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.12.0.0
+0.12.1.0
 
 ## Versão 0.1.0.0
 
@@ -172,6 +172,11 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [x] Garantir que a documentação sobre o `status` está coerente
 - [x] Garantir que a aplicação está de acordo com a documentação sobre `status`
 - [x] Corrigir locais inconsistentes com a documentação sobre `status`
+
+## Versão 0.12.1.0
+
+- [x] Corrigir bug onde uma fonte soft-deleted bloqueava a criação de uma nova fonte com a mesma `url`/`url_rss` (constraint `UNIQUE` ignorava `removed_at`)
+    - Trocado por índices únicos parciais (`WHERE removed_at IS NULL`)
 
 ## Versão 0.13.0.0
 
