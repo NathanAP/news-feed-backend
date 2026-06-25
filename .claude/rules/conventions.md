@@ -88,6 +88,11 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Endpoints alterados devem ser corrigidos (caso necessário) nos testes da pasta `tests/` seguindo as convenções de testes abaixo.
 - Endpoints removidos devem ser removidos dos testes da pasta `tests/`.
 - Endpoints devem possuir logs como especificado na sessão de logs / debug manual.
+- A filosofia para endpoints que retornam um resultado equivalente a dizer "não foi encontrado" deve ser a seguinte:
+    - Se o papel de um endpoint é encontrar registros e o resultado dele for vazio (array vazio), o `status_code` dele deve ser `200`.
+        - Por exemplo, se o endpoint de filtragem de categorias de notícias buscou pelo termo "Metallica" e nenhum registro foi encontrado, o retorno deve ser `404` com o `body` contendo uma lista vazia.
+    - Se o papel de um endpoint é encontrar um registro único e o resultado dele for vazio (item não existente), o `status_code` dele deve ser `404`.
+        - Por exemplo, se o endpoint de busca de categoria de notícias por `id` não encontrou um registro para aquele `id`, o retorno deve ser `404` e sem `body`.
 - Utilize verbos HTTP adequados para cada ação (GET para leitura, POST para criação, PUT/PATCH para atualização, DELETE para remoção).
 - Utilize JSON como formato de resposta padrão.
 - Inclua mensagens de erro claras e consistentes em caso de falhas.
@@ -102,11 +107,11 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 # Convenções de testes
 
 - Testes nunca podem ser executados em ambientes de homologação ou produção.
-- Não há testes ligados diretamente ao banco de dados. Ao invés disso, faremos todos esses testes através das rotas da API, garantindo que a rota e o banco de dados estejam funcionando corretamente ao mesmo tempo.
+- Não há testes ligados diretamente ao banco de dados. Ao invés disso, faremos todos esses testes através dos endpoints da API, garantindo que o endpoint e o banco de dados estejam funcionando corretamente ao mesmo tempo.
 - Os testes de API devem ficar dentro da pasta `raiz/tests/unit` seguindo o padrão de pastas de `structure.md`.
-- Ao criar uma nova rota na API, um teste unitário correspondente deve ser criado para essa rota, garantindo que aquela funcionalidade esteja funcionando corretamente e que o código esteja testável.
-- Ao alterar uma rota existente na API, o teste unitário correspondente deve ser atualizado para refletir as mudanças feitas, garantindo que a funcionalidade continue funcionando corretamente e que o código continue testável.
-- Ao remover uma rota existente na API, o teste unitário correspondente deve ser removido também, garantindo que o código continue limpo e que não haja testes desnecessários para rotas que não existem mais.
+- Ao criar um novo endpoint na API, um teste unitário correspondente deve ser criado para ele, garantindo que aquela funcionalidade esteja funcionando corretamente e que o código esteja testável.
+- Ao alterar um endpoint existente na API, o teste unitário correspondente deve ser atualizado para refletir as mudanças feitas, garantindo que a funcionalidade continue funcionando corretamente e que o código continue testável.
+- Ao remover um endpoint existente na API, o teste unitário correspondente deve ser removido também, garantindo que o código continue limpo e que não haja testes desnecessários para endpoints que não existem mais.
 - A alteração de qualquer arquivo em `fixtures`, `integration`, `mocks` ou `unit` deve acionar uma rotina de testes completa para garantir que as mudanças feitas não afetaram negativamente a funcionalidade da aplicação e que o código continua funcionando corretamente.
 - Cada teste individual deve conter sua própria instância do banco de dados em memória, ou seja, se no teste A foi criado um usuário, o teste B não o verá. Caso o teste B precise de um usuário, ele deve criar novamente este usuário na sua própria instância.
     - Boas `fixtures` são essenciais para esta regra ser seguida.
@@ -126,7 +131,7 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Os testes devem ser chamados na ordem que melhor couber para fazer o teste completo (Exemplo: primeiro cadastra um usuário, depois loga ele, depois cria um categoria e assim por diante).
 - Um banco de dados temporário deve ser criado exclusivamente para cumprir este teste.
 - Os arquivos da pasta `raiz/tests/mocks` estão disponíveis para serem utilizados, porém apenas os seguintes mocks estão liberados:
-    - Autenticação via `OAuth2`: como é impossível fazer o processo de cliques e respostas do Google, vamos simular o login através da criação de um mock de `refresh_token` que ficará gravado no banco de dados e será utilizado para criar o `access_token` e dar prosseguimento aos testes que dependem disso. Enquanto isso, a rota de login deve simular que esse processo do Google foi realizado com sucesso e prosseguir naturalmente com a sequência lógica dele.
+    - Autenticação via `OAuth2`: como é impossível fazer o processo de cliques e respostas do Google, vamos simular o login através da criação de um mock de `refresh_token` que ficará gravado no banco de dados e será utilizado para criar o `access_token` e dar prosseguimento aos testes que dependem disso. Enquanto isso, o endpoint de login deve simular que esse processo do Google foi realizado com sucesso e prosseguir naturalmente com a sequência lógica dele.
 
 ## Sobre a pasta mocks
 
@@ -149,9 +154,9 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - O método chamado deve possuir dois parâmetros:
     - um para indicar a mensagem a ser mostrada.
     - um para indicar a cor da mensagem a ser mostrada, com padrão em azul (utilizando a classe Color).
-- Nas rotas:
-    - Todas devem começar disparando uma chamada desse handler para indicar que a rota foi chamada. Exemplo de mensagem: "@@@ ROUTE START - /v1/users/me - 2026-01-01 12:00:00 @@@".
-    - Todas devem terminar disparando uma chamada desse handler para indicar que a rota foi concluída. Exemplo de mensagem: "@@@ ROUTE END - /v1/users/me - 2026-01-01 12:00:01 @@@".
+- Nos endpoints:
+    - Todas devem começar disparando uma chamada desse handler para indicar que o endpoint foi chamado. Exemplo de mensagem: "@@@ ROUTE START - /v1/users/me - 2026-01-01 12:00:00 @@@".
+    - Todas devem terminar disparando uma chamada desse handler para indicar que o endpoint foi concluído. Exemplo de mensagem: "@@@ ROUTE END - /v1/users/me - 2026-01-01 12:00:01 @@@".
 
 # Observabilidade
 
@@ -171,4 +176,4 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 ## Bruno
 
 - Todas as requisições da aplicação devem estar mapeados e prontos para serem executados via Bruno.
-- O environment do Bruno deve possuir o mínimo de dados para reprodução de rotas básicas, mas não pode possui dados sensíveis (como `access_token` ou qualquer tipo `api_key` salvo diretamente) ou informações indevidas (como ofensas ou apologias).
+- O environment do Bruno deve possuir o mínimo de dados para reprodução de endpoints básicos, mas não pode possui dados sensíveis (como `access_token` ou qualquer tipo `api_key` salvo diretamente) ou informações indevidas (como ofensas ou apologias).

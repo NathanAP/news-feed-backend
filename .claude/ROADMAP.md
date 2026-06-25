@@ -141,7 +141,50 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [x] Atualizar testes de integração para todas as rotas criadas ou alteradas
 - [x] Atualizar testes E2E para todas as rotas criadas ou alteradas
 
+## Versão 0.10.1.0
+
+- [x] Realizar uma revisão geral até agora
+    - Detalhes ficaram no arquivo do versions
+
 ## Versão 0.11.0.0
+
+- [ ] Criar uma migração para a tabela de fonte de notícias
+    - Acredito que o melhor nomenclatura aqui seja 'sources', mas aceito melhores sugestões
+    - O arquivo `PROJECT.md` explica melhor como essa tabela funciona
+    - Armazene os seguintes dados:
+        - id (`UUID` v7)
+        - status (`true` ou `false`)
+        - url (Exemplo: https://g1.globo.com/politica/)
+        - url_rss (Exemplo: https://g1.globo.com/rss/g1/politica/)
+        - created_at (`timestamp`)
+        - modified_at (`timestamp` opcional)
+        - removed_at (`timestamp` opcional)
+    - Esta tabela possui um relacionamento muito para muitos (N to N) com categorias
+    - Devemos ser capazes de encontrar automaticamente a URL de RSS
+    - Valida a URL antes de salvar
+- [ ] Criar rotas para as fontes de notícias
+    - Criação
+    - Edição
+    - Remoção
+    - Buscar por id
+    - Buscar por filtro
+    - Descobrir automaticamente URL de RSS através da URL base
+- [ ] Atualizar todas as rotas criadas ou alteradas ao Bruno
+- [ ] Atualizar testes unitários para todas as rotas criadas ou alteradas
+- [ ] Atualizar testes de integração para todas as rotas criadas ou alteradas
+- [ ] Atualizar testes E2E para todas as rotas criadas ou alteradas
+
+## Versão 0.12.0.0
+
+- [ ] Cadastro de notícias
+    - Acho que a melhor nomenclatura para essa tabela é 'Article'
+    - Título da notícia
+    - Conteúdo da notícia, já personalizado e traduzido conforme o usuário preferiu
+    - URL da notícia original
+    - Notícia foi lida pelo usuário (true ou false)
+    - Associação com usuário (1 notícia pertence a 1 usuário)
+
+## Versão 0.13.0.0
 
 - [ ] Criar uma migração para a tabela de categorias de notícias
     - Acredito que o melhor nomenclatura aqui seja 'article categories', mas aceito melhores sugestões
@@ -164,27 +207,6 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Remoção
     - Buscar por id
     - Buscar por filtro
-- [ ] Criar uma migração para a tabela de fonte de notícias
-    - Acredito que o melhor nomenclatura aqui seja 'sources', mas aceito melhores sugestões
-    - O arquivo `PROJECT.md` explica melhor como essa tabela funciona
-    - Armazene os seguintes dados:
-        - id (`UUID` v7)
-        - status (`true` ou `false`)
-        - url (Exemplo: https://g1.globo.com/politica/)
-        - url_rss (Exemplo: https://g1.globo.com/rss/g1/politica/)
-        - created_at (`timestamp`)
-        - modified_at (`timestamp` opcional)
-        - removed_at (`timestamp` opcional)
-    - Esta tabela possui um relacionamento muito para muitos (N to N) com categorias
-    - Devemos ser capazes de encontrar automaticamente a URL de RSS
-    - Valida a URL antes de salvar
-- [ ] Criar rotas para as fontes de notícias
-    - Criação
-    - Edição
-    - Remoção
-    - Buscar por id
-    - Buscar por filtro
-    - Descobrir automaticamente URL de RSS através da URL base
 - [ ] Criar uma migração para a tabela de categoria x fonte de notícias
     - É basicamente a tabela relacional entre categoria e fonte de notícias
     - O arquivo `PROJECT.md` explica melhor como essa tabela funciona
@@ -197,17 +219,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [ ] Atualizar testes de integração para todas as rotas criadas ou alteradas
 - [ ] Atualizar testes E2E para todas as rotas criadas ou alteradas
 
-## Versão 0.12.0.0
-
-- [ ] Cadastro de notícias
-    - Acho que a melhor nomenclatura para essa tabela é 'Article'
-    - Título da notícia
-    - Conteúdo da notícia, já personalizado e traduzido conforme o usuário preferiu
-    - URL da notícia original
-    - Notícia foi lida pelo usuário (true ou false)
-    - Associação com usuário (1 notícia pertence a 1 usuário)
-
-## Versão 0.13.0.0
+## Versão 0.14.0.0
 
 - [ ] Filtragem de notícias
     - [ ] Buscar notícias de todas as fontes cadastradas
@@ -219,7 +231,7 @@ Os níveis de tabulação indicam detalhes do assunto.
         - [ ] Personalização
         - [ ] Tradução
 
-## Versão 0.14.0.0
+## Versão 0.15.0.0
 
 - [ ] Deploy
     - [ ] Docker funcionando
