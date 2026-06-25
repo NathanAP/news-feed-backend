@@ -15,8 +15,8 @@ import (
 	"github.com/nathanap/news-feed-backend/schemas"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	userendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/users"
-	"github.com/nathanap/news-feed-backend/tests/fixtures"
 	db "github.com/nathanap/news-feed-backend/sqlc"
+	"github.com/nathanap/news-feed-backend/tests/fixtures"
 	jwtmock "github.com/nathanap/news-feed-backend/tests/mocks/services"
 )
 
@@ -32,23 +32,31 @@ func requireNotProduction(t *testing.T) {
 	require.NotEqual(t, "staging", env, "tests must not run in staging")
 }
 
+// fakeTxRunner is the unit-test substitute for the real WithTransaction: it runs the
+// function without any database. Mock controllers ignore the nil querier.
+func fakeTxRunner(ctx context.Context, fn func(q db.Querier) error) error {
+	return fn(nil)
+}
+
 type mockRefreshTokenCtrl struct{}
 
-func (m *mockRefreshTokenCtrl) Create(ctx context.Context, userID string) (db.RefreshToken, error) {
+func (m *mockRefreshTokenCtrl) Create(ctx context.Context, q db.Querier, userID string) (db.RefreshToken, error) {
 	return db.RefreshToken{}, nil
 }
-func (m *mockRefreshTokenCtrl) FindByID(ctx context.Context, id string) (db.RefreshToken, error) {
+func (m *mockRefreshTokenCtrl) FindByID(ctx context.Context, q db.Querier, id string) (db.RefreshToken, error) {
 	return fixtures.NewTestRefreshToken("any"), nil
 }
-func (m *mockRefreshTokenCtrl) Extend(ctx context.Context, id string) error { return nil }
-func (m *mockRefreshTokenCtrl) Revoke(ctx context.Context, id string) error  { return nil }
-func (m *mockRefreshTokenCtrl) RevokeAll(ctx context.Context, userID string) error { return nil }
+func (m *mockRefreshTokenCtrl) Extend(ctx context.Context, q db.Querier, id string) error { return nil }
+func (m *mockRefreshTokenCtrl) Revoke(ctx context.Context, q db.Querier, id string) error { return nil }
+func (m *mockRefreshTokenCtrl) RevokeAll(ctx context.Context, q db.Querier, userID string) error {
+	return nil
+}
 
 var _ controllers.RefreshTokenControllerInterface = (*mockRefreshTokenCtrl)(nil)
 
 func setupUsersApp() *fiber.App {
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
-	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{})
+	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
 
 	users := app.Group("/v1/users")
 	users.Get("/me", append(authMiddleware, userendpoints.GetMe())...)
@@ -61,19 +69,19 @@ type mockPrefCtrl struct {
 	updateFn func(ctx context.Context, userID string, params controllers.UpdatePreferencesParams) (db.UserPreference, error)
 }
 
-func (m *mockPrefCtrl) CreateDefault(ctx context.Context, userID string) (db.UserPreference, error) {
+func (m *mockPrefCtrl) CreateDefault(ctx context.Context, q db.Querier, userID string) (db.UserPreference, error) {
 	return db.UserPreference{}, nil
 }
-func (m *mockPrefCtrl) FindByUserID(ctx context.Context, userID string) (db.UserPreference, error) {
+func (m *mockPrefCtrl) FindByUserID(ctx context.Context, q db.Querier, userID string) (db.UserPreference, error) {
 	return fixtures.NewTestUserPreferences(userID), nil
 }
-func (m *mockPrefCtrl) Update(ctx context.Context, userID string, params controllers.UpdatePreferencesParams) (db.UserPreference, error) {
+func (m *mockPrefCtrl) Update(ctx context.Context, q db.Querier, userID string, params controllers.UpdatePreferencesParams) (db.UserPreference, error) {
 	if m.updateFn != nil {
 		return m.updateFn(ctx, userID, params)
 	}
 	return fixtures.NewTestUserPreferences(userID), nil
 }
-func (m *mockPrefCtrl) SoftDelete(ctx context.Context, userID string) error { return nil }
+func (m *mockPrefCtrl) SoftDelete(ctx context.Context, q db.Querier, userID string) error { return nil }
 
 var _ controllers.UserPreferencesControllerInterface = (*mockPrefCtrl)(nil)
 
@@ -89,7 +97,7 @@ func (m *mockAuthForPrefs) RefreshAccessToken(ctx context.Context, id string) (s
 func (m *mockAuthForPrefs) GenerateAccessToken(user db.User, id string, prefs db.UserPreference) (string, error) {
 	return "new-access-token", nil
 }
-func (m *mockAuthForPrefs) RegenerateFromClaims(ctx context.Context, claims *schemas.Claims, prefs db.UserPreference) (string, error) {
+func (m *mockAuthForPrefs) RegenerateFromClaims(ctx context.Context, q db.Querier, claims *schemas.Claims, prefs db.UserPreference) (string, error) {
 	return "new-access-token", nil
 }
 
@@ -97,11 +105,11 @@ var _ controllers.AuthControllerInterface = (*mockAuthForPrefs)(nil)
 
 func setupPreferencesApp() *fiber.App {
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
-	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{})
+	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
 
 	users := app.Group("/v1/users")
 	users.Get("/me/preferences", append(authMiddleware, userendpoints.GetPreferences())...)
-	users.Put("/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(&mockPrefCtrl{}, &mockAuthForPrefs{}, 3600))...)
+	users.Put("/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(&mockPrefCtrl{}, &mockAuthForPrefs{}, fakeTxRunner, 3600))...)
 
 	return app
 }

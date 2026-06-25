@@ -11,34 +11,30 @@ import (
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
-
 var (
 	ErrRefreshTokenNotFound = errors.New("refresh token not found")
 	ErrRefreshTokenExpired  = errors.New("refresh token expired")
 )
 
 type RefreshTokenController struct {
-	queries db.Querier
-	expiry  time.Duration
+	expiry time.Duration
 }
 
-func NewRefreshTokenController(querier db.Querier, expiry time.Duration) *RefreshTokenController {
-	return &RefreshTokenController{queries: querier, expiry: expiry}
+func NewRefreshTokenController(expiry time.Duration) *RefreshTokenController {
+	return &RefreshTokenController{expiry: expiry}
 }
 
-func (c *RefreshTokenController) Create(ctx context.Context, userID string) (db.RefreshToken, error) {
+func (c *RefreshTokenController) Create(ctx context.Context, q db.Querier, userID string) (db.RefreshToken, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return db.RefreshToken{}, fmt.Errorf("failed to generate refresh token ID: %w", err)
 	}
 
-	params := db.CreateRefreshTokenParams{
+	token, err := q.CreateRefreshToken(ctx, db.CreateRefreshTokenParams{
 		ID:        id.String(),
 		UserID:    userID,
 		ExpiresAt: time.Now().Add(c.expiry),
-	}
-
-	token, err := c.queries.CreateRefreshToken(ctx, params)
+	})
 	if err != nil {
 		return db.RefreshToken{}, fmt.Errorf("failed to create refresh token: %w", err)
 	}
@@ -46,8 +42,8 @@ func (c *RefreshTokenController) Create(ctx context.Context, userID string) (db.
 	return token, nil
 }
 
-func (c *RefreshTokenController) FindByID(ctx context.Context, id string) (db.RefreshToken, error) {
-	token, err := c.queries.FindRefreshTokenByID(ctx, id)
+func (c *RefreshTokenController) FindByID(ctx context.Context, q db.Querier, id string) (db.RefreshToken, error) {
+	token, err := q.FindRefreshTokenByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return db.RefreshToken{}, ErrRefreshTokenNotFound
@@ -62,26 +58,25 @@ func (c *RefreshTokenController) FindByID(ctx context.Context, id string) (db.Re
 	return token, nil
 }
 
-func (c *RefreshTokenController) Extend(ctx context.Context, id string) error {
-	params := db.ExtendRefreshTokenParams{
+func (c *RefreshTokenController) Extend(ctx context.Context, q db.Querier, id string) error {
+	if err := q.ExtendRefreshToken(ctx, db.ExtendRefreshTokenParams{
 		ID:        id,
 		ExpiresAt: time.Now().Add(c.expiry),
-	}
-	if err := c.queries.ExtendRefreshToken(ctx, params); err != nil {
+	}); err != nil {
 		return fmt.Errorf("failed to extend refresh token: %w", err)
 	}
 	return nil
 }
 
-func (c *RefreshTokenController) Revoke(ctx context.Context, id string) error {
-	if err := c.queries.RevokeRefreshToken(ctx, id); err != nil {
+func (c *RefreshTokenController) Revoke(ctx context.Context, q db.Querier, id string) error {
+	if err := q.RevokeRefreshToken(ctx, id); err != nil {
 		return fmt.Errorf("failed to revoke refresh token: %w", err)
 	}
 	return nil
 }
 
-func (c *RefreshTokenController) RevokeAll(ctx context.Context, userID string) error {
-	if err := c.queries.RevokeAllRefreshTokensByUserID(ctx, userID); err != nil {
+func (c *RefreshTokenController) RevokeAll(ctx context.Context, q db.Querier, userID string) error {
+	if err := q.RevokeAllRefreshTokensByUserID(ctx, userID); err != nil {
 		return fmt.Errorf("failed to revoke all refresh tokens: %w", err)
 	}
 	return nil

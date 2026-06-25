@@ -120,6 +120,12 @@ tasks:
         cmds:
             - go vet ./...
 
+    fmt:
+        desc: Format all Go files with gofmt
+        aliases: [f]
+        cmds:
+            - gofmt -w .
+
     # ── Tests ──────────────────────────────────────────────────────────────────
 
     test-units:

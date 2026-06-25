@@ -7,15 +7,16 @@ import (
 	"github.com/nathanap/news-feed-backend/middlewares"
 	"github.com/nathanap/news-feed-backend/schemas"
 	"github.com/nathanap/news-feed-backend/services/controllers"
+	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
 type UpdatePreferencesResponse struct {
-	AccessToken string                       `json:"access_token"`
-	ExpiresIn   int                          `json:"expires_in"`
+	AccessToken string                          `json:"access_token"`
+	ExpiresIn   int                             `json:"expires_in"`
 	Preferences schemas.UserPreferencesResponse `json:"preferences"`
 }
 
-func UpdatePreferences(prefCtrl controllers.UserPreferencesControllerInterface, authCtrl controllers.AuthControllerInterface, accessTokenExpirySeconds int) fiber.Handler {
+func UpdatePreferences(prefCtrl controllers.UserPreferencesControllerInterface, authCtrl controllers.AuthControllerInterface, runTx controllers.TransactionRunner, accessTokenExpirySeconds int) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
@@ -45,19 +46,25 @@ func UpdatePreferences(prefCtrl controllers.UserPreferencesControllerInterface, 
 
 		claims := middlewares.GetClaims(c)
 
-		updatedPrefs, err := prefCtrl.Update(c.Context(), claims.UserID, controllers.UpdatePreferencesParams{
-			Theme:            req.Theme,
-			Language:         req.Language,
-			TranslateContent: req.TranslateContent,
-			AIPersonality:    req.AIPersonality,
-		})
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "internal server error",
+		var (
+			updatedPrefs db.UserPreference
+			newToken     string
+		)
+		err := runTx(c.Context(), func(q db.Querier) error {
+			var err error
+			updatedPrefs, err = prefCtrl.Update(c.Context(), q, claims.UserID, controllers.UpdatePreferencesParams{
+				Theme:            req.Theme,
+				Language:         req.Language,
+				TranslateContent: req.TranslateContent,
+				AIPersonality:    req.AIPersonality,
 			})
-		}
+			if err != nil {
+				return err
+			}
 
-		newToken, err := authCtrl.RegenerateFromClaims(c.Context(), claims, updatedPrefs)
+			newToken, err = authCtrl.RegenerateFromClaims(c.Context(), q, claims, updatedPrefs)
+			return err
+		})
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": "internal server error",

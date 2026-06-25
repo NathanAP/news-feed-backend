@@ -23,8 +23,12 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
     - A nomenclatura de arquivos nesta pasta deve ser `timestamp_versão`, por exemplo `20260623090000_0.1.0.0.md`.
     - Perceba que este arquivo também é uma ótima fonte de informações para entender as mudanças em qualquer altura da vida útil da aplicação.
     - Pode colocar bastante detalhes caso ache necessário.
-- As versões devem seguir o padrão major.minor.patch.docs.
-- Alterações de docs geralmente não são geradas por você, elas sofrem mudança cada vez que um documento é alterado.
+- As versões devem seguir o padrão `major.minor.patch.docs`.
+    - Subir uma versão também zera todos à sua direita. Ou seja:
+        - se a versão `10.5.2.14` sofrer uma atualização `docs`, a nova versão é `10.5.2.15`.
+        - se a versão `10.5.2.15` sofrer uma atualização `patch`, a nova versão é `10.5.3.0`.
+        - se a versão `10.5.3.0` sofrer uma atualização `minor`, a nova versão é `10.6.0.0`.
+        - se a versão `10.6.0.0` sofrer uma atualização `major`, a nova versão é `11.0.0.0`.
 - Ao concluir uma alteração major, minor ou patch o agente `test_manager` deve ser acionado para que seja efetuada uma nova rotina de testes. A falha dessa rotina deve impedir a continuidade do processo de desenvolvimento.
 
 # Convenções de workaround

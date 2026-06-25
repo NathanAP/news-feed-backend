@@ -14,10 +14,11 @@ import (
 
 	"github.com/nathanap/news-feed-backend/middlewares"
 	"github.com/nathanap/news-feed-backend/schemas"
+	"github.com/nathanap/news-feed-backend/services/controllers"
 	authendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/auth"
+	db "github.com/nathanap/news-feed-backend/sqlc"
 	"github.com/nathanap/news-feed-backend/tests/fixtures"
 	jwtmock "github.com/nathanap/news-feed-backend/tests/mocks/services"
-	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
 func requireNotProduction(t *testing.T) {
@@ -25,6 +26,12 @@ func requireNotProduction(t *testing.T) {
 	env := os.Getenv("ENVIRONMENT")
 	require.NotEqual(t, "production", env, "tests must not run in production")
 	require.NotEqual(t, "staging", env, "tests must not run in staging")
+}
+
+// fakeTxRunner is the unit-test substitute for the real WithTransaction: it runs the
+// function without any database. Mock controllers ignore the nil querier.
+func fakeTxRunner(ctx context.Context, fn func(q db.Querier) error) error {
+	return fn(nil)
 }
 
 func testOAuth2Config() *oauth2.Config {
@@ -39,10 +46,10 @@ func testOAuth2Config() *oauth2.Config {
 
 // mockAuthCtrl implements AuthControllerInterface for unit tests.
 type mockAuthCtrl struct {
-	handleGoogleCallbackFn  func(ctx context.Context, code string) (schemas.AuthResponse, error)
-	refreshAccessTokenFn    func(ctx context.Context, refreshTokenID string) (schemas.AuthResponse, error)
-	generateAccessTokenFn   func(user db.User, refreshTokenID string, prefs db.UserPreference) (string, error)
-	regenerateFromClaimsFn  func(ctx context.Context, claims *schemas.Claims, updatedPrefs db.UserPreference) (string, error)
+	handleGoogleCallbackFn func(ctx context.Context, code string) (schemas.AuthResponse, error)
+	refreshAccessTokenFn   func(ctx context.Context, refreshTokenID string) (schemas.AuthResponse, error)
+	generateAccessTokenFn  func(user db.User, refreshTokenID string, prefs db.UserPreference) (string, error)
+	regenerateFromClaimsFn func(ctx context.Context, q db.Querier, claims *schemas.Claims, updatedPrefs db.UserPreference) (string, error)
 }
 
 func (m *mockAuthCtrl) HandleGoogleCallback(ctx context.Context, code string) (schemas.AuthResponse, error) {
@@ -60,12 +67,14 @@ func (m *mockAuthCtrl) GenerateAccessToken(user db.User, refreshTokenID string, 
 	return "", nil
 }
 
-func (m *mockAuthCtrl) RegenerateFromClaims(ctx context.Context, claims *schemas.Claims, updatedPrefs db.UserPreference) (string, error) {
+func (m *mockAuthCtrl) RegenerateFromClaims(ctx context.Context, q db.Querier, claims *schemas.Claims, updatedPrefs db.UserPreference) (string, error) {
 	if m.regenerateFromClaimsFn != nil {
-		return m.regenerateFromClaimsFn(ctx, claims, updatedPrefs)
+		return m.regenerateFromClaimsFn(ctx, q, claims, updatedPrefs)
 	}
 	return "new-access-token", nil
 }
+
+var _ controllers.AuthControllerInterface = (*mockAuthCtrl)(nil)
 
 // mockRefreshTokenCtrl implements RefreshTokenControllerInterface for unit tests.
 type mockRefreshTokenCtrl struct {
@@ -74,32 +83,34 @@ type mockRefreshTokenCtrl struct {
 	revokeAllFn func(ctx context.Context, userID string) error
 }
 
-func (m *mockRefreshTokenCtrl) Create(ctx context.Context, userID string) (db.RefreshToken, error) {
+func (m *mockRefreshTokenCtrl) Create(ctx context.Context, q db.Querier, userID string) (db.RefreshToken, error) {
 	return db.RefreshToken{}, nil
 }
 
-func (m *mockRefreshTokenCtrl) FindByID(ctx context.Context, id string) (db.RefreshToken, error) {
+func (m *mockRefreshTokenCtrl) FindByID(ctx context.Context, q db.Querier, id string) (db.RefreshToken, error) {
 	if m.findByIDFn != nil {
 		return m.findByIDFn(ctx, id)
 	}
 	return fixtures.NewTestRefreshToken("any"), nil
 }
 
-func (m *mockRefreshTokenCtrl) Extend(ctx context.Context, id string) error { return nil }
+func (m *mockRefreshTokenCtrl) Extend(ctx context.Context, q db.Querier, id string) error { return nil }
 
-func (m *mockRefreshTokenCtrl) Revoke(ctx context.Context, id string) error {
+func (m *mockRefreshTokenCtrl) Revoke(ctx context.Context, q db.Querier, id string) error {
 	if m.revokeFn != nil {
 		return m.revokeFn(ctx, id)
 	}
 	return nil
 }
 
-func (m *mockRefreshTokenCtrl) RevokeAll(ctx context.Context, userID string) error {
+func (m *mockRefreshTokenCtrl) RevokeAll(ctx context.Context, q db.Querier, userID string) error {
 	if m.revokeAllFn != nil {
 		return m.revokeAllFn(ctx, userID)
 	}
 	return nil
 }
+
+var _ controllers.RefreshTokenControllerInterface = (*mockRefreshTokenCtrl)(nil)
 
 // validRefreshTokenCtrl returns a mock that always passes session validation.
 func validRefreshTokenCtrl() *mockRefreshTokenCtrl {
@@ -129,15 +140,15 @@ func buildAuthRequest(t *testing.T, method, path string, body []byte) *http.Requ
 // setupApp builds a Fiber app with all auth routes wired for testing.
 func setupApp(authCtrl *mockAuthCtrl, rtCtrl *mockRefreshTokenCtrl) *fiber.App {
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
-	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), rtCtrl)
+	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), rtCtrl, fakeTxRunner)
 
 	auth := app.Group("/v1/auth")
 	auth.Get("/google", authendpoints.GoogleLogin(testOAuth2Config()))
 	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl))
 	auth.Post("/refresh", authendpoints.RefreshToken(authCtrl))
-	auth.Post("/logout", append(authMiddleware, authendpoints.Logout(rtCtrl))...)
-	auth.Delete("/invalidate", authendpoints.Invalidate(rtCtrl))
-	auth.Delete("/invalidate-all", authendpoints.InvalidateAll(rtCtrl))
+	auth.Post("/logout", append(authMiddleware, authendpoints.Logout(rtCtrl, fakeTxRunner))...)
+	auth.Delete("/invalidate", authendpoints.Invalidate(rtCtrl, fakeTxRunner))
+	auth.Delete("/invalidate-all", authendpoints.InvalidateAll(rtCtrl, fakeTxRunner))
 
 	return app
 }

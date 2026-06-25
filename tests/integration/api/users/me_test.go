@@ -34,11 +34,10 @@ func setupUsersIntegrationApp(t *testing.T) (*fiber.App, db.Querier) {
 
 	database := testutils.SetupTestDB(t)
 	queries := db.New(database)
+	runTx := controllers.NewTransactionRunner(database)
 
-	prefCtrl := controllers.NewUserPreferencesController(queries)
-	_ = prefCtrl
-	refreshTokenCtrl := controllers.NewRefreshTokenController(queries, 30*24*time.Hour)
-	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl)
+	refreshTokenCtrl := controllers.NewRefreshTokenController(30 * 24 * time.Hour)
+	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	users := app.Group("/v1/users")

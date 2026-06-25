@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -26,6 +27,7 @@ type AuthController struct {
 	userCtrl          UserControllerInterface
 	refreshTokenCtrl  RefreshTokenControllerInterface
 	prefCtrl          UserPreferencesControllerInterface
+	runTx             TransactionRunner
 	jwtSecret         []byte
 	accessTokenExpiry time.Duration
 }
@@ -35,6 +37,7 @@ func NewAuthController(
 	userCtrl UserControllerInterface,
 	refreshTokenCtrl RefreshTokenControllerInterface,
 	prefCtrl UserPreferencesControllerInterface,
+	runTx TransactionRunner,
 	jwtSecret []byte,
 	accessTokenExpiry time.Duration,
 ) *AuthController {
@@ -43,6 +46,7 @@ func NewAuthController(
 		userCtrl:          userCtrl,
 		refreshTokenCtrl:  refreshTokenCtrl,
 		prefCtrl:          prefCtrl,
+		runTx:             runTx,
 		jwtSecret:         jwtSecret,
 		accessTokenExpiry: accessTokenExpiry,
 	}
@@ -59,25 +63,34 @@ func (c *AuthController) HandleGoogleCallback(ctx context.Context, code string) 
 		return schemas.AuthResponse{}, err
 	}
 
-	user, err := c.findOrCreateUser(ctx, userInfo)
-	if err != nil {
-		return schemas.AuthResponse{}, err
-	}
+	var (
+		user         db.User
+		prefs        db.UserPreference
+		refreshToken db.RefreshToken
+	)
 
-	if err := c.refreshTokenCtrl.RevokeAll(ctx, user.ID); err != nil {
-		return schemas.AuthResponse{}, err
-	}
+	err = c.runTx(ctx, func(q db.Querier) error {
+		user, err = c.findOrCreateUser(ctx, q, userInfo)
+		if err != nil {
+			return err
+		}
 
-	if err := c.userCtrl.UpdateUserLastLogin(ctx, user.ID); err != nil {
-		return schemas.AuthResponse{}, err
-	}
+		if err := c.refreshTokenCtrl.RevokeAll(ctx, q, user.ID); err != nil {
+			return err
+		}
 
-	prefs, err := c.prefCtrl.FindByUserID(ctx, user.ID)
-	if err != nil {
-		return schemas.AuthResponse{}, fmt.Errorf("failed to fetch user preferences: %w", err)
-	}
+		if err := c.userCtrl.UpdateUserLastLogin(ctx, q, user.ID); err != nil {
+			return err
+		}
 
-	refreshToken, err := c.refreshTokenCtrl.Create(ctx, user.ID)
+		prefs, err = c.prefCtrl.FindByUserID(ctx, q, user.ID)
+		if err != nil {
+			return err
+		}
+
+		refreshToken, err = c.refreshTokenCtrl.Create(ctx, q, user.ID)
+		return err
+	})
 	if err != nil {
 		return schemas.AuthResponse{}, err
 	}
@@ -95,22 +108,32 @@ func (c *AuthController) HandleGoogleCallback(ctx context.Context, code string) 
 }
 
 func (c *AuthController) RefreshAccessToken(ctx context.Context, refreshTokenID string) (schemas.AuthResponse, error) {
-	refreshToken, err := c.refreshTokenCtrl.FindByID(ctx, refreshTokenID)
-	if err != nil {
-		return schemas.AuthResponse{}, err
-	}
+	var (
+		user         db.User
+		prefs        db.UserPreference
+		refreshToken db.RefreshToken
+	)
 
-	user, err := c.userCtrl.FindUserByID(ctx, refreshToken.UserID)
-	if err != nil {
-		return schemas.AuthResponse{}, err
-	}
+	err := c.runTx(ctx, func(q db.Querier) error {
+		var err error
+		refreshToken, err = c.refreshTokenCtrl.FindByID(ctx, q, refreshTokenID)
+		if err != nil {
+			return err
+		}
 
-	prefs, err := c.prefCtrl.FindByUserID(ctx, user.ID)
-	if err != nil {
-		return schemas.AuthResponse{}, fmt.Errorf("failed to fetch user preferences: %w", err)
-	}
+		user, err = c.userCtrl.FindUserByID(ctx, q, refreshToken.UserID)
+		if err != nil {
+			return err
+		}
 
-	if err := c.refreshTokenCtrl.Extend(ctx, refreshToken.ID); err != nil {
+		prefs, err = c.prefCtrl.FindByUserID(ctx, q, user.ID)
+		if err != nil {
+			return err
+		}
+
+		return c.refreshTokenCtrl.Extend(ctx, q, refreshToken.ID)
+	})
+	if err != nil {
 		return schemas.AuthResponse{}, err
 	}
 
@@ -158,8 +181,8 @@ func (c *AuthController) GenerateAccessToken(user db.User, refreshTokenID string
 	return signed, nil
 }
 
-func (c *AuthController) RegenerateFromClaims(ctx context.Context, claims *schemas.Claims, updatedPrefs db.UserPreference) (string, error) {
-	user, err := c.userCtrl.FindUserByID(ctx, claims.UserID)
+func (c *AuthController) RegenerateFromClaims(ctx context.Context, q db.Querier, claims *schemas.Claims, updatedPrefs db.UserPreference) (string, error) {
+	user, err := c.userCtrl.FindUserByID(ctx, q, claims.UserID)
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch user for token regeneration: %w", err)
 	}
@@ -188,15 +211,15 @@ func (c *AuthController) fetchGoogleUserInfo(ctx context.Context, token *oauth2.
 	return &userInfo, nil
 }
 
-func (c *AuthController) findOrCreateUser(ctx context.Context, info *googleUserInfo) (db.User, error) {
-	user, err := c.userCtrl.FindUserByGoogleID(ctx, info.ID)
+func (c *AuthController) findOrCreateUser(ctx context.Context, q db.Querier, info *googleUserInfo) (db.User, error) {
+	user, err := c.userCtrl.FindUserByGoogleID(ctx, q, info.ID)
 	if err == nil {
 		return user, nil
 	}
 
-	if err != ErrUserNotFound {
+	if !errors.Is(err, ErrUserNotFound) {
 		return db.User{}, err
 	}
 
-	return c.userCtrl.CreateUser(ctx, info.ID, info.Email, info.Name, info.Picture)
+	return c.userCtrl.CreateUser(ctx, q, info.ID, info.Email, info.Name, info.Picture)
 }

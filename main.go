@@ -21,7 +21,6 @@ import (
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	authendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/auth"
 	userendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/users"
-	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
 //go:embed migrations/*.sql
@@ -64,7 +63,11 @@ func main() {
 		log.Fatalf("Invalid JWT_REFRESH_TOKEN_EXPIRY_DAYS: %v", err)
 	}
 
-	jwtSecret := []byte(os.Getenv("JWT_SECRET_KEY"))
+	jwtSecretValue := os.Getenv("JWT_SECRET_KEY")
+	if jwtSecretValue == "" {
+		log.Fatalf("JWT_SECRET_KEY must be set")
+	}
+	jwtSecret := []byte(jwtSecretValue)
 
 	oauth2Config := &oauth2.Config{
 		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
@@ -77,13 +80,13 @@ func main() {
 		Endpoint: google.Endpoint,
 	}
 
-	queries := db.New(database)
-	prefCtrl := controllers.NewUserPreferencesController(queries)
-	userCtrl := controllers.NewUserController(queries, prefCtrl)
-	refreshTokenCtrl := controllers.NewRefreshTokenController(queries, refreshTokenExpiry)
-	authCtrl := controllers.NewAuthController(oauth2Config, userCtrl, refreshTokenCtrl, prefCtrl, jwtSecret, accessTokenExpiry)
+	runTx := controllers.NewTransactionRunner(database)
+	prefCtrl := controllers.NewUserPreferencesController()
+	userCtrl := controllers.NewUserController()
+	refreshTokenCtrl := controllers.NewRefreshTokenController(refreshTokenExpiry)
+	authCtrl := controllers.NewAuthController(oauth2Config, userCtrl, refreshTokenCtrl, prefCtrl, runTx, jwtSecret, accessTokenExpiry)
 
-	authMiddleware := middlewares.NewAuthMiddleware(jwtSecret, refreshTokenCtrl)
+	authMiddleware := middlewares.NewAuthMiddleware(jwtSecret, refreshTokenCtrl, runTx)
 
 	app := fiber.New(fiber.Config{
 		AppName: os.Getenv("PROJECT_NAME"),
@@ -105,16 +108,21 @@ func main() {
 	auth.Get("/google", authendpoints.GoogleLogin(oauth2Config))
 	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl))
 	auth.Post("/refresh", authendpoints.RefreshToken(authCtrl))
-	auth.Post("/logout", append(authMiddleware, authendpoints.Logout(refreshTokenCtrl))...)
-	auth.Delete("/invalidate", authendpoints.Invalidate(refreshTokenCtrl))
-	auth.Delete("/invalidate-all", authendpoints.InvalidateAll(refreshTokenCtrl))
+	auth.Post("/logout", append(authMiddleware, authendpoints.Logout(refreshTokenCtrl, runTx))...)
+	auth.Delete("/invalidate", authendpoints.Invalidate(refreshTokenCtrl, runTx))
+	auth.Delete("/invalidate-all", authendpoints.InvalidateAll(refreshTokenCtrl, runTx))
 
 	users := api.Group("/users")
 	users.Get("/me", append(authMiddleware, userendpoints.GetMe())...)
 	users.Get("/me/preferences", append(authMiddleware, userendpoints.GetPreferences())...)
-	users.Put("/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(prefCtrl, authCtrl, int(accessTokenExpiry.Seconds())))...)
+	users.Put("/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(prefCtrl, authCtrl, runTx, int(accessTokenExpiry.Seconds())))...)
 
-	log.Fatal(app.Listen(":3000"))
+	apiPort := os.Getenv("API_PORT")
+	if apiPort == "" {
+		apiPort = "3000"
+	}
+
+	log.Fatal(app.Listen(":" + apiPort))
 }
 
 func runMigrations(database *sql.DB) error {

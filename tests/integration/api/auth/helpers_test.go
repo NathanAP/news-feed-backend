@@ -20,7 +20,6 @@ import (
 	"github.com/nathanap/news-feed-backend/tests/mocks/external"
 	jwtmock "github.com/nathanap/news-feed-backend/tests/mocks/services"
 	testutils "github.com/nathanap/news-feed-backend/tests/utils"
-	db "github.com/nathanap/news-feed-backend/sqlc"
 	_ "modernc.org/sqlite"
 )
 
@@ -37,23 +36,23 @@ func setupIntegrationApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.A
 	t.Helper()
 
 	database := testutils.SetupTestDB(t)
-	queries := db.New(database)
+	runTx := controllers.NewTransactionRunner(database)
 
-	prefCtrl := controllers.NewUserPreferencesController(queries)
-	userCtrl := controllers.NewUserController(queries, prefCtrl)
-	refreshTokenCtrl := controllers.NewRefreshTokenController(queries, testRefreshTokenExpiry)
-	authCtrl := controllers.NewAuthController(&oauth, userCtrl, refreshTokenCtrl, prefCtrl, []byte(jwtmock.TestJWTSecret), time.Hour)
+	prefCtrl := controllers.NewUserPreferencesController()
+	userCtrl := controllers.NewUserController()
+	refreshTokenCtrl := controllers.NewRefreshTokenController(testRefreshTokenExpiry)
+	authCtrl := controllers.NewAuthController(&oauth, userCtrl, refreshTokenCtrl, prefCtrl, runTx, []byte(jwtmock.TestJWTSecret), time.Hour)
 
-	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl)
+	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	auth := app.Group("/v1/auth")
 	auth.Get("/google", authendpoints.GoogleLogin(testOAuth2Config()))
 	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl))
 	auth.Post("/refresh", authendpoints.RefreshToken(authCtrl))
-	auth.Post("/logout", append(authMiddleware, authendpoints.Logout(refreshTokenCtrl))...)
-	auth.Delete("/invalidate", authendpoints.Invalidate(refreshTokenCtrl))
-	auth.Delete("/invalidate-all", authendpoints.InvalidateAll(refreshTokenCtrl))
+	auth.Post("/logout", append(authMiddleware, authendpoints.Logout(refreshTokenCtrl, runTx))...)
+	auth.Delete("/invalidate", authendpoints.Invalidate(refreshTokenCtrl, runTx))
+	auth.Delete("/invalidate-all", authendpoints.InvalidateAll(refreshTokenCtrl, runTx))
 
 	return app, authCtrl, refreshTokenCtrl
 }

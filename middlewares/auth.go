@@ -9,12 +9,13 @@ import (
 
 	"github.com/nathanap/news-feed-backend/schemas"
 	"github.com/nathanap/news-feed-backend/services/controllers"
+	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
-func NewAuthMiddleware(jwtSecret []byte, refreshTokenCtrl controllers.RefreshTokenControllerInterface) []fiber.Handler {
+func NewAuthMiddleware(jwtSecret []byte, refreshTokenCtrl controllers.RefreshTokenControllerInterface, runTx controllers.TransactionRunner) []fiber.Handler {
 	return []fiber.Handler{
 		parseJWT(jwtSecret),
-		validateSession(refreshTokenCtrl),
+		validateSession(refreshTokenCtrl, runTx),
 	}
 }
 
@@ -52,7 +53,7 @@ func parseJWT(secret []byte) fiber.Handler {
 	}
 }
 
-func validateSession(ctrl controllers.RefreshTokenControllerInterface) fiber.Handler {
+func validateSession(ctrl controllers.RefreshTokenControllerInterface, runTx controllers.TransactionRunner) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		claims := GetClaims(c)
 		if claims.RefreshTokenID == "" {
@@ -61,7 +62,11 @@ func validateSession(ctrl controllers.RefreshTokenControllerInterface) fiber.Han
 			})
 		}
 
-		if _, err := ctrl.FindByID(c.Context(), claims.RefreshTokenID); err != nil {
+		err := runTx(c.Context(), func(q db.Querier) error {
+			_, err := ctrl.FindByID(c.Context(), q, claims.RefreshTokenID)
+			return err
+		})
+		if err != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": "session expired, please log in again",
 			})

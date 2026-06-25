@@ -16,31 +16,31 @@ type OAuth2Provider interface {
 }
 
 type UserControllerInterface interface {
-	CreateUser(ctx context.Context, googleID, email, name, picture string) (db.User, error)
-	FindUserByID(ctx context.Context, id string) (db.User, error)
-	FindUserByGoogleID(ctx context.Context, googleID string) (db.User, error)
-	UpdateUserLastLogin(ctx context.Context, id string) error
-	SoftDeleteUser(ctx context.Context, id string) error
+	CreateUser(ctx context.Context, q db.Querier, googleID, email, name, picture string) (db.User, error)
+	FindUserByID(ctx context.Context, q db.Querier, id string) (db.User, error)
+	FindUserByGoogleID(ctx context.Context, q db.Querier, googleID string) (db.User, error)
+	UpdateUserLastLogin(ctx context.Context, q db.Querier, id string) error
+	SoftDeleteUser(ctx context.Context, q db.Querier, id string) error
 }
 
 type UserPreferencesControllerInterface interface {
-	CreateDefault(ctx context.Context, userID string) (db.UserPreference, error)
-	FindByUserID(ctx context.Context, userID string) (db.UserPreference, error)
-	Update(ctx context.Context, userID string, params UpdatePreferencesParams) (db.UserPreference, error)
-	SoftDelete(ctx context.Context, userID string) error
+	CreateDefault(ctx context.Context, q db.Querier, userID string) (db.UserPreference, error)
+	FindByUserID(ctx context.Context, q db.Querier, userID string) (db.UserPreference, error)
+	Update(ctx context.Context, q db.Querier, userID string, params UpdatePreferencesParams) (db.UserPreference, error)
+	SoftDelete(ctx context.Context, q db.Querier, userID string) error
 }
 
 type RefreshTokenControllerInterface interface {
-	Create(ctx context.Context, userID string) (db.RefreshToken, error)
-	FindByID(ctx context.Context, id string) (db.RefreshToken, error)
-	Extend(ctx context.Context, id string) error
-	Revoke(ctx context.Context, id string) error
-	RevokeAll(ctx context.Context, userID string) error
+	Create(ctx context.Context, q db.Querier, userID string) (db.RefreshToken, error)
+	FindByID(ctx context.Context, q db.Querier, id string) (db.RefreshToken, error)
+	Extend(ctx context.Context, q db.Querier, id string) error
+	Revoke(ctx context.Context, q db.Querier, id string) error
+	RevokeAll(ctx context.Context, q db.Querier, userID string) error
 }
 
 type AuthControllerInterface interface {
 	HandleGoogleCallback(ctx context.Context, code string) (schemas.AuthResponse, error)
 	RefreshAccessToken(ctx context.Context, refreshTokenID string) (schemas.AuthResponse, error)
 	GenerateAccessToken(user db.User, refreshTokenID string, prefs db.UserPreference) (string, error)
-	RegenerateFromClaims(ctx context.Context, claims *schemas.Claims, updatedPrefs db.UserPreference) (string, error)
+	RegenerateFromClaims(ctx context.Context, q db.Querier, claims *schemas.Claims, updatedPrefs db.UserPreference) (string, error)
 }

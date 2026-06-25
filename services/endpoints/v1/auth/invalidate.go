@@ -5,13 +5,14 @@ import (
 
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/services/controllers"
+	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
 type invalidateRequest struct {
 	RefreshTokenID string `json:"refresh_token_id"`
 }
 
-func Invalidate(refreshTokenCtrl controllers.RefreshTokenControllerInterface) fiber.Handler {
+func Invalidate(refreshTokenCtrl controllers.RefreshTokenControllerInterface, runTx controllers.TransactionRunner) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
@@ -22,7 +23,10 @@ func Invalidate(refreshTokenCtrl controllers.RefreshTokenControllerInterface) fi
 			})
 		}
 
-		if err := refreshTokenCtrl.Revoke(c.Context(), req.RefreshTokenID); err != nil {
+		err := runTx(c.Context(), func(q db.Querier) error {
+			return refreshTokenCtrl.Revoke(c.Context(), q, req.RefreshTokenID)
+		})
+		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": "internal server error",
 			})

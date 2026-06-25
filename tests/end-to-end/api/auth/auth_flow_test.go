@@ -75,10 +75,11 @@ func TestE2E_FullFlow_LoginRefreshLogout(t *testing.T) {
 			ID: "e2e-flow-1", Email: "flow@example.com", Name: "Flow User",
 		},
 	}
-	app, queries, authCtrl := setupE2EApp(t, oauth)
+	app, queries, _ := setupE2EApp(t, oauth)
 
-	// Seed authenticated session (E2E OAuth mock approach)
-	accessToken, refreshTokenID := seedSession(t, queries, authCtrl, "e2e-flow-1", "flow@example.com", "Flow User")
+	// Establish an authenticated session through the real login flow
+	_, rt, accessToken := loginViaCallback(t, app, queries)
+	refreshTokenID := rt.ID
 
 	// /me works with valid token
 	meReq, err := http.NewRequest(http.MethodGet, "/v1/users/me", nil)

@@ -3,8 +3,8 @@ package repositories
 import (
 	"context"
 
-	"github.com/stretchr/testify/mock"
 	db "github.com/nathanap/news-feed-backend/sqlc"
+	"github.com/stretchr/testify/mock"
 )
 
 type MockRefreshTokensQuerier struct {

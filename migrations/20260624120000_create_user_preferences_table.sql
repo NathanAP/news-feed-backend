@@ -15,6 +15,10 @@ CREATE TABLE IF NOT EXISTS user_preferences (
     UNIQUE (user_id)
 );
 
+-- Backfill default preferences for users that already existed before this table.
+-- The id below is a UUID v4 because SQLite has no native UUID v7 function. This is an
+-- accepted one-off exception: it only affects rows seeded at migration time (in practice
+-- the developer's own account). All preferences created by application code use UUID v7.
 INSERT INTO user_preferences (id, user_id, status, theme, language, translate_content, ai_personality, created_at)
 SELECT
     lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6))),

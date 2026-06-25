@@ -19,6 +19,12 @@ func SetupTestDB(t testing.TB) *sql.DB {
 	db, err := sql.Open("sqlite", ":memory:")
 	require.NoError(t, err, "failed to open test database")
 
+	// An in-memory SQLite database lives per-connection. The database/sql pool may open
+	// several connections, which would expose separate empty databases (a write on one
+	// connection would be invisible to a read on another, breaking transactions). Pinning
+	// the pool to a single connection keeps each test's in-memory DB consistent and isolated.
+	db.SetMaxOpenConns(1)
+
 	require.NoError(t, db.Ping(), "test database not reachable")
 
 	migrationsPath := migrationsDir()

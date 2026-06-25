@@ -32,18 +32,19 @@ func setupPreferencesIntegrationApp(t *testing.T) (*fiber.App, db.Querier, *cont
 
 	database := testutils.SetupTestDB(t)
 	queries := db.New(database)
+	runTx := controllers.NewTransactionRunner(database)
 
-	prefCtrl := controllers.NewUserPreferencesController(queries)
-	userCtrl := controllers.NewUserController(queries, prefCtrl)
-	refreshTokenCtrl := controllers.NewRefreshTokenController(queries, 30*24*time.Hour)
-	authCtrl := controllers.NewAuthController(nil, userCtrl, refreshTokenCtrl, prefCtrl, []byte(jwtmock.TestJWTSecret), time.Hour)
+	prefCtrl := controllers.NewUserPreferencesController()
+	userCtrl := controllers.NewUserController()
+	refreshTokenCtrl := controllers.NewRefreshTokenController(30 * 24 * time.Hour)
+	authCtrl := controllers.NewAuthController(nil, userCtrl, refreshTokenCtrl, prefCtrl, runTx, []byte(jwtmock.TestJWTSecret), time.Hour)
 
-	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl)
+	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	users := app.Group("/v1/users")
 	users.Get("/me/preferences", append(authMiddleware, userendpoints.GetPreferences())...)
-	users.Put("/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(prefCtrl, authCtrl, 3600))...)
+	users.Put("/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(prefCtrl, authCtrl, runTx, 3600))...)
 
 	return app, queries, prefCtrl, authCtrl
 }
@@ -69,7 +70,7 @@ func seedUserWithPrefs(t *testing.T, queries db.Querier, prefCtrl *controllers.U
 	})
 	require.NoError(t, err)
 
-	prefs, err := prefCtrl.CreateDefault(context.Background(), user.ID)
+	prefs, err := prefCtrl.CreateDefault(context.Background(), queries, user.ID)
 	require.NoError(t, err)
 
 	token, err := authCtrl.GenerateAccessToken(user, refreshToken.ID, prefs)

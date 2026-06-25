@@ -2,11 +2,9 @@ package auth_test
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -18,11 +16,11 @@ import (
 	"github.com/nathanap/news-feed-backend/middlewares"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	authendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/auth"
-	userendpoints  "github.com/nathanap/news-feed-backend/services/endpoints/v1/users"
+	userendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/users"
+	db "github.com/nathanap/news-feed-backend/sqlc"
 	"github.com/nathanap/news-feed-backend/tests/mocks/external"
 	jwtmock "github.com/nathanap/news-feed-backend/tests/mocks/services"
 	testutils "github.com/nathanap/news-feed-backend/tests/utils"
-	db "github.com/nathanap/news-feed-backend/sqlc"
 	_ "modernc.org/sqlite"
 )
 
@@ -42,16 +40,17 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 
 	database := testutils.SetupTestDB(t)
 	queries := db.New(database)
+	runTx := controllers.NewTransactionRunner(database)
 
-	prefCtrl := controllers.NewUserPreferencesController(queries)
-	userCtrl := controllers.NewUserController(queries, prefCtrl)
-	refreshTokenCtrl := controllers.NewRefreshTokenController(queries, e2eRefreshExpiry)
+	prefCtrl := controllers.NewUserPreferencesController()
+	userCtrl := controllers.NewUserController()
+	refreshTokenCtrl := controllers.NewRefreshTokenController(e2eRefreshExpiry)
 	authCtrl := controllers.NewAuthController(
 		&oauth, userCtrl, refreshTokenCtrl, prefCtrl,
-		[]byte(jwtmock.TestJWTSecret), time.Hour,
+		runTx, []byte(jwtmock.TestJWTSecret), time.Hour,
 	)
 
-	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl)
+	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 
@@ -59,14 +58,14 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 	auth.Get("/google", authendpoints.GoogleLogin(testOAuth2Config()))
 	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl))
 	auth.Post("/refresh", authendpoints.RefreshToken(authCtrl))
-	auth.Post("/logout", append(authMiddleware, authendpoints.Logout(refreshTokenCtrl))...)
-	auth.Delete("/invalidate", authendpoints.Invalidate(refreshTokenCtrl))
-	auth.Delete("/invalidate-all", authendpoints.InvalidateAll(refreshTokenCtrl))
+	auth.Post("/logout", append(authMiddleware, authendpoints.Logout(refreshTokenCtrl, runTx))...)
+	auth.Delete("/invalidate", authendpoints.Invalidate(refreshTokenCtrl, runTx))
+	auth.Delete("/invalidate-all", authendpoints.InvalidateAll(refreshTokenCtrl, runTx))
 
 	users := app.Group("/v1/users")
 	users.Get("/me", append(authMiddleware, userendpoints.GetMe())...)
 	users.Get("/me/preferences", append(authMiddleware, userendpoints.GetPreferences())...)
-	users.Put("/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(prefCtrl, authCtrl, 3600))...)
+	users.Put("/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(prefCtrl, authCtrl, runTx, 3600))...)
 
 	return app, queries, authCtrl
 }
@@ -79,30 +78,6 @@ func testOAuth2Config() *oauth2.Config {
 		Scopes:       []string{"email", "profile"},
 		Endpoint:     google.Endpoint,
 	}
-}
-
-// seedSession creates a user + refresh_token directly in the DB and returns a valid access_token.
-// This is the E2E mock approach for OAuth2: bypass the Google flow entirely.
-func seedSession(t *testing.T, queries db.Querier, authCtrl *controllers.AuthController, googleID, email, name string) (accessToken, refreshTokenID string) {
-	t.Helper()
-
-	seedPrefCtrl := controllers.NewUserPreferencesController(queries)
-	userCtrl := controllers.NewUserController(queries, seedPrefCtrl)
-	refreshTokenCtrl := controllers.NewRefreshTokenController(queries, e2eRefreshExpiry)
-
-	user, err := userCtrl.CreateUser(context.Background(), googleID, email, name, "")
-	require.NoError(t, err)
-
-	rt, err := refreshTokenCtrl.Create(context.Background(), user.ID)
-	require.NoError(t, err)
-
-	prefs, err := seedPrefCtrl.FindByUserID(context.Background(), user.ID)
-	require.NoError(t, err)
-
-	token, err := authCtrl.GenerateAccessToken(user, rt.ID, prefs)
-	require.NoError(t, err)
-
-	return token, rt.ID
 }
 
 // loginViaCallback performs a full Google OAuth2 login through the real callback endpoint
@@ -141,20 +116,4 @@ func loginViaCallback(t *testing.T, app *fiber.App, queries db.Querier) (user db
 func readJSON(resp *http.Response, target any) error {
 	defer resp.Body.Close()
 	return json.NewDecoder(resp.Body).Decode(target)
-}
-
-func extractUserIDFromToken(t *testing.T, tokenString string) string {
-	t.Helper()
-	parts := strings.Split(tokenString, ".")
-	require.Len(t, parts, 3)
-
-	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
-	require.NoError(t, err)
-
-	var claims map[string]interface{}
-	require.NoError(t, json.Unmarshal(payload, &claims))
-
-	userID, ok := claims["user_id"].(string)
-	require.True(t, ok && userID != "")
-	return userID
 }

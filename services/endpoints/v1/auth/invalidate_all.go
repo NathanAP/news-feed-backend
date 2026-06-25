@@ -5,9 +5,10 @@ import (
 
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/services/controllers"
+	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
-func InvalidateAll(refreshTokenCtrl controllers.RefreshTokenControllerInterface) fiber.Handler {
+func InvalidateAll(refreshTokenCtrl controllers.RefreshTokenControllerInterface, runTx controllers.TransactionRunner) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
@@ -18,7 +19,10 @@ func InvalidateAll(refreshTokenCtrl controllers.RefreshTokenControllerInterface)
 			})
 		}
 
-		if err := refreshTokenCtrl.RevokeAll(c.Context(), userID); err != nil {
+		err := runTx(c.Context(), func(q db.Querier) error {
+			return refreshTokenCtrl.RevokeAll(c.Context(), q, userID)
+		})
+		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": "internal server error",
 			})

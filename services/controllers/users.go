@@ -16,30 +16,29 @@ var (
 	ErrUserAlreadyExists = errors.New("user already exists")
 )
 
-type UserController struct {
-	queries  db.Querier
-	prefCtrl UserPreferencesControllerInterface
+type UserController struct{}
+
+func NewUserController() *UserController {
+	return &UserController{}
 }
 
-func NewUserController(querier db.Querier, prefCtrl UserPreferencesControllerInterface) *UserController {
-	return &UserController{queries: querier, prefCtrl: prefCtrl}
-}
-
-func (c *UserController) CreateUser(ctx context.Context, googleID, email, name, picture string) (db.User, error) {
+// CreateUser creates a user and its default preferences on the given querier without
+// committing. The caller is responsible for the transaction boundary; running both
+// writes inside a single transaction prevents orphan users (a user without preferences
+// would be unable to log in, since the login flow needs preferences to build the token).
+func (c *UserController) CreateUser(ctx context.Context, q db.Querier, googleID, email, name, picture string) (db.User, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return db.User{}, fmt.Errorf("failed to generate user ID: %w", err)
 	}
 
-	params := db.CreateUserParams{
+	user, err := q.CreateUser(ctx, db.CreateUserParams{
 		ID:       id.String(),
 		GoogleID: googleID,
 		Email:    email,
 		Name:     name,
 		Picture:  sql.NullString{String: picture, Valid: picture != ""},
-	}
-
-	user, err := c.queries.CreateUser(ctx, params)
+	})
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
 			return db.User{}, ErrUserAlreadyExists
@@ -47,15 +46,19 @@ func (c *UserController) CreateUser(ctx context.Context, googleID, email, name, 
 		return db.User{}, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	if _, err := c.prefCtrl.CreateDefault(ctx, user.ID); err != nil {
+	prefParams, err := DefaultPreferencesParams(user.ID)
+	if err != nil {
+		return db.User{}, err
+	}
+	if _, err := q.CreateUserPreferences(ctx, prefParams); err != nil {
 		return db.User{}, fmt.Errorf("failed to create user preferences: %w", err)
 	}
 
 	return user, nil
 }
 
-func (c *UserController) FindUserByID(ctx context.Context, id string) (db.User, error) {
-	user, err := c.queries.FindUserByID(ctx, id)
+func (c *UserController) FindUserByID(ctx context.Context, q db.Querier, id string) (db.User, error) {
+	user, err := q.FindUserByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return db.User{}, ErrUserNotFound
@@ -66,8 +69,8 @@ func (c *UserController) FindUserByID(ctx context.Context, id string) (db.User, 
 	return user, nil
 }
 
-func (c *UserController) FindUserByGoogleID(ctx context.Context, googleID string) (db.User, error) {
-	user, err := c.queries.FindUserByGoogleID(ctx, googleID)
+func (c *UserController) FindUserByGoogleID(ctx context.Context, q db.Querier, googleID string) (db.User, error) {
+	user, err := q.FindUserByGoogleID(ctx, googleID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return db.User{}, ErrUserNotFound
@@ -78,20 +81,27 @@ func (c *UserController) FindUserByGoogleID(ctx context.Context, googleID string
 	return user, nil
 }
 
-func (c *UserController) UpdateUserLastLogin(ctx context.Context, id string) error {
-	if err := c.queries.UpdateUserLastLogin(ctx, id); err != nil {
+func (c *UserController) UpdateUserLastLogin(ctx context.Context, q db.Querier, id string) error {
+	if err := q.UpdateUserLastLogin(ctx, id); err != nil {
 		return fmt.Errorf("failed to update last login: %w", err)
 	}
 	return nil
 }
 
-func (c *UserController) SoftDeleteUser(ctx context.Context, id string) error {
-	if err := c.queries.SoftDeleteUser(ctx, id); err != nil {
+// SoftDeleteUser soft-deletes the user, soft-deletes its preferences and revokes all its
+// refresh tokens on the given querier without committing. Running them together (in the
+// caller's transaction) guarantees a deleted user can no longer authenticate or refresh.
+func (c *UserController) SoftDeleteUser(ctx context.Context, q db.Querier, id string) error {
+	if err := q.SoftDeleteUser(ctx, id); err != nil {
 		return fmt.Errorf("failed to delete user: %w", err)
 	}
 
-	if err := c.prefCtrl.SoftDelete(ctx, id); err != nil {
+	if err := q.SoftDeleteUserPreferences(ctx, id); err != nil {
 		return fmt.Errorf("failed to delete user preferences: %w", err)
+	}
+
+	if err := q.RevokeAllRefreshTokensByUserID(ctx, id); err != nil {
+		return fmt.Errorf("failed to revoke user sessions: %w", err)
 	}
 
 	return nil
