@@ -169,15 +169,23 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.12.0.0
 
-- [ ] Cadastro de notícias
-    - Acho que a melhor nomenclatura para essa tabela é 'Article'
-    - Título da notícia
-    - Conteúdo da notícia, já personalizado e traduzido conforme o usuário preferiu
-    - URL da notícia original
-    - Notícia foi lida pelo usuário (true ou false)
-    - Associação com usuário (1 notícia pertence a 1 usuário)
+- [ ] Garantir que a documentação sobre o `status` está coerente
+- [ ] Garantir que a aplicação está de acordo com a documentação sobre `status`
 
 ## Versão 0.13.0.0
+
+- [ ] Criar uma migração para a tabela de notícias
+    - Acho que a melhor nomenclatura para essa tabela é `articles`, o que acha?
+    - Campos: id, status, title, content, read, url_original, created_at, modified_at, removed_at, user_id
+- [ ] Criar rotas para as notícias
+    - [ ] Criação (`POST /v1/articles/create`)
+    - [ ] Edição (`PUT /v1/articles/{id}`)
+    - [ ] Marcar como lida (`PUT /v1/articles/{id}/read`)
+    - [ ] Remoção (`DELETE /v1/articles/{id}`) — soft delete
+    - [ ] Buscar por id (`GET /v1/articles/{id}`)
+    - [ ] Buscar por filtro (`GET /v1/articles?url=...&status=...`)
+
+## Versão 0.14.0.0
 
 - [ ] Criar uma migração para a tabela de categorias de notícias
     - Acredito que o melhor nomenclatura aqui seja 'article categories', mas aceito melhores sugestões
@@ -212,7 +220,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [ ] Atualizar testes de integração para todas as rotas criadas ou alteradas
 - [ ] Atualizar testes E2E para todas as rotas criadas ou alteradas
 
-## Versão 0.14.0.0
+## Versão 0.15.0.0
 
 - [ ] Filtragem de notícias
     - [ ] Buscar notícias de todas as fontes cadastradas
@@ -224,7 +232,7 @@ Os níveis de tabulação indicam detalhes do assunto.
         - [ ] Personalização
         - [ ] Tradução
 
-## Versão 0.15.0.0
+## Versão 0.16.0.0
 
 - [ ] Deploy
     - [ ] Docker funcionando

@@ -98,6 +98,16 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Inclua mensagens de erro claras e consistentes em caso de falhas.
 - Implemente autenticação e autorização adequadas para proteger os endpoints sensíveis.
 
+# Convenções de status
+
+- O campo `status` de uma tabela indica se um registro está ativo ou não.
+- Geralmente o campo `status` é um `bool`, porém pode haver exceções e ele se tornar um `enum` com valores como `active`, `inactive`, `pending` ou algo parecido.
+- Registros em `status` marcados como `false` devem também ter o campo `removed_at` preenchidos obrigatoriamente.
+- Registros em `status` marcados como `false` ou equivalente (como `inactive`) nunca podem:
+    - Ser encontrados diretamente pelo seu `id`.
+    - Ser encontrados diretamente pelos filtros ou aparecer em listas filtradas.
+    - Ser contabilizados em estatísticas, indicadores ou métricas.
+
 # Convenções de datas
 
 - Todas as datas devem ser tratadas como UTC nesta aplicação.
