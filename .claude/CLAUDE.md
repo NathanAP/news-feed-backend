@@ -36,6 +36,7 @@ API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
 - O revisor deve indicar quais são as melhorias, os motivos e como fazer elas.
 - O revisor deve elencar problemas de fluxo não notados anteriormente (exceções de fluxos ou situações adversas).
 - O revisor deve garantir que o versionamento (`.claude/versions`) está consistente.
+- O revisor pode elencar problemas em aplicativos externos (como o Bruno).
 - Bugs graves devem ter preferência e podem garantir uma versão única de patch.
 - Refatorações estão liberadas conforme necessário, mas faz-se necessário o planejamento junto a mim.
 - O revisor tem total incentivo para elencar também os seguintes pontos como problema:

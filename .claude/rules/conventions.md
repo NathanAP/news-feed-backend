@@ -52,6 +52,15 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
     - Nesse caso, o campo `removed_at` deve ser atualizado com o timestamp atual e o campo `status` deve ser definido como false (0).
     - A exceção imediata dessa regra são as tabelas de relacionamento (junction tables) que devem ser feitas através de hard delete, ou seja, o registro deve ser removido da tabela permanentemente.
 
+## Transações
+
+- As transações do banco de dados sempre são executadas fora do `controller`. Isso significa que os métodos presentes na pasta `controllers` são apenas métodos intermediários, ou seja, eles não são o passo final para uma operação no banco de dados. Isso evita a situação onde temos que criar um número elevado de registros de uma vez sem correr o risco de falhar no meio do caminho e por conta disso sobrar registros órfãos.
+    - Essa necessidade surgiu a partir do momento que precisamos fazer mais de uma operação por vez (como gravar o usuário e depois suas preferências ao mesmo tempo). Fazer o primeiro modelo ser gravado sem garantia do sucesso da segunda gravação tornaria o primeiro registro um órfão.
+- O responsável pelo `commit` ou `rollback` é sempre a conclusão do método `WithTransaction` presente no arquivo `raiz/services/controllers/transaction.go`.
+    - Isso significa que para fazer qualquer transação no banco de dados, o método `WithTransaction` precisa ser chamado.
+    - Ao manipular o banco de dados é papel do `controller` manter os valores atualizados, seja através da instância original ou do `return` do método. Tenha atenção às situações de hard remove de registros (como para tabelas de relacionamento (junction tables)).
+- Métodos que não envolvem manipulação direta (como buscas, geração de relatórios) também usam `WithTransaction` mesmo que um `commit` ou `rollback` não seja aplicado.
+
 # Convenções de migrações
 
 - Migrações devem ser criadas utilizando o `goose` e seguindo a convenção de nomeação de arquivos (Exemplo: `20240101120000_create_users_table.go` para criar a tabela de usuários).
@@ -105,7 +114,7 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 ## Sobre a pasta integration
 
 - Cada pasta presente em `raiz/services/endpoints/v1/` deve ter uma pasta correspondente dentro de `raiz/tests/integration/api` contendo os testes relacionados a cada endpoint presente nela (Exemplo: `raiz/tests/integration/api/users/me_test.go` seria o teste de ver dados do usuário).
-- Os arquivos da pasta `raiz/tests/mocks` estão disponíveis para serem utilizados livremente durante os testes unitários.
+- Os arquivos da pasta `raiz/tests/mocks` estão disponíveis para serem utilizados livremente durante os testes de integração.
 
 ## Sobre a pasta end-to-end
 

@@ -144,6 +144,8 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
 - Servem para simular dados reais mas sem precisar de um serviço para obtenção.
 - Devem ser o mais próximo da realidade possível.
 - Não podem conter informações ou dados considerados sensíveis, proibidos ou ofensivos.
+- Os controllers e a camada de queries (`sqlc`) são testados via testes de integração com banco em memória real ao invés de mocks de repositório escritos à mão pois correm o risco de ficar desatualizados a cada nova query.
+    - Se um dia for necessário isolar um controller em teste unitário, o mock deve ser gerado a partir da interface `db.Querier` (ex: `mockgen`) e nunca escrito manualmente para evitar o esquecimento em uma atualização.
 
 ### Fixtures
 
@@ -153,6 +155,7 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
 
 - Servem apenas para nos garantir que os dados que chegam sejam validados corretamente e que suas respostas sejam adequadas aos problemas e sucessos encontrados.
 - Devem ser bastante simples e diretos, apenas simulando chamadas chegando e saindo na API.
+- Transações no banco de dados são descartados durante este teste.
 - Não dependem que a API ou qualquer serviço esteja de pé para serem feitas.
 
 ### Integração
@@ -162,13 +165,15 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
         - Exemplo: se o endpoint `base_url/v1/users/me` se propõe a responder por 200 e 401, ambas as situações devem ser testadas adequadamente.
         - A nuance de simplicidade entre o teste unitário e teste de integração neste caso é bem baixa e isso pode ser considerado normal.
     - Banco de dados interno: garantir a capacidade de fazer o CRUD básico proposto pela pasta e arquivos presentes em `raiz/sqlc/`.
+        - O banco de dados utilizado deve ser sempre em memória durante este teste.
     - `OAuth2`: garantir que a configuração atende aos requisitos mínimos para funcionamento natural do processo de testes (Exemplo: checagem de variáveis de ambiente `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e `GOOGLE_REDIRECT_URL`).
 - Devem ser menos simples e diretos em comparação aos unitários, mas acabam por abranger mais setores do código.
 - Dependem que os serviços estejam de pé para funcionamento garantido e correto.
 
 ### End-to-end
 
-- Servem para nos garantir que a lógica das rotas e seus códigos estão em perfeito estado.
+- Servem para nos garantir que a lógica dos endpoints e seus códigos estão em perfeito estado, ou seja, os endpoints devem ser chamados diretamente de forma explícita.
+- O banco de dados utilizado deve ser sempre em memória durante este teste.
 - Devem evitar ao máximo o uso de mocks, apenas para casos especiais. São eles:
     - `OAuth2`: é impossível simular os cliques e processos da autenticação feita no Google. A simulação aqui pode cobrir estas situações de forma totalmente aceitável:
         - a de que um usuário fez este processo com sucesso.
