@@ -132,6 +132,22 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
 - Endpoints que deveriam ser acessados pelos usuários administradores por enquanto podem ser feitas por qualquer usuário "comum".
     - Atualmente são eles: `DELETE base_url/v1/auth/invalidate`, `DELETE base_url/v1/auth/invalidate_all`, `POST base_url/v1/sources/create`, `PUT base_url/v1/sources/{id}`, `DELETE base_url/v1/sources/{id}`
 
+## Exclusão de registros
+
+- A filosofia do projeto para exclusão de registros segue a convenção de soft remove.
+- As tabelas de relacionamento (junction tables) são as exceções dessa regra. Elas devem sofrer hard remove quando perderem um registro.
+- Registros que estão sendo excluído por soft remove devem:
+    - Ficar com o campo `status` marcados em `false` e com o campo `removed_at` preenchidos.
+    - Continuar presente nas atuais tabelas de relacionamento (junction tables).
+- Registros que estão sendo excluído por hard remove devem:
+    - Ter seus relacionamentos através das tabelas de relacionamento (junction tables) também excluídos.
+- Registros excluídos em soft remove não podem ser considerados na hora de:
+    - Ser manipulado.
+    - Ser buscados individualmente (através do `id`).
+    - Ser buscados em grupo (listados através de filtragem).
+    - Participar de estatísticas, indicadores ou métricas.
+- Toda query de visualização ou busca deve considerar apenas campos em `status` considerados ativos (`1`, `active` ou equivalente) e com o campo `removed_at` nulo (vazio, `null` ou equivalente).
+
 ## Ambiente de testes
 
 As regras abaixo devem estar presente durante qualquer teste proposto:

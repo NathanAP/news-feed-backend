@@ -171,6 +171,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 - [ ] Garantir que a documentação sobre o `status` está coerente
 - [ ] Garantir que a aplicação está de acordo com a documentação sobre `status`
+- [ ] Corrigir locais inconsistentes com a documentação sobre `status`
 
 ## Versão 0.13.0.0
 

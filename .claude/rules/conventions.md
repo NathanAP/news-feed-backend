@@ -48,8 +48,7 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
     - A exceção imediata dessa regra são as tabelas de relacionamento (junction tables) que devem ter pelo menos o campo `id`.
 - As tabelas de relacionamento (junction tables) devem conter registros de `id` existentes nas tabelas relacionadas, por exemplo, se a tabela contém um `user_id`, todos os registros devem ter um `user_id` válido.
 - `id` deve ser do tipo UUID v7.
-- O campo `status` deve ser utilizado para indicar o estado de um registro no banco de dados.
-    - Geralmente esse campo vai ser um `true` ou `false`, mas em alguns casos pode ser um `enum` para indicar mais estados, como "active", "inactive", "pending", etc.
+- O campo `status` deve ser utilizado conforme regras em `PROJECT.md` para indicar o estado de um registro no banco de dados.
 - Ao alterar um registro, o campo `modified_at` deve ser atualizado com o timestamp atual.
 - Tabelas de relacionamento (junction tables) não sofrem alterações. Para "trocar" qualquer um dos `id` do relacionamento, o registro antigo deve ser removido e um novo registro deve ser criado.
 - Exclusões de registros em tabelas comuns devem ser feitas através de soft delete, utilizando um campo booleano chamado `status` e um campo de timestamp `removed_at`.
@@ -97,16 +96,6 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Utilize JSON como formato de resposta padrão.
 - Inclua mensagens de erro claras e consistentes em caso de falhas.
 - Implemente autenticação e autorização adequadas para proteger os endpoints sensíveis.
-
-# Convenções de status
-
-- O campo `status` de uma tabela indica se um registro está ativo ou não.
-- Geralmente o campo `status` é um `bool`, porém pode haver exceções e ele se tornar um `enum` com valores como `active`, `inactive`, `pending` ou algo parecido.
-- Registros em `status` marcados como `false` devem também ter o campo `removed_at` preenchidos obrigatoriamente.
-- Registros em `status` marcados como `false` ou equivalente (como `inactive`) nunca podem:
-    - Ser encontrados diretamente pelo seu `id`.
-    - Ser encontrados diretamente pelos filtros ou aparecer em listas filtradas.
-    - Ser contabilizados em estatísticas, indicadores ou métricas.
 
 # Convenções de datas
 
