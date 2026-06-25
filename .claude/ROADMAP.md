@@ -229,6 +229,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 
+- Multi feed
 - Editar informações básicas do usuário
 - Cascade de tabelas
 - Limpar o main
