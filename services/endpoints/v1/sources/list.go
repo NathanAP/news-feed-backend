@@ -17,7 +17,6 @@ func ListSources(ctrl controllers.SourceControllerInterface, runTx controllers.T
 		defer logger.RouteEnd(c.Path())
 
 		urlFilter := strings.ToLower(c.Query("url"))
-		statusFilter := c.Query("status")
 
 		var sources []db.Source
 		err := runTx(c.Context(), func(q db.Querier) error {
@@ -29,7 +28,7 @@ func ListSources(ctrl controllers.SourceControllerInterface, runTx controllers.T
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to retrieve sources"})
 		}
 
-		filtered := applyFilters(sources, urlFilter, statusFilter)
+		filtered := applyFilters(sources, urlFilter)
 
 		result := make([]schemas.SourceResponse, len(filtered))
 		for i, s := range filtered {
@@ -40,22 +39,18 @@ func ListSources(ctrl controllers.SourceControllerInterface, runTx controllers.T
 	}
 }
 
-func applyFilters(sources []db.Source, urlFilter, statusFilter string) []db.Source {
-	if urlFilter == "" && statusFilter == "" {
+// applyFilters narrows the active sources returned by the controller. Inactive records
+// never reach here (the query already filters status = 1 AND removed_at IS NULL), so by
+// convention no status filter is exposed — soft-deleted records must never appear in lists.
+func applyFilters(sources []db.Source, urlFilter string) []db.Source {
+	if urlFilter == "" {
 		return sources
 	}
 
 	var out []db.Source
 	for _, s := range sources {
-		if urlFilter != "" && !strings.Contains(strings.ToLower(s.Url), urlFilter) {
+		if !strings.Contains(strings.ToLower(s.Url), urlFilter) {
 			continue
-		}
-		if statusFilter != "" {
-			wantActive := statusFilter == "true"
-			isActive := s.Status == 1
-			if wantActive != isActive {
-				continue
-			}
 		}
 		out = append(out, s)
 	}

@@ -84,32 +84,6 @@ func TestListSources_FilterByURL(t *testing.T) {
 	assert.Equal(t, s2.Url, result[0]["url"])
 }
 
-func TestListSources_FilterByStatus(t *testing.T) {
-	requireNotProduction(t)
-
-	active := fixtures.NewTestSource()
-	inactive := fixtures.NewTestSourceInactive()
-	ctrl := &mockSourceCtrl{
-		listFn: func(_ context.Context, _ db.Querier) ([]db.Source, error) {
-			return []db.Source{active, inactive}, nil
-		},
-	}
-	app := buildApp(ctrl, http.DefaultClient)
-
-	req, err := http.NewRequest(http.MethodGet, "/v1/sources?status=false", nil)
-	require.NoError(t, err)
-	req.Header.Set("Authorization", authHeader(t))
-
-	resp, err := app.Test(req)
-	require.NoError(t, err)
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-
-	var result []map[string]any
-	require.NoError(t, readJSON(resp, &result))
-	assert.Len(t, result, 1)
-	assert.Equal(t, inactive.ID, result[0]["id"])
-}
-
 func TestListSources_DBError(t *testing.T) {
 	requireNotProduction(t)
 

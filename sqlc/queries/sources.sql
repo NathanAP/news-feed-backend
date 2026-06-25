@@ -5,18 +5,18 @@ RETURNING *;
 
 -- name: FindSourceByID :one
 SELECT * FROM sources
-WHERE id = ? AND removed_at IS NULL
+WHERE id = ? AND status = 1 AND removed_at IS NULL
 LIMIT 1;
 
 -- name: ListSources :many
 SELECT * FROM sources
-WHERE removed_at IS NULL
+WHERE status = 1 AND removed_at IS NULL
 ORDER BY created_at DESC;
 
 -- name: UpdateSource :one
 UPDATE sources
 SET url = ?, url_rss = ?, modified_at = CURRENT_TIMESTAMP
-WHERE id = ? AND removed_at IS NULL
+WHERE id = ? AND status = 1 AND removed_at IS NULL
 RETURNING *;
 
 -- name: SoftDeleteSource :exec

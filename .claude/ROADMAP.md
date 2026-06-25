@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.11.0.0
+0.12.0.0
 
 ## Versão 0.1.0.0
 
@@ -169,9 +169,9 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.12.0.0
 
-- [ ] Garantir que a documentação sobre o `status` está coerente
-- [ ] Garantir que a aplicação está de acordo com a documentação sobre `status`
-- [ ] Corrigir locais inconsistentes com a documentação sobre `status`
+- [x] Garantir que a documentação sobre o `status` está coerente
+- [x] Garantir que a aplicação está de acordo com a documentação sobre `status`
+- [x] Corrigir locais inconsistentes com a documentação sobre `status`
 
 ## Versão 0.13.0.0
 

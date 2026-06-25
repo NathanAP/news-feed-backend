@@ -30,10 +30,3 @@ func NewTestSourceAlt() db.Source {
 		RemovedAt:  sql.NullTime{Valid: false},
 	}
 }
-
-func NewTestSourceInactive() db.Source {
-	s := NewTestSource()
-	s.ID = "01900000-0000-7000-8000-000000000012"
-	s.Status = 0
-	return s
-}

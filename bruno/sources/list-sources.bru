@@ -16,16 +16,17 @@ auth:bearer {
 
 params:query {
   url:
-  status:
 }
 
 docs {
   Filtros opcionais (query params):
   - url: filtra por substring na URL da fonte (case-insensitive)
-  - status: "true" para ativas, "false" para inativas
+
+  Apenas fontes ativas são retornadas. Não há filtro por `status`:
+  registros inativos (soft-deleted) nunca aparecem em listas, conforme
+  as regras de status em PROJECT.md.
 
   Exemplos:
+  - /v1/sources
   - /v1/sources?url=globo
-  - /v1/sources?status=true
-  - /v1/sources?url=g1&status=true
 }

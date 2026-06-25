@@ -50,7 +50,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 
 const findUserByGoogleID = `-- name: FindUserByGoogleID :one
 SELECT id, google_id, email, name, picture, status, last_login_at, created_at, modified_at, removed_at FROM users
-WHERE google_id = ? AND removed_at IS NULL
+WHERE google_id = ? AND status = 1 AND removed_at IS NULL
 LIMIT 1
 `
 
@@ -74,7 +74,7 @@ func (q *Queries) FindUserByGoogleID(ctx context.Context, googleID string) (User
 
 const findUserByID = `-- name: FindUserByID :one
 SELECT id, google_id, email, name, picture, status, last_login_at, created_at, modified_at, removed_at FROM users
-WHERE id = ? AND removed_at IS NULL
+WHERE id = ? AND status = 1 AND removed_at IS NULL
 LIMIT 1
 `
 
@@ -110,7 +110,7 @@ func (q *Queries) SoftDeleteUser(ctx context.Context, id string) error {
 const updateUserLastLogin = `-- name: UpdateUserLastLogin :exec
 UPDATE users
 SET last_login_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
-WHERE id = ? AND removed_at IS NULL
+WHERE id = ? AND status = 1 AND removed_at IS NULL
 `
 
 func (q *Queries) UpdateUserLastLogin(ctx context.Context, id string) error {

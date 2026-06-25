@@ -82,7 +82,8 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Endpoints de atualização deve sempre ser um PUT e seguir o padrão `base_url/versao_da_api/modelo/{id}` (Exemplo: `http://localhost:3000/v1/sources/{id}`).
 - Endpoints de remoção deve sempre ser um DELETE e seguir o padrão `base_url/versao_da_api/modelo/{id}` (Exemplo: `http://localhost:3000/v1/sources/{id}`).
 - Endpoints de pesquisa por ID deve sempre ser um GET e seguir o padrão `base_url/versao_da_api/modelo/{id}` (Exemplo: `http://localhost:3000/v1/sources/{id}`).
-- Endpoints de pesquisa por múltiplos parâmetros deve sempre ser um GET e seguir o padrão `base_url/versao_da_api/modelo?parametro1=valor1&parametro2=valor2` (Exemplo: `http://localhost:3000/v1/sources?name=example&status=true`).
+- Endpoints de pesquisa por múltiplos parâmetros deve sempre ser um GET e seguir o padrão `base_url/versao_da_api/modelo?parametro1=valor1&parametro2=valor2` (Exemplo: `http://localhost:3000/v1/sources?url=example&url_rss=example`).
+    - O campo `status` nunca deve ser exposto como filtro de busca: registros inativos jamais podem ser retornados, conforme as regras de `status` em `PROJECT.md`.
 - Endpoints criados devem ser acrescentados nos testes da pasta `tests/` seguindo as convenções de testes abaixo.
 - Endpoints alterados devem ser corrigidos (caso necessário) nos testes da pasta `tests/` seguindo as convenções de testes abaixo.
 - Endpoints removidos devem ser removidos dos testes da pasta `tests/`.

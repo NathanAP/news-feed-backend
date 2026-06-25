@@ -37,7 +37,7 @@ func (q *Queries) CreateSource(ctx context.Context, arg CreateSourceParams) (Sou
 
 const findSourceByID = `-- name: FindSourceByID :one
 SELECT id, status, url, url_rss, created_at, modified_at, removed_at FROM sources
-WHERE id = ? AND removed_at IS NULL
+WHERE id = ? AND status = 1 AND removed_at IS NULL
 LIMIT 1
 `
 
@@ -58,7 +58,7 @@ func (q *Queries) FindSourceByID(ctx context.Context, id string) (Source, error)
 
 const listSources = `-- name: ListSources :many
 SELECT id, status, url, url_rss, created_at, modified_at, removed_at FROM sources
-WHERE removed_at IS NULL
+WHERE status = 1 AND removed_at IS NULL
 ORDER BY created_at DESC
 `
 
@@ -97,7 +97,7 @@ func (q *Queries) ListSources(ctx context.Context) ([]Source, error) {
 const updateSource = `-- name: UpdateSource :one
 UPDATE sources
 SET url = ?, url_rss = ?, modified_at = CURRENT_TIMESTAMP
-WHERE id = ? AND removed_at IS NULL
+WHERE id = ? AND status = 1 AND removed_at IS NULL
 RETURNING id, status, url, url_rss, created_at, modified_at, removed_at
 `
 

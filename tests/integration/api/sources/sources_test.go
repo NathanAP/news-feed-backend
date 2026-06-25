@@ -247,6 +247,51 @@ func TestIntegration_ListSources_EmptyDB(t *testing.T) {
 	assert.Empty(t, result)
 }
 
+// TestIntegration_ListSources_ExcludesSoftDeleted enforces the status convention:
+// a soft-deleted source (status = 0, removed_at set) must never appear in lists.
+func TestIntegration_ListSources_ExcludesSoftDeleted(t *testing.T) {
+	requireNotProduction(t)
+
+	app, queries := setupIntegrationApp(t, http.DefaultClient)
+	_, token := seedUser(t, queries)
+
+	createSource := func(url, urlRss string) string {
+		b := strings.NewReader(`{"url":"` + url + `","url_rss":"` + urlRss + `"}`)
+		r, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", b)
+		r.Header.Set("Content-Type", "application/json")
+		r.Header.Set("Authorization", "Bearer "+token)
+		resp, err := app.Test(r)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode)
+		var created map[string]any
+		require.NoError(t, readJSON(resp, &created))
+		return created["id"].(string)
+	}
+
+	keptID := createSource("https://kept.com", "https://kept.com/rss.xml")
+	deletedID := createSource("https://gone.com", "https://gone.com/rss.xml")
+
+	// Soft-delete the second source
+	delReq, _ := http.NewRequest(http.MethodDelete, "/v1/sources/"+deletedID, nil)
+	delReq.Header.Set("Authorization", "Bearer "+token)
+	delResp, err := app.Test(delReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusNoContent, delResp.StatusCode)
+
+	// List must contain only the active source
+	listReq, _ := http.NewRequest(http.MethodGet, "/v1/sources", nil)
+	listReq.Header.Set("Authorization", "Bearer "+token)
+	listResp, err := app.Test(listReq)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, listResp.StatusCode)
+
+	var result []map[string]any
+	require.NoError(t, readJSON(listResp, &result))
+	require.Len(t, result, 1)
+	assert.Equal(t, keptID, result[0]["id"])
+	assert.NotEqual(t, deletedID, result[0]["id"])
+}
+
 // ── Update ───────────────────────────────────────────────────────────────────
 
 func TestIntegration_UpdateSource_Success(t *testing.T) {
