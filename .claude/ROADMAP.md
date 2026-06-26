@@ -181,30 +181,45 @@ Os níveis de tabulação indicam detalhes do assunto.
 ## Versão 0.13.0.0
 
 - [ ] Criar uma migração para a tabela de notícias
-    - Acho que a melhor nomenclatura para essa tabela é `articles`, o que acha?
-    - Campos: id, status, title, content, url_original, created_at, modified_at, removed_at
-- [ ] Criar rotas para as notícias
-    - [ ] Marcar como lida (`PUT /v1/articles/{id}/read`)
-    - [ ] Buscar por id (`GET /v1/articles/{id}`)
-    - [ ] Buscar por filtro (`GET /v1/articles?url=...`)
-
-## Versão 0.14.0.0
-
-- [ ] Criar uma migração para a tabela de categorias de notícias
-    - Acredito que o melhor nomenclatura aqui seja 'article categories', mas aceito melhores sugestões
-    - O arquivo `PROJECT.md` explica melhor como essa tabela funciona
+    - Nomenclatura da tabela: `articles`
     - Armazene os seguintes dados:
         - id (`UUID` v7)
         - status (`true` ou `false`)
-        - user_id (`UUID` do usuário - 1 categoria pertence a 1 usuário, 1 usuário cria N categorias)
-        - name (`string`)
+        - title (`string`)
+        - content (`string` em formato `md`)
+        - url_original (`string`)
         - keywords (uma lista de `string` - formato `JSON array (TEXT)`)
         - created_at (`timestamp`)
         - modified_at (`timestamp` opcional)
         - removed_at (`timestamp` opcional)
-        - lista de fontes de notícias ligadas ao registro
-            - significa que essa tabela possui uma relação muito para muitos (N to N) com a tabela de fonte de notícias
-    - Exemplos: categoria "Metallica" com palavras-chaves "Metallica, Rock"; categoria "Anime" com palavras-chave "Naruto, Anime, Cosplay"
+- [ ] Criar rotas para as notícias
+    - [ ] Marcar como lida (`PUT /v1/articles/{id}/read`)
+    - [ ] Buscar por id (`GET /v1/articles/{id}`)
+    - [ ] Buscar por filtro (`GET /v1/articles?url=...`)
+    - Pergunta: vale a pena ter uma rota de redirecionamento para a url original? para nós tratar e poder colocar algo que indique o site que está chegando através da nossa aplicação?
+
+## Versão 0.14.0.0
+
+- [ ] Criar uma migração para a tabela de feeds
+    - Nomenclatura: `feeds`
+    - Armazene os seguintes dados:
+        - id (`UUID` v7)
+        - status (`true` ou `false`)
+        - name (`string`)
+        - keywords (uma lista de `string` - formato `JSON array (TEXT)`)
+        - user_id (`UUID` v7)
+        - created_at (`timestamp`)
+        - modified_at (`timestamp` opcional)
+        - removed_at (`timestamp` opcional)
+- [ ] Criar rotas para as fontes de notícias
+    - [ ] Criação (`POST /v1/sources/create`)
+    - [ ] Edição (`PUT /v1/sources/{id}`)
+    - [ ] Remoção (`DELETE /v1/sources/{id}`) — soft delete
+    - [ ] Buscar por id (`GET /v1/sources/{id}`)
+    - [ ] Buscar por filtro (`GET /v1/sources?url=...`)
+
+## Versão 0.15.0.0
+
 - [ ] Criar rotas para as categorias de notícias
     - Criação
     - Edição
@@ -223,19 +238,19 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [ ] Atualizar testes de integração para todas as rotas criadas ou alteradas
 - [ ] Atualizar testes E2E para todas as rotas criadas ou alteradas
 
-## Versão 0.15.0.0
-
-- [ ] Filtragem de notícias
-    - [ ] Buscar notícias de todas as fontes cadastradas
-        - O processo ocorre através de cron interna que é executada periodicamente
-        - Utilize as variáveis de ambiente para controlar a atividade da cron interna (RSS_FEED_CRON_ACTIVE e RSS_FEED_CRON_SCHEDULE)
-    - [ ] Implementar filtragem por palavra-chave
-    - [ ] Integrar Gemini 2.5 Flash para:
-        - [ ] Validação inteligente
-        - [ ] Personalização
-        - [ ] Tradução
-
 ## Versão 0.16.0.0
+
+- [ ] Descobrir notícias de todas as fontes cadastradas
+    - O processo ocorre através de cron interna que é executada periodicamente
+    - Utilize as variáveis de ambiente para controlar a atividade da cron interna (RSS_FEED_CRON_ACTIVE e RSS_FEED_CRON_SCHEDULE)
+- [ ] Julgamento de notícias aos feeds
+- [ ] Implementar filtragem por palavra-chave
+- [ ] Integrar Gemini 2.5 Flash para:
+    - [ ] Validação inteligente
+    - [ ] Personalização
+    - [ ] Tradução
+
+## Versão 0.17.0.0
 
 - [ ] Deploy
     - [ ] Docker funcionando
