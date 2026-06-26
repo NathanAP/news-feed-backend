@@ -44,10 +44,11 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 # Convenções de banco de dados
 
 - Nomes de tabelas do banco de dados devem estar no plural e em snake case (Exemplo: users, user_preferences).
+- Tabelas de relacionamento (junction tables) devem conter os dois nomes das tabelas envolvidas. Exemplo: `articles_feeds` pertence ao relacionamento entre as tabelas de notícias e feeds.
+- `id` deve ser do tipo UUID v7 e devem ser imutáveis.
 - As tabelas devem ter pelo menos os campos `id`, `status`, `created_at`, `modified_at` e `removed_at` do tipo timestamp.
     - A exceção imediata dessa regra são as tabelas de relacionamento (junction tables) que devem ter pelo menos o campo `id`.
 - As tabelas de relacionamento (junction tables) devem conter registros de `id` existentes nas tabelas relacionadas, por exemplo, se a tabela contém um `user_id`, todos os registros devem ter um `user_id` válido.
-- `id` deve ser do tipo UUID v7 e devem ser imutáveis.
 - O campo `status` deve ser utilizado conforme regras em `PROJECT.md` para indicar o estado de um registro no banco de dados.
 - Ao alterar um registro, o campo `modified_at` deve ser atualizado com o timestamp atual.
 - Registros de uma tabela de relacionamento (junction tables) só podem ser considerados válidos quando todos os registros relacionados estiverem ativos (`status` marcados em `true` e com `removed_at` sem valor).
