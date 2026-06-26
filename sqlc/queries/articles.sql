@@ -1,6 +1,6 @@
 -- name: CreateArticle :one
-INSERT INTO articles (id, title, content, url_original, keywords)
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO articles (id, title, content, url_original, keywords, source_id)
+VALUES (?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: FindArticleByID :one
@@ -23,3 +23,8 @@ RETURNING *;
 UPDATE articles
 SET status = 0, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
 WHERE id = ? AND removed_at IS NULL;
+
+-- name: SoftDeleteArticlesBySourceID :exec
+UPDATE articles
+SET status = 0, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
+WHERE source_id = ? AND removed_at IS NULL;

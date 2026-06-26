@@ -65,6 +65,8 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
         - Preferências de usuário.
         - Feed.
         - Article x Feed (junction table): neste caso, deve-se olhar pelo `user_id` presente na tabela `feed`.
+- As regras de `cascade` devem sempre ser elaboradas durante o processo de planejamento de cada versão.
+    - Ao realizar uma exclusão em um registro (tanto soft quanto hard remove), todas as tabelas dependentes deste registro devem sofrer o efeito de `cascade`, ou seja, também são excluídos seguindo o padrão de exclusão (soft ou hard).
 
 ## Transações
 

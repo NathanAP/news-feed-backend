@@ -51,16 +51,16 @@ func (m *mockRefreshTokenCtrl) RevokeAll(_ context.Context, _ db.Querier, _ stri
 var _ controllers.RefreshTokenControllerInterface = (*mockRefreshTokenCtrl)(nil)
 
 type mockArticleCtrl struct {
-	createFn     func(ctx context.Context, q db.Querier, title, content, urlOriginal string, keywords []string) (db.Article, error)
+	createFn     func(ctx context.Context, q db.Querier, title, content, urlOriginal, sourceID string, keywords []string) (db.Article, error)
 	findByIDFn   func(ctx context.Context, q db.Querier, id string) (db.Article, error)
 	listFn       func(ctx context.Context, q db.Querier) ([]db.Article, error)
 	updateFn     func(ctx context.Context, q db.Querier, id, title, content, urlOriginal string, keywords []string) (db.Article, error)
 	softDeleteFn func(ctx context.Context, q db.Querier, id string) error
 }
 
-func (m *mockArticleCtrl) Create(ctx context.Context, q db.Querier, title, content, urlOriginal string, keywords []string) (db.Article, error) {
+func (m *mockArticleCtrl) Create(ctx context.Context, q db.Querier, title, content, urlOriginal, sourceID string, keywords []string) (db.Article, error) {
 	if m.createFn != nil {
-		return m.createFn(ctx, q, title, content, urlOriginal, keywords)
+		return m.createFn(ctx, q, title, content, urlOriginal, sourceID, keywords)
 	}
 	return fixtures.NewTestArticle(), nil
 }
@@ -124,6 +124,7 @@ func validCreateBody() string {
 		"title": "Test Article",
 		"content": "# Test\n\nContent here.",
 		"url_original": "https://example.com/news/test",
-		"keywords": ["metallica","rock","metal","music","concert"]
+		"keywords": ["metallica","rock","metal","music","concert"],
+		"source_id": "01900000-0000-7000-8000-000000000010"
 	}`
 }

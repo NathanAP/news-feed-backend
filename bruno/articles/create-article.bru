@@ -19,7 +19,8 @@ body:json {
     "title": "Metallica anuncia nova turnê mundial",
     "content": "# Metallica anuncia nova turnê\n\nA banda confirmou as datas...",
     "url_original": "https://www.wikimetal.com.br/noticia/metallica-turne",
-    "keywords": ["metallica", "rock", "metal", "turnê", "show"]
+    "keywords": ["metallica", "rock", "metal", "turnê", "show"],
+    "source_id": "{{sourceId}}"
   }
 }
 
@@ -29,7 +30,10 @@ docs {
   - content: conteúdo em markdown
   - url_original: URL da notícia original (http ou https, único entre os ativos)
   - keywords: lista de 5 a 20 palavras-chave (nenhuma vazia)
+  - source_id: id de uma fonte de notícias existente e ativa
 
   Retorna 409 se a url_original já existir entre os registros ativos.
+  Retorna 400 se source_id faltar ou apontar para uma fonte inexistente/inativa.
+  O source_id é imutável: a rota de edição (PUT) não o altera.
   No futuro essa rota será exclusiva de administradores.
 }

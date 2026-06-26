@@ -15,6 +15,7 @@ import (
 var (
 	ErrArticleNotFound      = errors.New("article not found")
 	ErrArticleAlreadyExists = errors.New("article with this original URL already exists")
+	ErrArticleSourceInvalid = errors.New("source not found or inactive")
 )
 
 type ArticleController struct{}
@@ -23,7 +24,16 @@ func NewArticleController() *ArticleController {
 	return &ArticleController{}
 }
 
-func (c *ArticleController) Create(ctx context.Context, q db.Querier, title, content, urlOriginal string, keywords []string) (db.Article, error) {
+func (c *ArticleController) Create(ctx context.Context, q db.Querier, title, content, urlOriginal, sourceID string, keywords []string) (db.Article, error) {
+	// The article must reference an existing, active source. FindSourceByID already filters
+	// status = 1 AND removed_at IS NULL, so a soft-deleted source resolves to not-found.
+	if _, err := q.FindSourceByID(ctx, sourceID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return db.Article{}, ErrArticleSourceInvalid
+		}
+		return db.Article{}, fmt.Errorf("failed to validate source: %w", err)
+	}
+
 	id, err := uuid.NewV7()
 	if err != nil {
 		return db.Article{}, fmt.Errorf("failed to generate article ID: %w", err)
@@ -40,6 +50,7 @@ func (c *ArticleController) Create(ctx context.Context, q db.Querier, title, con
 		Content:     content,
 		UrlOriginal: urlOriginal,
 		Keywords:    encodedKeywords,
+		SourceID:    sourceID,
 	})
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {

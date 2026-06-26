@@ -530,3 +530,71 @@ func TestIntegration_RSSDiscovery_EmptyOnNoFeeds(t *testing.T) {
 	feeds := result["feeds"].([]any)
 	assert.Empty(t, feeds)
 }
+
+// ── Cascade source → articles ──────────────────────────────────────────────────
+
+// seedArticleForSource inserts an article tied to sourceID directly in the DB.
+func seedArticleForSource(t *testing.T, queries db.Querier, id, urlOriginal, sourceID string) {
+	t.Helper()
+	_, err := queries.CreateArticle(t.Context(), db.CreateArticleParams{
+		ID:          id,
+		Title:       "Cascade Article",
+		Content:     "# Cascade",
+		UrlOriginal: urlOriginal,
+		Keywords:    `["a","b","c","d","e"]`,
+		SourceID:    sourceID,
+	})
+	require.NoError(t, err)
+}
+
+// TestIntegration_DeleteSource_CascadesToArticles enforces the cascade rule: soft-deleting
+// a source must soft-delete every article that belongs to it, leaving other sources' articles
+// untouched.
+func TestIntegration_DeleteSource_CascadesToArticles(t *testing.T) {
+	requireNotProduction(t)
+
+	app, queries := setupIntegrationApp(t, http.DefaultClient)
+	_, token := seedUser(t, queries)
+	articleCtrl := controllers.NewArticleController()
+
+	// Two sources created through the API.
+	sourceA := createSourceReturningID(t, app, token, "https://a.com", "https://a.com/rss")
+	sourceB := createSourceReturningID(t, app, token, "https://b.com", "https://b.com/rss")
+
+	seedArticleForSource(t, queries, "01900000-0000-7000-8000-0000000000a1", "https://news.com/a1", sourceA)
+	seedArticleForSource(t, queries, "01900000-0000-7000-8000-0000000000a2", "https://news.com/a2", sourceA)
+	seedArticleForSource(t, queries, "01900000-0000-7000-8000-0000000000b1", "https://news.com/b1", sourceB)
+
+	// Delete source A through the endpoint (which runs the cascade in its transaction).
+	delReq, _ := http.NewRequest(http.MethodDelete, "/v1/sources/"+sourceA, nil)
+	delReq.Header.Set("Authorization", "Bearer "+token)
+	delResp, err := app.Test(delReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusNoContent, delResp.StatusCode)
+
+	// Source A's articles are now soft-deleted (no longer findable).
+	_, err = articleCtrl.FindByID(t.Context(), queries, "01900000-0000-7000-8000-0000000000a1")
+	assert.ErrorIs(t, err, controllers.ErrArticleNotFound)
+	_, err = articleCtrl.FindByID(t.Context(), queries, "01900000-0000-7000-8000-0000000000a2")
+	assert.ErrorIs(t, err, controllers.ErrArticleNotFound)
+
+	// Source B's article remains active.
+	b1, err := articleCtrl.FindByID(t.Context(), queries, "01900000-0000-7000-8000-0000000000b1")
+	require.NoError(t, err)
+	assert.Equal(t, sourceB, b1.SourceID)
+}
+
+// createSourceReturningID creates a source through the API and returns its id.
+func createSourceReturningID(t *testing.T, app *fiber.App, token, url, urlRss string) string {
+	t.Helper()
+	body := `{"url":"` + url + `","url_rss":"` + urlRss + `"}`
+	req, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+	var created map[string]any
+	require.NoError(t, readJSON(resp, &created))
+	return created["id"].(string)
+}

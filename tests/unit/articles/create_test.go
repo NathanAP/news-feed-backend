@@ -110,7 +110,7 @@ func TestCreateArticle_Conflict(t *testing.T) {
 	requireNotProduction(t)
 
 	ctrl := &mockArticleCtrl{
-		createFn: func(_ context.Context, _ db.Querier, _, _, _ string, _ []string) (db.Article, error) {
+		createFn: func(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string) (db.Article, error) {
 			return db.Article{}, controllers.ErrArticleAlreadyExists
 		},
 	}
@@ -123,13 +123,47 @@ func TestCreateArticle_DBError(t *testing.T) {
 	requireNotProduction(t)
 
 	ctrl := &mockArticleCtrl{
-		createFn: func(_ context.Context, _ db.Querier, _, _, _ string, _ []string) (db.Article, error) {
+		createFn: func(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string) (db.Article, error) {
 			return db.Article{}, assert.AnError
 		},
 	}
 	app := buildApp(ctrl)
 	resp := postCreate(t, app, validCreateBody(), true)
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+}
+
+func TestCreateArticle_MissingSourceID(t *testing.T) {
+	requireNotProduction(t)
+
+	app := defaultApp()
+	body := `{"title":"T","content":"C","url_original":"https://e.com/a","keywords":["a","b","c","d","e"]}`
+	resp := postCreate(t, app, body, true)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+func TestCreateArticle_SourceInvalid(t *testing.T) {
+	requireNotProduction(t)
+
+	ctrl := &mockArticleCtrl{
+		createFn: func(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string) (db.Article, error) {
+			return db.Article{}, controllers.ErrArticleSourceInvalid
+		},
+	}
+	app := buildApp(ctrl)
+	resp := postCreate(t, app, validCreateBody(), true)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+func TestCreateArticle_ResponseIncludesSourceID(t *testing.T) {
+	requireNotProduction(t)
+
+	app := defaultApp()
+	resp := postCreate(t, app, validCreateBody(), true)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	var result map[string]any
+	require.NoError(t, readJSON(resp, &result))
+	assert.NotEmpty(t, result["source_id"])
 }
 
 func TestCreateArticle_InvalidBody(t *testing.T) {

@@ -17,6 +17,7 @@ import (
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	articleendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/articles"
 	authendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/auth"
+	sourceendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/sources"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 	"github.com/nathanap/news-feed-backend/tests/mocks/external"
 	jwtmock "github.com/nathanap/news-feed-backend/tests/mocks/services"
@@ -51,12 +52,16 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 		runTx, []byte(jwtmock.TestJWTSecret), time.Hour,
 	)
 	articleCtrl := controllers.NewArticleController()
+	sourceCtrl := controllers.NewSourceController()
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 
 	auth := app.Group("/v1/auth")
 	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl))
+
+	s := app.Group("/v1/sources")
+	s.Post("/create", append(authMiddleware, sourceendpoints.CreateSource(sourceCtrl, runTx))...)
 
 	a := app.Group("/v1/articles")
 	a.Post("/create", append(authMiddleware, articleendpoints.CreateArticle(articleCtrl, runTx))...)
@@ -66,6 +71,22 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 	a.Delete("/:id", append(authMiddleware, articleendpoints.DeleteArticle(articleCtrl, runTx))...)
 
 	return app, queries
+}
+
+// createSourceViaAPI creates a source through the real endpoint and returns its id.
+// Articles require an active source; E2E seeds it through the API rather than the DB.
+func createSourceViaAPI(t *testing.T, app *fiber.App, token, url, urlRss string) string {
+	t.Helper()
+	body := `{"url":"` + url + `","url_rss":"` + urlRss + `"}`
+	req, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+	var created map[string]any
+	require.NoError(t, readJSON(resp, &created))
+	return created["id"].(string)
 }
 
 func loginViaCallback(t *testing.T, app *fiber.App, queries db.Querier) string {
@@ -104,9 +125,10 @@ func TestE2E_Articles_FullCRUDFlow(t *testing.T) {
 	}
 	app, queries := setupE2EApp(t, oauth)
 	token := loginViaCallback(t, app, queries)
+	sourceID := createSourceViaAPI(t, app, token, "https://e2e-source.com", "https://e2e-source.com/rss.xml")
 
 	// Create
-	createBody := `{"title":"E2E Article","content":"# E2E\n\nContent.","url_original":"https://e2e.com/a","keywords":["metallica","rock","metal","music","concert"]}`
+	createBody := `{"title":"E2E Article","content":"# E2E\n\nContent.","url_original":"https://e2e.com/a","keywords":["metallica","rock","metal","music","concert"],"source_id":"` + sourceID + `"}`
 	createReq, _ := http.NewRequest(http.MethodPost, "/v1/articles/create", strings.NewReader(createBody))
 	createReq.Header.Set("Content-Type", "application/json")
 	createReq.Header.Set("Authorization", "Bearer "+token)
@@ -118,6 +140,7 @@ func TestE2E_Articles_FullCRUDFlow(t *testing.T) {
 	require.NoError(t, readJSON(createResp, &created))
 	id := created["id"].(string)
 	assert.Equal(t, "E2E Article", created["title"])
+	assert.Equal(t, sourceID, created["source_id"])
 	assert.True(t, created["status"].(bool))
 
 	// Get by ID
@@ -147,6 +170,7 @@ func TestE2E_Articles_FullCRUDFlow(t *testing.T) {
 	var updated map[string]any
 	require.NoError(t, readJSON(updateResp, &updated))
 	assert.Equal(t, "E2E Updated", updated["title"])
+	assert.Equal(t, sourceID, updated["source_id"], "source_id must be immutable across updates")
 
 	// Delete
 	delReq, _ := http.NewRequest(http.MethodDelete, "/v1/articles/"+id, nil)
@@ -209,6 +233,7 @@ func TestE2E_Articles_ValidationErrors(t *testing.T) {
 		{"missing content", `{"title":"T","url_original":"https://x.com/a","keywords":["a","b","c","d","e"]}`},
 		{"invalid url", `{"title":"T","content":"C","url_original":"ftp://x.com","keywords":["a","b","c","d","e"]}`},
 		{"too few keywords", `{"title":"T","content":"C","url_original":"https://x.com/a","keywords":["a","b"]}`},
+		{"missing source_id", `{"title":"T","content":"C","url_original":"https://x.com/a","keywords":["a","b","c","d","e"]}`},
 	}
 
 	for _, tc := range tt {

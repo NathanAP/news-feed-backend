@@ -26,16 +26,22 @@ func CreateArticle(ctrl controllers.ArticleControllerInterface, runTx controller
 		if msg := validateArticleInput(req.Title, req.Content, req.URLOriginal, req.Keywords); msg != "" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": msg})
 		}
+		if req.SourceID == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "source_id is required"})
+		}
 
 		var article db.Article
 		err := runTx(c.Context(), func(q db.Querier) error {
 			var err error
-			article, err = ctrl.Create(c.Context(), q, req.Title, req.Content, req.URLOriginal, req.Keywords)
+			article, err = ctrl.Create(c.Context(), q, req.Title, req.Content, req.URLOriginal, req.SourceID, req.Keywords)
 			return err
 		})
 		if err != nil {
 			if errors.Is(err, controllers.ErrArticleAlreadyExists) {
 				return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "article with this original URL already exists"})
+			}
+			if errors.Is(err, controllers.ErrArticleSourceInvalid) {
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "source not found or inactive"})
 			}
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to create article"})
 		}
@@ -99,6 +105,7 @@ func toArticleResponse(a db.Article) (schemas.ArticleResponse, error) {
 		Content:     a.Content,
 		URLOriginal: a.UrlOriginal,
 		Keywords:    keywords,
+		SourceID:    a.SourceID,
 		CreatedAt:   a.CreatedAt,
 	}
 	if a.ModifiedAt.Valid {

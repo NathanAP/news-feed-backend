@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.13.0.0
+0.14.1.0
 
 ## Versão 0.1.0.0
 
@@ -203,12 +203,18 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.14.0.0
 
-- [ ] Criar uma migração para relacionar as fontes de notícias com as notícias
+- [x] Criar uma migração para relacionar as fontes de notícias com as notícias
     - Na tabela de notícias já existente
         - Adicionar a coluna `source_id` sendo um `UUID` v7
         - As notícias cadastradas devem receber de agora em diante um `source_id` também
         - Não precisa fazer processo retroativo para notícias já existentes
     - Alterar rota de criação para receber também o `source_id`
+
+## Versão 0.14.1.0
+
+- [x] Implementar o cascade de exclusão entre fonte de notícias e notícias
+    - Ao dar soft remove em uma `source`, todos os `articles` daquela fonte também sofrem soft remove
+    - Lacuna identificada após a 0.14.0.0: o relacionamento `source_id` foi criado sem o cascade correspondente
 
 ## Versão 0.15.0.0
 
@@ -248,6 +254,11 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.16.0.0
 
+- [ ] Fazer revisão
+- [ ] Falar sobre memory
+
+## Versão 0.17.0.0
+
 - [ ] Descobrir notícias de todas as fontes cadastradas
     - O processo ocorre através de CRON interna que é executada periodicamente
     - Utilize as variáveis de ambiente para controlar a atividade da CRON interna (RSS_FEED_CRON_ACTIVE e RSS_FEED_CRON_SCHEDULE)
@@ -258,12 +269,12 @@ Os níveis de tabulação indicam detalhes do assunto.
 - dúvida: precisamos de alguns prompt né? Onde acha que devemos armazenar esses prompts?
 - dúvida: a CRON deveria ficar em services/CRON?
 
-## Versão 0.17.0.0
+## Versão 0.18.0.0
 
 - [ ] Resumo personalizado
 - [ ] Tradução personalizada
 
-## Versão 0.18.0.0
+## Versão 0.19.0.0
 
 - [ ] Deploy
     - [ ] Docker funcionando

@@ -150,6 +150,8 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Alterar as palavras-chave de uma notícia não faz com que um novo julgamento aconteça.
 - As notícias estão diretamente ligadas à uma fonte de notícias, por isso é obrigatório também passar uma referência (`source_id`) à qual ela pertence.
     - Este campo é obrigatório e imutável.
+- Se a fonte de notícias sofrer soft remove, todas as suas notícias também devem sofrer soft remove.
+- Se a fonte de notícias sofrer hard remove, todas as suas notícias também devem sofrer hard remove.
 
 ## Feed x Notícias
 

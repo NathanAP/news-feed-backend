@@ -83,9 +83,17 @@ func (c *SourceController) Update(ctx context.Context, q db.Querier, id, url, ur
 	return source, nil
 }
 
+// SoftDelete soft-deletes the source and cascades the same soft-delete to every article
+// that belongs to it. Running both on the caller's transaction guarantees that no active
+// article is ever left pointing to an inactive source.
 func (c *SourceController) SoftDelete(ctx context.Context, q db.Querier, id string) error {
 	if err := q.SoftDeleteSource(ctx, id); err != nil {
 		return fmt.Errorf("failed to delete source: %w", err)
 	}
+
+	if err := q.SoftDeleteArticlesBySourceID(ctx, id); err != nil {
+		return fmt.Errorf("failed to cascade delete source articles: %w", err)
+	}
+
 	return nil
 }

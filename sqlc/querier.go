@@ -27,6 +27,7 @@ type Querier interface {
 	RevokeAllRefreshTokensByUserID(ctx context.Context, userID string) error
 	RevokeRefreshToken(ctx context.Context, id string) error
 	SoftDeleteArticle(ctx context.Context, id string) error
+	SoftDeleteArticlesBySourceID(ctx context.Context, sourceID string) error
 	SoftDeleteSource(ctx context.Context, id string) error
 	SoftDeleteUser(ctx context.Context, id string) error
 	SoftDeleteUserPreferences(ctx context.Context, userID string) error

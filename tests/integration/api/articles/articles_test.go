@@ -81,9 +81,23 @@ func seedUser(t *testing.T, queries db.Querier) string {
 	return token
 }
 
-func createArticle(t *testing.T, app *fiber.App, token, urlOriginal string) string {
+// seedSource inserts the standard test source directly in the DB and returns its id.
+// Articles require an existing active source, so tests seed one before creating articles.
+func seedSource(t *testing.T, queries db.Querier) string {
 	t.Helper()
-	body := `{"title":"T","content":"# C","url_original":"` + urlOriginal + `","keywords":["a","b","c","d","e"]}`
+	source := fixtures.NewTestSource()
+	_, err := queries.CreateSource(t.Context(), db.CreateSourceParams{
+		ID:     source.ID,
+		Url:    source.Url,
+		UrlRss: source.UrlRss,
+	})
+	require.NoError(t, err)
+	return source.ID
+}
+
+func createArticle(t *testing.T, app *fiber.App, token, urlOriginal, sourceID string) string {
+	t.Helper()
+	body := `{"title":"T","content":"# C","url_original":"` + urlOriginal + `","keywords":["a","b","c","d","e"],"source_id":"` + sourceID + `"}`
 	req, _ := http.NewRequest(http.MethodPost, "/v1/articles/create", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -102,8 +116,9 @@ func TestIntegration_CreateArticle_Success(t *testing.T) {
 
 	app, queries := setupIntegrationApp(t)
 	token := seedUser(t, queries)
+	sourceID := seedSource(t, queries)
 
-	body := `{"title":"Hello","content":"# Hello","url_original":"https://e.com/hello","keywords":["a","b","c","d","e"]}`
+	body := `{"title":"Hello","content":"# Hello","url_original":"https://e.com/hello","keywords":["a","b","c","d","e"],"source_id":"` + sourceID + `"}`
 	req, _ := http.NewRequest(http.MethodPost, "/v1/articles/create", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -115,6 +130,7 @@ func TestIntegration_CreateArticle_Success(t *testing.T) {
 	var result map[string]any
 	require.NoError(t, readJSON(resp, &result))
 	assert.NotEmpty(t, result["id"])
+	assert.Equal(t, sourceID, result["source_id"])
 	keywords := result["keywords"].([]any)
 	assert.Len(t, keywords, 5)
 }
@@ -124,10 +140,11 @@ func TestIntegration_CreateArticle_DuplicateURL(t *testing.T) {
 
 	app, queries := setupIntegrationApp(t)
 	token := seedUser(t, queries)
+	sourceID := seedSource(t, queries)
 
-	createArticle(t, app, token, "https://e.com/dup")
+	createArticle(t, app, token, "https://e.com/dup", sourceID)
 
-	body := `{"title":"T","content":"# C","url_original":"https://e.com/dup","keywords":["a","b","c","d","e"]}`
+	body := `{"title":"T","content":"# C","url_original":"https://e.com/dup","keywords":["a","b","c","d","e"],"source_id":"` + sourceID + `"}`
 	req, _ := http.NewRequest(http.MethodPost, "/v1/articles/create", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -141,8 +158,9 @@ func TestIntegration_CreateArticle_KeywordsPersistedAndReturned(t *testing.T) {
 
 	app, queries := setupIntegrationApp(t)
 	token := seedUser(t, queries)
+	sourceID := seedSource(t, queries)
 
-	body := `{"title":"T","content":"# C","url_original":"https://e.com/kw","keywords":["metallica","rock","metal","music","concert"]}`
+	body := `{"title":"T","content":"# C","url_original":"https://e.com/kw","keywords":["metallica","rock","metal","music","concert"],"source_id":"` + sourceID + `"}`
 	req, _ := http.NewRequest(http.MethodPost, "/v1/articles/create", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -190,9 +208,10 @@ func TestIntegration_ListArticles_ReturnsAll(t *testing.T) {
 
 	app, queries := setupIntegrationApp(t)
 	token := seedUser(t, queries)
+	sourceID := seedSource(t, queries)
 
-	createArticle(t, app, token, "https://a.com/1")
-	createArticle(t, app, token, "https://b.com/2")
+	createArticle(t, app, token, "https://a.com/1", sourceID)
+	createArticle(t, app, token, "https://b.com/2", sourceID)
 
 	req, _ := http.NewRequest(http.MethodGet, "/v1/articles", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -210,9 +229,10 @@ func TestIntegration_ListArticles_ExcludesSoftDeleted(t *testing.T) {
 
 	app, queries := setupIntegrationApp(t)
 	token := seedUser(t, queries)
+	sourceID := seedSource(t, queries)
 
-	keptID := createArticle(t, app, token, "https://kept.com/1")
-	deletedID := createArticle(t, app, token, "https://gone.com/2")
+	keptID := createArticle(t, app, token, "https://kept.com/1", sourceID)
+	deletedID := createArticle(t, app, token, "https://gone.com/2", sourceID)
 
 	delReq, _ := http.NewRequest(http.MethodDelete, "/v1/articles/"+deletedID, nil)
 	delReq.Header.Set("Authorization", "Bearer "+token)
@@ -238,8 +258,9 @@ func TestIntegration_UpdateArticle_Success(t *testing.T) {
 
 	app, queries := setupIntegrationApp(t)
 	token := seedUser(t, queries)
+	sourceID := seedSource(t, queries)
 
-	id := createArticle(t, app, token, "https://e.com/upd")
+	id := createArticle(t, app, token, "https://e.com/upd", sourceID)
 
 	body := `{"title":"Updated","content":"# New","url_original":"https://e.com/upd","keywords":["x","y","z","w","v"]}`
 	req, _ := http.NewRequest(http.MethodPut, "/v1/articles/"+id, strings.NewReader(body))
@@ -278,7 +299,8 @@ func TestIntegration_DeleteArticle_Success(t *testing.T) {
 	app, queries := setupIntegrationApp(t)
 	token := seedUser(t, queries)
 
-	id := createArticle(t, app, token, "https://e.com/del")
+	sourceID := seedSource(t, queries)
+	id := createArticle(t, app, token, "https://e.com/del", sourceID)
 
 	delReq, _ := http.NewRequest(http.MethodDelete, "/v1/articles/"+id, nil)
 	delReq.Header.Set("Authorization", "Bearer "+token)
@@ -298,8 +320,9 @@ func TestIntegration_CreateArticle_AfterSoftDelete(t *testing.T) {
 
 	app, queries := setupIntegrationApp(t)
 	token := seedUser(t, queries)
+	sourceID := seedSource(t, queries)
 
-	id := createArticle(t, app, token, "https://e.com/reused")
+	id := createArticle(t, app, token, "https://e.com/reused", sourceID)
 
 	delReq, _ := http.NewRequest(http.MethodDelete, "/v1/articles/"+id, nil)
 	delReq.Header.Set("Authorization", "Bearer "+token)
@@ -308,13 +331,74 @@ func TestIntegration_CreateArticle_AfterSoftDelete(t *testing.T) {
 	require.Equal(t, http.StatusNoContent, delResp.StatusCode)
 
 	// Re-create with same url_original — partial unique index must allow it
-	body := `{"title":"T","content":"# C","url_original":"https://e.com/reused","keywords":["a","b","c","d","e"]}`
+	body := `{"title":"T","content":"# C","url_original":"https://e.com/reused","keywords":["a","b","c","d","e"],"source_id":"` + sourceID + `"}`
 	req, _ := http.NewRequest(http.MethodPost, "/v1/articles/create", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	resp, err := app.Test(req)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+}
+
+// ── source_id rules ────────────────────────────────────────────────────────────
+
+func TestIntegration_CreateArticle_SourceNotFound(t *testing.T) {
+	requireNotProduction(t)
+
+	app, queries := setupIntegrationApp(t)
+	token := seedUser(t, queries)
+	// No source seeded — the referenced source does not exist.
+
+	body := `{"title":"T","content":"# C","url_original":"https://e.com/ns","keywords":["a","b","c","d","e"],"source_id":"01900000-0000-7000-8000-000000000099"}`
+	req, _ := http.NewRequest(http.MethodPost, "/v1/articles/create", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+func TestIntegration_CreateArticle_SourceInactive(t *testing.T) {
+	requireNotProduction(t)
+
+	app, queries := setupIntegrationApp(t)
+	token := seedUser(t, queries)
+	sourceID := seedSource(t, queries)
+
+	// Soft-delete the source: it must no longer be assignable to a new article.
+	require.NoError(t, queries.SoftDeleteSource(t.Context(), sourceID))
+
+	body := `{"title":"T","content":"# C","url_original":"https://e.com/inactive","keywords":["a","b","c","d","e"],"source_id":"` + sourceID + `"}`
+	req, _ := http.NewRequest(http.MethodPost, "/v1/articles/create", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+func TestIntegration_UpdateArticle_SourceIDImmutable(t *testing.T) {
+	requireNotProduction(t)
+
+	app, queries := setupIntegrationApp(t)
+	token := seedUser(t, queries)
+	sourceID := seedSource(t, queries)
+
+	id := createArticle(t, app, token, "https://e.com/imm", sourceID)
+
+	// Update payload carries no source_id; the original must be preserved.
+	body := `{"title":"Changed","content":"# Changed","url_original":"https://e.com/imm","keywords":["a","b","c","d","e"]}`
+	req, _ := http.NewRequest(http.MethodPut, "/v1/articles/"+id, strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var result map[string]any
+	require.NoError(t, readJSON(resp, &result))
+	assert.Equal(t, "Changed", result["title"])
+	assert.Equal(t, sourceID, result["source_id"], "source_id must remain unchanged after update")
 }
 
 func TestIntegration_Articles_Unauthenticated(t *testing.T) {

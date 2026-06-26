@@ -10,9 +10,9 @@ import (
 )
 
 const createArticle = `-- name: CreateArticle :one
-INSERT INTO articles (id, title, content, url_original, keywords)
-VALUES (?, ?, ?, ?, ?)
-RETURNING id, status, title, content, url_original, keywords, created_at, modified_at, removed_at
+INSERT INTO articles (id, title, content, url_original, keywords, source_id)
+VALUES (?, ?, ?, ?, ?, ?)
+RETURNING id, status, title, content, url_original, keywords, source_id, created_at, modified_at, removed_at
 `
 
 type CreateArticleParams struct {
@@ -21,6 +21,7 @@ type CreateArticleParams struct {
 	Content     string `json:"content"`
 	UrlOriginal string `json:"url_original"`
 	Keywords    string `json:"keywords"`
+	SourceID    string `json:"source_id"`
 }
 
 func (q *Queries) CreateArticle(ctx context.Context, arg CreateArticleParams) (Article, error) {
@@ -30,6 +31,7 @@ func (q *Queries) CreateArticle(ctx context.Context, arg CreateArticleParams) (A
 		arg.Content,
 		arg.UrlOriginal,
 		arg.Keywords,
+		arg.SourceID,
 	)
 	var i Article
 	err := row.Scan(
@@ -39,6 +41,7 @@ func (q *Queries) CreateArticle(ctx context.Context, arg CreateArticleParams) (A
 		&i.Content,
 		&i.UrlOriginal,
 		&i.Keywords,
+		&i.SourceID,
 		&i.CreatedAt,
 		&i.ModifiedAt,
 		&i.RemovedAt,
@@ -47,7 +50,7 @@ func (q *Queries) CreateArticle(ctx context.Context, arg CreateArticleParams) (A
 }
 
 const findArticleByID = `-- name: FindArticleByID :one
-SELECT id, status, title, content, url_original, keywords, created_at, modified_at, removed_at FROM articles
+SELECT id, status, title, content, url_original, keywords, source_id, created_at, modified_at, removed_at FROM articles
 WHERE id = ? AND status = 1 AND removed_at IS NULL
 LIMIT 1
 `
@@ -62,6 +65,7 @@ func (q *Queries) FindArticleByID(ctx context.Context, id string) (Article, erro
 		&i.Content,
 		&i.UrlOriginal,
 		&i.Keywords,
+		&i.SourceID,
 		&i.CreatedAt,
 		&i.ModifiedAt,
 		&i.RemovedAt,
@@ -70,7 +74,7 @@ func (q *Queries) FindArticleByID(ctx context.Context, id string) (Article, erro
 }
 
 const listArticles = `-- name: ListArticles :many
-SELECT id, status, title, content, url_original, keywords, created_at, modified_at, removed_at FROM articles
+SELECT id, status, title, content, url_original, keywords, source_id, created_at, modified_at, removed_at FROM articles
 WHERE status = 1 AND removed_at IS NULL
 ORDER BY created_at DESC
 `
@@ -92,6 +96,7 @@ func (q *Queries) ListArticles(ctx context.Context) ([]Article, error) {
 			&i.Content,
 			&i.UrlOriginal,
 			&i.Keywords,
+			&i.SourceID,
 			&i.CreatedAt,
 			&i.ModifiedAt,
 			&i.RemovedAt,
@@ -113,7 +118,7 @@ const updateArticle = `-- name: UpdateArticle :one
 UPDATE articles
 SET title = ?, content = ?, url_original = ?, keywords = ?, modified_at = CURRENT_TIMESTAMP
 WHERE id = ? AND status = 1 AND removed_at IS NULL
-RETURNING id, status, title, content, url_original, keywords, created_at, modified_at, removed_at
+RETURNING id, status, title, content, url_original, keywords, source_id, created_at, modified_at, removed_at
 `
 
 type UpdateArticleParams struct {
@@ -140,6 +145,7 @@ func (q *Queries) UpdateArticle(ctx context.Context, arg UpdateArticleParams) (A
 		&i.Content,
 		&i.UrlOriginal,
 		&i.Keywords,
+		&i.SourceID,
 		&i.CreatedAt,
 		&i.ModifiedAt,
 		&i.RemovedAt,
@@ -155,5 +161,16 @@ WHERE id = ? AND removed_at IS NULL
 
 func (q *Queries) SoftDeleteArticle(ctx context.Context, id string) error {
 	_, err := q.db.ExecContext(ctx, softDeleteArticle, id)
+	return err
+}
+
+const softDeleteArticlesBySourceID = `-- name: SoftDeleteArticlesBySourceID :exec
+UPDATE articles
+SET status = 0, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
+WHERE source_id = ? AND removed_at IS NULL
+`
+
+func (q *Queries) SoftDeleteArticlesBySourceID(ctx context.Context, sourceID string) error {
+	_, err := q.db.ExecContext(ctx, softDeleteArticlesBySourceID, sourceID)
 	return err
 }

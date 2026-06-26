@@ -12,8 +12,10 @@ type CreateArticleRequest struct {
 	Content     string   `json:"content"`
 	URLOriginal string   `json:"url_original"`
 	Keywords    []string `json:"keywords"`
+	SourceID    string   `json:"source_id"`
 }
 
+// UpdateArticleRequest intentionally omits source_id: the article's source is immutable.
 type UpdateArticleRequest struct {
 	Title       string   `json:"title"`
 	Content     string   `json:"content"`
@@ -28,6 +30,7 @@ type ArticleResponse struct {
 	Content     string     `json:"content"`
 	URLOriginal string     `json:"url_original"`
 	Keywords    []string   `json:"keywords"`
+	SourceID    string     `json:"source_id"`
 	CreatedAt   time.Time  `json:"created_at"`
 	ModifiedAt  *time.Time `json:"modified_at,omitempty"`
 }
