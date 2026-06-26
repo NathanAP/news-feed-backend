@@ -203,7 +203,11 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.14.0.0
 
-- [ ] Criar uma migração para a tabela de feeds e tabela relacional (junction table) entre feeds e notícias
+- [ ] Criar uma migração para a tabela de feeds, tabela relacional (junction table) entre feeds e notícias e também para relacionar as fontes de notícias com as notícias
+    - Na tabela de notícias (já existente)
+        - Adicionar a coluna `source_id` sendo um `UUID` v7
+        - As notícias cadastradas devem receber de agora em diante um `source_id` também
+        - Não precisa fazer processo retroativo para notícias já existentes
     - Tabela de feeds
         - Nomenclatura: `feeds`
         - Armazene os seguintes dados:
