@@ -130,10 +130,7 @@ Usuários que querem um feed de notícias confiável e personalizável do seu je
 - O feed e as notícias se relacionam de forma múltipla, ou seja, uma feed pode possuir diversas notícias e as notícias podem estar presentes em diversos feeds.
 - Isso implica em uma tabela relacional (junction table) na qual armazenamos o `id` d feed assim como o `id` da notícia.
     - Essa tabela é preenchida automaticamente quando uma notícia é atrelada a um feed.
-    - Essa tabela perde o registro automaticamente quando:
-        - uma notícia é excluída.
-        - um feed é excluído.
-        - uma notícia é retirada daquele feed na qual estava associado.
+    - Essa tabela perde o registro automaticamente quando uma notícia é retirada daquele feed na qual estava associado (provavelmente por alguma opção implementada no futuro).
 - Registros nesta tabela são removidos permanentemente ao serem excluídos (hard remove).
 - A população dessa tabela acontece no momento na qual uma nova notícia é descoberta e julgada como hábil a estar naquele feed.
 
@@ -165,11 +162,12 @@ Usuários que querem um feed de notícias confiável e personalizável do seu je
 - Registros que estão sendo excluído por hard remove devem:
     - Ter seus relacionamentos através das tabelas de relacionamento (junction tables) também excluídos.
 - Registros excluídos em soft remove não podem ser considerados na hora de:
-    - Ser manipulado.
-    - Ser buscados individualmente (através do `id`).
-    - Ser buscados em grupo (listados através de filtragem).
-    - Participar de estatísticas, indicadores ou métricas.
-    - Bloquear a criação de novos registros através de constraints de unicidade.
+    - Serem manipulado.
+    - Serem buscados individualmente (através do `id`).
+    - Serem buscados em grupo (listados através de filtragem).
+    - Serem buscados através de suas tabelas relacionais (junction tables).
+    - Participarem de estatísticas, indicadores ou métricas.
+    - Bloquearem a criação de novos registros através de constraints de unicidade.
 - Toda query de visualização ou busca deve considerar apenas campos em `status` considerados ativos (`1`, `active` ou equivalente) e com o campo `removed_at` nulo (vazio, `null` ou equivalente).
 - Campos de unicidade devem valer apenas entre registros ativos, ou seja, devem ser implementadas como índices únicos parciais com `WHERE removed_at IS NULL`. Assim, um registro soft-deleted nunca impede a criação de um novo registro equivalente.
     - Exemplo: o campo `url` de souces é único mas ele não deve concorrer na unicidade com registros inativos.

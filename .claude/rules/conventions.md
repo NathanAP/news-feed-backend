@@ -50,6 +50,8 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - `id` deve ser do tipo UUID v7 e devem ser imutáveis.
 - O campo `status` deve ser utilizado conforme regras em `PROJECT.md` para indicar o estado de um registro no banco de dados.
 - Ao alterar um registro, o campo `modified_at` deve ser atualizado com o timestamp atual.
+- Registros de uma tabela de relacionamento (junction tables) só podem ser considerados válidos quando todos os registros relacionados estiverem ativos (`status` marcados em `true` e com `removed_at` sem valor).
+    - Isso implica que, ao buscar um registro na tabela relacional (junction table), além do `join` por `id` também faz-se necessário uma validação pelo `status` e `removed_at` para garantir que aquele registro está apto a estar no resultado da query.
 - Tabelas de relacionamento (junction tables) não sofrem alterações em campos relacionados a `id`. Para "trocar" qualquer um dos `id` do relacionamento, o registro antigo deve ser removido e um novo registro deve ser criado.
     - Por exemplo, se a tabela de relacionamento (junction table) AB possui `id`, `a_id` e `b_id`, nenhum deles podem ser alterados.
     - Campos "extras" (não relacionados à `id`) dessas tabelas ainda podem ser alterados normalmente.
