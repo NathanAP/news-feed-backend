@@ -232,6 +232,7 @@ Os níveis de tabulação indicam detalhes do assunto.
     - [ ] Buscar por filtro (`GET /v1/feeds?name=...`)
 - [ ] Criar uma rota em notícias para marcar ela como lida (`PUT /v1/articles/{id}/read`)
     - Lembrete: essa marcação vai afetar o registro em `articles_feeds`
+    - Lembrete: esse endpoint depende do envio do `feed_id` também.
 
 ## Versão 0.15.0.0
 
