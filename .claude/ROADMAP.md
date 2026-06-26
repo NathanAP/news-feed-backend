@@ -188,7 +188,7 @@ Os níveis de tabulação indicam detalhes do assunto.
         - status (`true` ou `false`)
         - title (`string`)
         - content (`string` em formato `md`)
-        - url_original (`string`)
+        - url_original (`string`, único entre os ativos na tabela)
         - keywords (uma lista de `string` - formato `JSON array (TEXT)`)
         - created_at (`timestamp`)
         - modified_at (`timestamp` opcional)
@@ -197,9 +197,9 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Lembrete: no futuro essas rotas serão acessadas apenas pelos usuários administradores
     - [ ] Criação (`POST /v1/articles/create`)
     - [ ] Edição (`PUT /v1/articles/{id}`)
+    - [ ] Remoção (`DELETE /v1/articles/{id}`) — soft delete
     - [ ] Buscar por id (`GET /v1/articles/{id}`)
     - [ ] Buscar por filtro (`GET /v1/articles?url=...`)
-    - Pergunta: vale a pena ter uma rota de redirecionamento para a url original? para nós tratar e poder colocar algo que indique o site que está chegando através da nossa aplicação?
 
 ## Versão 0.14.0.0
 
