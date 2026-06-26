@@ -86,6 +86,8 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - `translate_content`: `bool` sobre a necessidade de tradução do conteúdo das notícias e presente nas preferências do usuário relacionado.
     - `ai_personality`: `enum` contendo a personalidade da IA e presente nas preferências do usuário relacionado.
 - Um struct chamado `Claims` mantém também esse mapeamento no código.
+- Se o usuário sofrer soft remove, os seus `refresh_tokens` também devem sofrer soft remove.
+- Se o usuário sofrer hard remove, os seus `refresh_tokens` também devem sofrer hard remove.
 
 ## Dados do usuário
 
@@ -107,6 +109,8 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Apenas os próprios usuários podem alterar suas preferências.
 - Alterar as preferências do usuário faz com que um novo `access_token` seja gerado, retornando junto ao client, já com as novas informações atualizadas nele.
     - O `access_token` anterior (usado para ativar a atualização das preferências e agora possui dados desatualizados) vai continuar válido até bater o tempo de expiração. Esse comportamento é considerado normal aqui pois fazem parte de um trecho não crítico da aplicação. Se em algum momento houver dados críticos ligado ao `access_token` e preferências do usuário, isso terá que ser mudado.
+- Se o usuário sofrer soft remove, as suas preferências também devem sofrer soft remove.
+- Se o usuário sofrer hard remove, as suas preferências também devem sofrer hard remove.
 
 ## Fontes de notícias (sources)
 
@@ -124,8 +128,10 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Os feeds devem possuir pelo menos 5 palavras-chave com limite de 20.
     - O campo de palavras-chave é uma lista de `string`(no formato `JSON array (TEXT)`).
     - Quanto mais palavras-chave um feed tem, mais amplo vai ser o recebimento de notícias durante o julgamento.
-- Um usuário pode ter até 5 feeds.
+- Um usuário pode ter até 5 feeds ativos por vez.
 - Alterar as palavras-chave de um feed não faz com que um novo processo de julgamento das notícias aconteça.
+- Se o usuário sofrer soft remove, todos os seus feeds também devem sofrer soft remove.
+- Se o usuário sofrer hard remove, todos os seus feeds também devem sofrer hard remove.
 
 ## Notícias
 
@@ -142,6 +148,8 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - O campo de palavras-chave é uma lista de `string` (no formato `JSON array (TEXT)`).
     - Quanto mais palavras-chave uma notícia tem, mais amplo vai ser a distribuição aos feeds durante o julgamento.
 - Alterar as palavras-chave de uma notícia não faz com que um novo julgamento aconteça.
+- As notícias estão diretamente ligadas à uma fonte de notícias, por isso é necessário também passar uma referência (`source_id`) à qual ela pertence.
+    - Este campo é imutável.
 
 ## Feed x Notícias
 
@@ -155,8 +163,9 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Acessar uma notícia diretamente pelo feed do usuário faz com que uma requisição seja feita para o endpoint de marcação de leitura de notícia.
     - Se a mesma notícia estiver em mais de um feed de um mesmo usuário, todas são marcadas como lida.
     - Note que a URL para se ter acesso à uma notícia é o sempre o mesmo para qualquer usuário com acesso à ela.
-        - Isso implica que qualquer usuário pode ver a notícia através da URL `client_url/articles/{id}`, porém, na hora da obtenção dos dados da notícia através da URL `base_url/v1/articles/{id}`, o retorno deve também levar os dados do relacionamento entre a notícia do feed do usuário. Aqui abre-se duas possibilidades:
-            - O usuário recebeu aquela notícia através de seu(s) feed(s): uma nova requisição é feita para o endpoint de marcação de leitura da notícia em seu(s) próprio(s) feed(s) na tabela relacional (junction table).
+        - Assim, qualquer usuário pode ver a notícia através da URL `client_url/articles/{id}`.
+        - Ao abrir a URL `client_url/articles/{id}`, uma requisição para `base_url/v1/articles/{id}/read` deve ser disparada. Neste momento abre-se duas possibilidades:
+            - O usuário possui aquela notícia em um ou mais feed: a marcação de leitura daquela notícia é feita em todos os feeds que estão ligados à notícia.
             - O usuário não recebeu aquela notícia em seu(s) feed(s): nada acontece.
 
 ## Descobrindo uma notícia

@@ -59,6 +59,12 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Exclusões de registros em tabelas comuns devem ser feitas através de soft delete, utilizando um campo booleano chamado `status` e um campo de timestamp `removed_at`.
     - Nesse caso, o campo `removed_at` deve ser atualizado com o timestamp atual e o campo `status` deve ser definido como false (0).
     - A exceção imediata dessa regra são as tabelas de relacionamento (junction tables) que devem ser feitas através de hard delete, ou seja, o registro deve ser removido da tabela permanentemente.
+- Registros que pertencem exclusivamente a um usuário não podem ser encontrados por outros usuários.
+    - Isso implica que ao buscar um desses registros, é obrigatório também a passagem do `user_id` que está procurando o registro.
+    - São eles:
+        - Preferências de usuário.
+        - Feed.
+        - Article x Feed (junction table): neste caso, deve-se olhar pelo `user_id` presente na tabela `feed`.
 
 ## Transações
 

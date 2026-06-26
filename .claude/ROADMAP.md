@@ -208,6 +208,9 @@ Os níveis de tabulação indicam detalhes do assunto.
         - Adicionar a coluna `source_id` sendo um `UUID` v7
         - As notícias cadastradas devem receber de agora em diante um `source_id` também
         - Não precisa fazer processo retroativo para notícias já existentes
+    - Alterar rota de criação para receber também o `source_id`
+- [ ] Alterar SQL que buscam registros pertencentes exclusivamente ao usuário
+    - Lembrete: a marcação das tabelas está nas convenções de banco de dados em `rules/conventions.md`
 
 ## Versão 0.15.0.0
 
@@ -241,7 +244,8 @@ Os níveis de tabulação indicam detalhes do assunto.
     - [ ] Buscar por filtro (`GET /v1/feeds?name=...`)
 - [ ] Criar uma rota em notícias para marcar ela como lida (`PUT /v1/articles/{id}/read`)
     - Lembrete: essa marcação vai afetar o registro em `articles_feeds`
-    - Lembrete: esse endpoint depende do envio do `feed_id` também.
+    - Lembrete: se a notícia estiver em um ou mais feeds do usuário, todas são marcadas como lida
+    - Lembrete: se a notícia não existir em nenhum feed do usuário, nada acontece
 
 ## Versão 0.16.0.0
 
