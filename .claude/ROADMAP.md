@@ -197,7 +197,6 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Lembrete: no futuro essas rotas serão acessadas apenas pelos usuários administradores
     - [ ] Criação (`POST /v1/articles/create`)
     - [ ] Edição (`PUT /v1/articles/{id}`)
-    - [ ] Marcar como lida (`PUT /v1/articles/{id}/read`)
     - [ ] Buscar por id (`GET /v1/articles/{id}`)
     - [ ] Buscar por filtro (`GET /v1/articles?url=...`)
     - Pergunta: vale a pena ter uma rota de redirecionamento para a url original? para nós tratar e poder colocar algo que indique o site que está chegando através da nossa aplicação?
@@ -230,9 +229,9 @@ Os níveis de tabulação indicam detalhes do assunto.
     - [ ] Edição (`PUT /v1/feeds/{id}`)
     - [ ] Remoção (`DELETE /v1/feeds/{id}`) — soft delete
     - [ ] Buscar por id (`GET /v1/feeds/{id}`)
-    - [ ] Buscar por filtro (`GET /v1/feeds?url=...`)
+    - [ ] Buscar por filtro (`GET /v1/feeds?name=...`)
 - [ ] Criar uma rota em notícias para marcar ela como lida (`PUT /v1/articles/{id}/read`)
-    - Lembrete: essa marcação vai afetar o registro em `article_feeds`
+    - Lembrete: essa marcação vai afetar o registro em `articles_feeds`
 
 ## Versão 0.15.0.0
 

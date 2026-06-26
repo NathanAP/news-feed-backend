@@ -11,12 +11,12 @@ Um feed de notícias hiper personalizado que coleta, filtra, traduz e resume not
 ## Características
 
 - Gerencia usuários com autenticação Google.
-- Permite criação de feeds personalizados através de `tags`.
+- Permite criação de feeds personalizados através de palavras-chave.
 - Descobre automaticamente notícias através do RSS das fontes existentes.
 - Filtra notícias por palavras-chave + inteligência artificial.
-- Julga à quais feeds dos usuários a notícia descoberta pertence.
-- Traduz e clafica notícias através da inteligência artificial.
-- Resume notícias através da IA de forma personalizada através da inteligência artificial.
+- Julga a quais feeds dos usuários a notícia descoberta pertence.
+- Traduz e classifica notícias através da inteligência artificial.
+- Resume notícias de forma personalizada através da inteligência artificial.
 
 ## Features
 
@@ -116,7 +116,7 @@ Usuários que querem um feed de notícias confiável e personalizável do seu je
 - As notícias são o principal motivo da aplicação existir e podem ser sub-entendidas com a nomenclatura "artigo" também.
 - As notícias são descobertas automaticamente através das fontes de notícias.
 - Para uma notícia ser descoberta e registrada, o RSS de cada fonte registrada é consultado de tempos em tempos. Ao notar uma nova notícia presente, uma inteligência artificial é acionada para tratar o conteúdo e gravar essa versão em nosso banco de dados.
-- Um usuário tem acesso a qualquer notícia registrado na aplicação.
+- Um usuário tem acesso a qualquer notícia registrada na aplicação.
     - As regras para quando a notícia não está em nenhum dos feeds do usuário estão explicadas na sessão "Feed x Notícias".
 - As notícias só podem ser criadas, editadas ou excluídas por usuário administradores.
     - Essa regra existe apenas para casos extremos de uma notícia que saiu do controle.
@@ -128,8 +128,8 @@ Usuários que querem um feed de notícias confiável e personalizável do seu je
 
 ## Feed x Notícias
 
-- O feed e as notícias se relacionam de forma múltipla, ou seja, uma feed pode possuir diversas notícias e as notícias podem estar presentes em diversos feeds.
-- Isso implica em uma tabela relacional (junction table) na qual armazenamos o `id` d feed assim como o `id` da notícia.
+- O feed e as notícias se relacionam de forma múltipla, ou seja, um feed pode possuir diversas notícias e as notícias podem estar presentes em diversos feeds.
+- Isso implica em uma tabela relacional (junction table) na qual armazenamos o `id` do feed assim como o `id` da notícia.
     - Essa tabela é preenchida automaticamente quando uma notícia é atrelada a um feed.
     - Essa tabela perde o registro automaticamente quando uma notícia é retirada daquele feed na qual estava associado (provavelmente por alguma opção implementada no futuro).
 - Registros nesta tabela são removidos permanentemente ao serem excluídos (hard remove).
@@ -138,11 +138,13 @@ Usuários que querem um feed de notícias confiável e personalizável do seu je
 - Acessar uma notícia diretamente pelo feed do usuário faz com que uma requisição seja feita para o endpoint de marcação de leitura de notícia.
     - Se a mesma notícia estiver em mais de um feed de um mesmo usuário, todas são marcadas como lida.
     - Note que a URL para se ter acesso à uma notícia é o sempre o mesmo para qualquer usuário com acesso à ela.
-        - Isso implica que qualquer usuário pode ver a notícia através da URL `client_url/articles/{id}`, porém, na hora da obtenção dos dados da notícia através da URL `base_url/v1/articles/{id}`, o retorno deve também levar os dados do relacionamento entre a notícia de o feed do usuário. Aqui abre-se duas possibilidades:
+        - Isso implica que qualquer usuário pode ver a notícia através da URL `client_url/articles/{id}`, porém, na hora da obtenção dos dados da notícia através da URL `base_url/v1/articles/{id}`, o retorno deve também levar os dados do relacionamento entre a notícia do feed do usuário. Aqui abre-se duas possibilidades:
             - O usuário recebeu aquela notícia através de seu(s) feed(s): uma nova requisição é feita para o endpoint de marcação de leitura da notícia em seu(s) próprio(s) feed(s) na tabela relacional (junction table).
             - O usuário não recebeu aquela notícia em seu(s) feed(s): nada acontece.
 
 ## Descobrindo uma notícia
+
+- Vamos elaborar na versão 0.15.0.0.
 
 ## Julgando se uma notícia está no feed do usuário ou não
 
