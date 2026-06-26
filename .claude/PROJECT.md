@@ -35,6 +35,8 @@ Usuários que querem um feed de notícias confiável e personalizável do seu je
 
 ## Fluxo principal
 
+As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
+
 0. O usuário se cadastra através da sua conta Google.
 1. O usuário cria um novo feed e o personaliza conforme preferir.
 2. O sistema descobre notícias automaticamente através das fontes RSS disponíveis.
@@ -46,6 +48,20 @@ Usuários que querem um feed de notícias confiável e personalizável do seu je
 ## Fluxo de cadastro
 
 - Usuários são cadastrados exclusivamente pelo Google.
+
+## Fluxo de descoberta
+
+0. Uma source é cadastrada na aplicação.
+1. A CRON é disparada quando for o momento.
+2. O processo busca por todas as fontes de notícias ativas
+3. Para cada uma delas faz o parsing RSS com o `gofeed`
+4. Deduplica em comparação à `url_original` das notícias já existentes.
+5. Notícias passam pelo tratamento de notícias para terem seu conteúdo tratado.
+6. Notícias são salvas no banco de dados.
+7. Cada notícia passa pelo processo de julgamento para saber a quais feeds ela pertence.
+    - Primeira camada de palavras-chave.
+    - Segunda camada de inteligência artificial e `score`.
+8. Notícia e feed se relacionam através de um novo registro em `article_feeds`.
 
 ## Autenticação
 
@@ -147,9 +163,9 @@ Usuários que querem um feed de notícias confiável e personalizável do seu je
 
 - A descoberta de notícias ocorre de acordo com duas variáveis de ambiente:
     - `RSS_FEED_CRON_ACTIVE`: deve estar em `true` para ser considerado ativo.
-    - `RSS_FEED_CRON_SCHEDULE`: o intervalo na qual a cron irá rodar.
+    - `RSS_FEED_CRON_SCHEDULE`: o intervalo na qual a CRON irá rodar.
 - A descoberta de notícias deve acessar cada uma das fontes de notícias cadastradas no banco de dados, olhando pelo RSS de cada uma delas para decidir se há alguma nova notícia.
-    - As notícias só podem ser consideradas como novas quando elas foram publicadas desde a última vez que a cron foi executada.
+    - As notícias só podem ser consideradas como novas quando elas foram publicadas desde a última vez que a CRON foi executada.
 - Quando descoberta uma nova notícia o tratamento de notícias é iniciado (as regras de tratamento de notícias estão na sessão "tratamento de notícias").
 
 ## Tratamento de notícias
@@ -201,7 +217,7 @@ Usuários que querem um feed de notícias confiável e personalizável do seu je
 - Quando uma notícia é descoberta um processo de julgamento é acionado para saber a qual feed aquela notícia será associada.
 - O julgamento funciona através de duas camadas que define se os registros estão relacionados ou não:
     - A primeira camada é a mais simples envolvendo uma comparação de palavras-chave da notícia descoberta com o feed existente.
-    - A segunda camada é a garantia através da IA que define um `score` entre 0 e 100 (threshold configurável) e define quanto aquela notícia pertence ao feed.
+    - A segunda camada é a garantia através da IA que define um `score` entre 0 e 100, com `threshold` presente na variável de ambiente `JUDGE_SCORE_THRESHOLD`, e define quanto aquela notícia pertence ao feed.
     - Quando forem julgados como associados, um novo registro na tabela associativa (junction table) entre feed e notícias é criado.
 - O julgamento de notícias nunca é retroativo.
 

@@ -237,14 +237,14 @@ Os níveis de tabulação indicam detalhes do assunto.
 ## Versão 0.15.0.0
 
 - [ ] Descobrir notícias de todas as fontes cadastradas
-    - O processo ocorre através de cron interna que é executada periodicamente
-    - Utilize as variáveis de ambiente para controlar a atividade da cron interna (RSS_FEED_CRON_ACTIVE e RSS_FEED_CRON_SCHEDULE)
+    - O processo ocorre através de CRON interna que é executada periodicamente
+    - Utilize as variáveis de ambiente para controlar a atividade da CRON interna (RSS_FEED_CRON_ACTIVE e RSS_FEED_CRON_SCHEDULE)
 - [ ] Tratamento de notícias
 - [ ] Julgamento de notícias aos feeds
 - [ ] Implementar julgamento de notícias por palavras-chave
 - [ ] Implementar julgamento de notícias por IA
 - dúvida: precisamos de alguns prompt né? Onde acha que devemos armazenar esses prompts?
-- dúvida: a cron deveria ficar em services/cron?
+- dúvida: a CRON deveria ficar em services/CRON?
 
 ## Versão 0.16.0.0
 
