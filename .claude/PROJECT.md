@@ -105,9 +105,9 @@ Usuários que querem um feed de notícias confiável e personalizável do seu je
 ## Feed
 
 - Os feeds são registros que pode ser criado livremente por qualquer usuário e ele só pode ser visualizado pelo usuário que o criou.
-- Os feeds devem possuir pelo menos 5 `tags` com limite de 20.
-    - O campo de `tags` é uma lista de `string`(no formato `JSON array (TEXT)`).
-    - Quanto mais `tags` um feed tem, mais amplo vai ser o recebimento de notícias durante o julgamento.
+- Os feeds devem possuir pelo menos 5 palavras-chave com limite de 20.
+    - O campo de palavras-chave é uma lista de `string`(no formato `JSON array (TEXT)`).
+    - Quanto mais palavras-chave um feed tem, mais amplo vai ser o recebimento de notícias durante o julgamento.
 - Um usuário pode ter até 5 feeds.
 - Alterar as palavras-chave de um feed não faz com que um novo processo de julgamento das notícias aconteça.
 
@@ -120,9 +120,9 @@ Usuários que querem um feed de notícias confiável e personalizável do seu je
 - As notícias não podem ser criadas manualmente, porém podem ser editadas ou excluídas por usuário administradores.
     - Essa regra existe apenas para casos extremos de uma notícia que saiu do controle.
 - Quando descobertas, as notícias passam por um julgamento através de uma inteligência artificial para definir palavras-chave às quais ela pertence. As palavras-chave definidas servirão como base para saber em quais feeds ela aparecerá ou não.
-- As notícias devem possuir pelo menos 5 `tags` com limite de 20.
-    - O campo de `tags` é uma lista de `string` (no formato `JSON array (TEXT)`).
-    - Quanto mais `tags` uma notícia tem, mais amplo vai ser a distribuição aos feeds durante o julgamento.
+- As notícias devem possuir pelo menos 5 palavras-chave com limite de 20.
+    - O campo de palavras-chave é uma lista de `string` (no formato `JSON array (TEXT)`).
+    - Quanto mais palavras-chave uma notícia tem, mais amplo vai ser a distribuição aos feeds durante o julgamento.
 - Alterar as palavras-chave de uma notícia não faz com que um novo julgamento aconteça.
 
 ## Feed x Notícias

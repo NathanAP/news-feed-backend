@@ -193,6 +193,8 @@ Os níveis de tabulação indicam detalhes do assunto.
         - modified_at (`timestamp` opcional)
         - removed_at (`timestamp` opcional)
 - [ ] Criar rotas para as notícias
+    - [ ] Criação (`POST /v1/articles/create`)
+    - [ ] Edição (`PUT /v1/articles/{id}`)
     - [ ] Marcar como lida (`PUT /v1/articles/{id}/read`)
     - [ ] Buscar por id (`GET /v1/articles/{id}`)
     - [ ] Buscar por filtro (`GET /v1/articles?url=...`)
