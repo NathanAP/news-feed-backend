@@ -203,11 +203,15 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.14.0.0
 
-- [ ] Criar uma migração para a tabela de feeds, tabela relacional (junction table) entre feeds e notícias e também para relacionar as fontes de notícias com as notícias
+- [ ] Criar uma migração para relacionar as fontes de notícias com as notícias
     - Na tabela de notícias já existente
         - Adicionar a coluna `source_id` sendo um `UUID` v7
         - As notícias cadastradas devem receber de agora em diante um `source_id` também
         - Não precisa fazer processo retroativo para notícias já existentes
+
+## Versão 0.15.0.0
+
+- [ ] Criar uma migração para a tabela de feeds e tabela relacional (junction table) entre feeds e notícias
     - Tabela de feeds
         - Nomenclatura: `feeds`
         - Armazene os seguintes dados:
@@ -228,6 +232,7 @@ Os níveis de tabulação indicam detalhes do assunto.
             - is_read (`bool`)
             - created_at (`timestamp`)
             - modified_at (`timestamp` opcional)
+
 - [ ] Criar rotas para os feeds
     - [ ] Criação (`POST /v1/feeds/create`)
     - [ ] Edição (`PUT /v1/feeds/{id}`)
@@ -238,7 +243,7 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Lembrete: essa marcação vai afetar o registro em `articles_feeds`
     - Lembrete: esse endpoint depende do envio do `feed_id` também.
 
-## Versão 0.15.0.0
+## Versão 0.16.0.0
 
 - [ ] Descobrir notícias de todas as fontes cadastradas
     - O processo ocorre através de CRON interna que é executada periodicamente
@@ -250,12 +255,12 @@ Os níveis de tabulação indicam detalhes do assunto.
 - dúvida: precisamos de alguns prompt né? Onde acha que devemos armazenar esses prompts?
 - dúvida: a CRON deveria ficar em services/CRON?
 
-## Versão 0.16.0.0
+## Versão 0.17.0.0
 
 - [ ] Resumo personalizado
 - [ ] Tradução personalizada
 
-## Versão 0.17.0.0
+## Versão 0.18.0.0
 
 - [ ] Deploy
     - [ ] Docker funcionando
