@@ -121,6 +121,7 @@ Usuários que querem um feed de notícias confiável e personalizável do seu je
 - As notícias só podem ser criadas, editadas ou excluídas por usuário administradores.
     - Essa regra existe apenas para casos extremos de uma notícia que saiu do controle.
 - Quando descobertas, as notícias passam por um julgamento através de uma inteligência artificial para definir palavras-chave às quais ela pertence. As palavras-chave definidas servirão como base para saber em quais feeds ela aparecerá ou não.
+    - Esse processo deve ser disparado automaticamente após cada criação de notícias.
 - As notícias devem possuir pelo menos 5 palavras-chave com limite de 20.
     - O campo de palavras-chave é uma lista de `string` (no formato `JSON array (TEXT)`).
     - Quanto mais palavras-chave uma notícia tem, mais amplo vai ser a distribuição aos feeds durante o julgamento.
@@ -144,9 +145,58 @@ Usuários que querem um feed de notícias confiável e personalizável do seu je
 
 ## Descobrindo uma notícia
 
-- Vamos elaborar na versão 0.15.0.0.
+- A descoberta de notícias ocorre de acordo com duas variáveis de ambiente:
+    - `RSS_FEED_CRON_ACTIVE`: deve estar em `true` para ser considerado ativo.
+    - `RSS_FEED_CRON_SCHEDULE`: o intervalo na qual a cron irá rodar.
+- A descoberta de notícias deve acessar cada uma das fontes de notícias cadastradas no banco de dados, olhando pelo RSS de cada uma delas para decidir se há alguma nova notícia.
+    - As notícias só podem ser consideradas como novas quando elas foram publicadas desde a última vez que a cron foi executada.
+- Quando descoberta uma nova notícia o tratamento de notícias é iniciado (as regras de tratamento de notícias estão na sessão "tratamento de notícias").
 
-## Julgando se uma notícia está no feed do usuário ou não
+## Tratamento de notícias
+
+- O tratamento de notícias tem como objetivo:
+    - Trazer mais dinamismo ao conteúdo.
+    - Organizar conteúdo confuso ou mal escrito.
+    - Corrigir erros de escrita.
+    - Nomear palavras-chave para a notícia.
+- Dito isso, o tratamento de notícias não pode:
+    - Traduzir notícias: estritamente proibido fazer tradução neste momento. Melhores informações na sessão "traduzindo notícias".
+    - Resumir notícias: estritamente proibido fazer resumo neste momento. Melhores informações na sessão "resumindo notícias".
+    - Alterar o sentido, sintaxe, ideia ou contexto do conteúdo da notícia.
+    - Personalizar a notícia: tentaremos manter a seriedade e tom de humor que a notícia tem originalmente.
+    - Trazer opinião própria.
+- Depois de tratada, a notícia é finalmente salva no banco de dados e pode passar então para o julgamento.
+
+### Traduzindo notícias
+
+- A tradução de notícias é uma opção dada ao usuário em suas preferências.
+- Ao entrar na notícia o usuário que tiver a preferência `translate_content` marcada como `true` e a preferência `language` identificada como diferente da original irá automaticamente receber ela traduzida.
+    - Para não abusar da funcionalidade o client deve guardar essa tradução em cache para uso futuro.
+    - O client também pode oferecer a opção de mostrar o conteúdo original salvo.
+    - A personalidade escolhida também deve ser levada em conta na hora de fazer a tradução.
+- A tradução deve:
+    - Manter a originalidade do conteúdo.
+    - Personalizar a tradução da notícia de acordo com a preferência escolhida em `ai_personality`.
+- Dito isso, a tradução não pode:
+    - Resumir notícias: estritamente proibido fazer resumo neste momento. Melhores informações na sessão "resumindo notícias".
+    - Alterar sentido, sintaxe, ideia ou contexto do conteúdo da notícia.
+    - Trazer opinião própria.
+
+### Resumindo notícias
+
+- O resumo de notícias é uma opção dada ao usuário pelo client.
+- Ao entrar na notícia o usuário tem a opção de resumir a notícia.
+    - Para não abusar da funcionalidade o client deve guardar esse resumo em cache para uso futuro.
+    - A personalidade escolhida também deve ser levada em conta na hora de fazer o resumo.
+- O resumo deve:
+    - Manter a originalidade do conteúdo.
+    - Personalizar o resumo da notícia de acordo com a preferência escolhida em `ai_personality`.
+- Dito isso, o resumo não pode:
+    - Alterar sentido, sintaxe, ideia ou contexto do conteúdo da notícia.
+    - Trazer opinião própria.
+- Notícias que passaram pelo processo de tradução devem ser resumidos no mesmo idioma.
+
+## Julgando se uma notícia pertence ao feed do usuário
 
 - Quando uma notícia é descoberta um processo de julgamento é acionado para saber a qual feed aquela notícia será associada.
 - O julgamento funciona através de duas camadas que define se os registros estão relacionados ou não:

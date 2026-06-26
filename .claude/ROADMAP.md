@@ -239,14 +239,19 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [ ] Descobrir notícias de todas as fontes cadastradas
     - O processo ocorre através de cron interna que é executada periodicamente
     - Utilize as variáveis de ambiente para controlar a atividade da cron interna (RSS_FEED_CRON_ACTIVE e RSS_FEED_CRON_SCHEDULE)
+- [ ] Tratamento de notícias
 - [ ] Julgamento de notícias aos feeds
-- [ ] Implementar filtragem por palavra-chave
-- [ ] Integrar Gemini 2.5 Flash para:
-    - [ ] Validação inteligente
-    - [ ] Personalização
-    - [ ] Tradução
+- [ ] Implementar julgamento de notícias por palavras-chave
+- [ ] Implementar julgamento de notícias por IA
+- dúvida: precisamos de alguns prompt né? Onde acha que devemos armazenar esses prompts?
+- dúvida: a cron deveria ficar em services/cron?
 
 ## Versão 0.16.0.0
+
+- [ ] Resumo personalizado
+- [ ] Tradução personalizada
+
+## Versão 0.17.0.0
 
 - [ ] Deploy
     - [ ] Docker funcionando
@@ -264,6 +269,7 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
 - Criar uma rota para aceitar sugestões de fontes de notícias
 - Logger e observabilidade
 - Swagger
+- Associação de notícias (como uma notícia se liga à outra?)
 - Usuário administrador
 - Opções de usuário administrador (desativar X, habilitar Y)
 - Compartilhamento de notícias

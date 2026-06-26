@@ -69,6 +69,7 @@ API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
 - `Gemini 2.5 Flash` - agente básico
 - `Docker + docker-compose` - orquestração
 - `testify` - biblioteca para testes
+- `cron` - biblioteca em Go para criar crons nativamente
 - `Bruno` - app externo para teste e organização da coleção de requisições
 
 ## Regras da stack
