@@ -4,6 +4,7 @@ API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
 
 # Regras de desenvolvimento
 
+- Siga as convenções e regras presentes na pasta `rules`.
 - Leia o arquivo `ROADMAP.md` para entender qual sua próxima missão.
 - Faça apenas uma versão por vez conforme especificado. Esta regra é restrita.
 - Você pode está livre para indicar problemas que versões futuras podem trazer ou estejam mal planejadas.
@@ -74,13 +75,6 @@ API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
 
 - Dependências devem sempre estar na versão mais atualizada possível.
 - UUIDs devem estar na versão 7.
-
-### Filtragem de notícias
-
-- **Primeira camada**: Filtragem por keywords (rápido)
-- **Segunda camada**: Validação com Gemini (inteligente)
-- **Score system**: 0-100, threshold configurável
-- Sempre salve a razão da inclusão (`keyword`, `ai_match`, `manual`)
 
 ## Comandos
 

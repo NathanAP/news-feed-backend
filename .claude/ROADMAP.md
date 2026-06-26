@@ -154,6 +154,7 @@ Os níveis de tabulação indicam detalhes do assunto.
     - url e url_rss com constraint UNIQUE global
     - Sem user_id (fontes são globais, gerenciadas por admins)
 - [x] Criar rotas para as fontes de notícias
+    - Lembrete: no futuro essas rotas serão acessadas apenas pelos usuários administradores
     - [x] Criação (`POST /v1/sources/create`)
     - [x] Edição (`PUT /v1/sources/{id}`)
     - [x] Remoção (`DELETE /v1/sources/{id}`) — soft delete
@@ -193,6 +194,7 @@ Os níveis de tabulação indicam detalhes do assunto.
         - modified_at (`timestamp` opcional)
         - removed_at (`timestamp` opcional)
 - [ ] Criar rotas para as notícias
+    - Lembrete: no futuro essas rotas serão acessadas apenas pelos usuários administradores
     - [ ] Criação (`POST /v1/articles/create`)
     - [ ] Edição (`PUT /v1/articles/{id}`)
     - [ ] Marcar como lida (`PUT /v1/articles/{id}/read`)

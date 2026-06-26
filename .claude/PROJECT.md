@@ -142,7 +142,9 @@ Usuários que querem um feed de notícias confiável e personalizável do seu je
 ## Julgando se uma notícia está no feed do usuário ou não
 
 - Quando uma notícia é descoberta um processo de julgamento é acionado para saber a qual feed aquela notícia será associada.
-- O julgamento nada mais é do que um comparativo de palavras-chave das notícias com o feed. É através de suas palavras-chave que poderemos fazer uma comparação com os registros da tabela de feed para saber se os dois registros estão relacionados ou não.
+- O julgamento funciona através de duas camadas que define se os registros estão relacionados ou não:
+    - A primeira camada é a mais simples envolvendo uma comparação de palavras-chave da notícia descoberta com o feed existente.
+    - A segunda camada é a garantia através da IA que define um `score` entre 0 e 100 (threshold configurável) e define quanto aquela notícia pertence ao feed.
     - Quando forem julgados como associados, um novo registro na tabela associativa (junction table) entre feed e notícias é criado.
 - O julgamento de notícias nunca é retroativo.
 
