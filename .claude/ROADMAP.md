@@ -202,23 +202,33 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.14.0.0
 
-- [ ] Criar uma migração para a tabela de feeds
-    - Nomenclatura: `feeds`
-    - Armazene os seguintes dados:
-        - id (`UUID` v7)
-        - status (`true` ou `false`)
-        - name (`string`)
-        - keywords (uma lista de `string` - formato `JSON array (TEXT)`)
-        - user_id (`UUID` v7)
-        - created_at (`timestamp`)
-        - modified_at (`timestamp` opcional)
-        - removed_at (`timestamp` opcional)
-- [ ] Criar rotas para as fontes de notícias
-    - [ ] Criação (`POST /v1/sources/create`)
-    - [ ] Edição (`PUT /v1/sources/{id}`)
-    - [ ] Remoção (`DELETE /v1/sources/{id}`) — soft delete
-    - [ ] Buscar por id (`GET /v1/sources/{id}`)
-    - [ ] Buscar por filtro (`GET /v1/sources?url=...`)
+- [ ] Criar uma migração para a tabela de feeds e tabela relacional (junction table) entre feeds e notícias
+    - Tabela de feeds
+        - Nomenclatura: `feeds`
+        - Armazene os seguintes dados:
+            - id (`UUID` v7)
+            - status (`true` ou `false`)
+            - name (`string`)
+            - keywords (uma lista de `string` - formato `JSON array (TEXT)`)
+            - user_id (`UUID` v7)
+            - created_at (`timestamp`)
+            - modified_at (`timestamp` opcional)
+            - removed_at (`timestamp` opcional)
+    - Tabela relacional:
+        - Nomenclatura: `articles_feeds`
+        - Armazene os seguintes dados:
+            - id (`UUID` v7)
+            - article_id (`UUID` v7)
+            - feed_id (`UUID` v7)
+            - read_by_user (`bool`)
+            - created_at (`timestamp`)
+            - modified_at (`timestamp` opcional)
+- [ ] Criar rotas para os feeds
+    - [ ] Criação (`POST /v1/feeds/create`)
+    - [ ] Edição (`PUT /v1/feeds/{id}`)
+    - [ ] Remoção (`DELETE /v1/feeds/{id}`) — soft delete
+    - [ ] Buscar por id (`GET /v1/feeds/{id}`)
+    - [ ] Buscar por filtro (`GET /v1/feeds?url=...`)
 
 ## Versão 0.15.0.0
 
