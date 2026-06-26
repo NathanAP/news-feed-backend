@@ -148,8 +148,8 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - O campo de palavras-chave é uma lista de `string` (no formato `JSON array (TEXT)`).
     - Quanto mais palavras-chave uma notícia tem, mais amplo vai ser a distribuição aos feeds durante o julgamento.
 - Alterar as palavras-chave de uma notícia não faz com que um novo julgamento aconteça.
-- As notícias estão diretamente ligadas à uma fonte de notícias, por isso é necessário também passar uma referência (`source_id`) à qual ela pertence.
-    - Este campo é imutável.
+- As notícias estão diretamente ligadas à uma fonte de notícias, por isso é obrigatório também passar uma referência (`source_id`) à qual ela pertence.
+    - Este campo é obrigatório e imutável.
 
 ## Feed x Notícias
 

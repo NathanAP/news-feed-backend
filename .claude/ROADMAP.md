@@ -209,8 +209,6 @@ Os níveis de tabulação indicam detalhes do assunto.
         - As notícias cadastradas devem receber de agora em diante um `source_id` também
         - Não precisa fazer processo retroativo para notícias já existentes
     - Alterar rota de criação para receber também o `source_id`
-- [ ] Alterar SQL que buscam registros pertencentes exclusivamente ao usuário
-    - Lembrete: a marcação das tabelas está nas convenções de banco de dados em `rules/conventions.md`
 
 ## Versão 0.15.0.0
 
@@ -235,13 +233,14 @@ Os níveis de tabulação indicam detalhes do assunto.
             - is_read (`bool`)
             - created_at (`timestamp`)
             - modified_at (`timestamp` opcional)
-
 - [ ] Criar rotas para os feeds
     - [ ] Criação (`POST /v1/feeds/create`)
     - [ ] Edição (`PUT /v1/feeds/{id}`)
     - [ ] Remoção (`DELETE /v1/feeds/{id}`) — soft delete
     - [ ] Buscar por id (`GET /v1/feeds/{id}`)
     - [ ] Buscar por filtro (`GET /v1/feeds?name=...`)
+    - Lembrete: lembre-se que apenas o próprio usuário da requisição pode ver o feed requisitado na url/query
+    - Lembrete: se um usuário requisitar feed de outro usuário, deve-se retornar 404 e não 403
 - [ ] Criar uma rota em notícias para marcar ela como lida (`PUT /v1/articles/{id}/read`)
     - Lembrete: essa marcação vai afetar o registro em `articles_feeds`
     - Lembrete: se a notícia estiver em um ou mais feeds do usuário, todas são marcadas como lida
@@ -274,6 +273,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 
+- TlDraw do banco de dados
 - Multi feed
 - Editar informações básicas do usuário
 - Cascade de tabelas
