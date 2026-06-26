@@ -52,3 +52,11 @@ type SourceControllerInterface interface {
 	Update(ctx context.Context, q db.Querier, id, url, urlRss string) (db.Source, error)
 	SoftDelete(ctx context.Context, q db.Querier, id string) error
 }
+
+type ArticleControllerInterface interface {
+	Create(ctx context.Context, q db.Querier, title, content, urlOriginal string, keywords []string) (db.Article, error)
+	FindByID(ctx context.Context, q db.Querier, id string) (db.Article, error)
+	List(ctx context.Context, q db.Querier) ([]db.Article, error)
+	Update(ctx context.Context, q db.Querier, id, title, content, urlOriginal string, keywords []string) (db.Article, error)
+	SoftDelete(ctx context.Context, q db.Querier, id string) error
+}

@@ -1,0 +1,31 @@
+meta {
+  name: List Articles
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/v1/articles
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  url:
+}
+
+docs {
+  Filtro opcional (query param):
+  - url: filtra por substring na url_original (case-insensitive)
+
+  Apenas notícias ativas são retornadas. Registros soft-deleted nunca
+  aparecem em listas, conforme as regras de status em PROJECT.md.
+
+  Exemplos:
+  - /v1/articles
+  - /v1/articles?url=wikimetal
+}

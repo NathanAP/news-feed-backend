@@ -1,0 +1,35 @@
+meta {
+  name: Create Article
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/v1/articles/create
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "title": "Metallica anuncia nova turnê mundial",
+    "content": "# Metallica anuncia nova turnê\n\nA banda confirmou as datas...",
+    "url_original": "https://www.wikimetal.com.br/noticia/metallica-turne",
+    "keywords": ["metallica", "rock", "metal", "turnê", "show"]
+  }
+}
+
+docs {
+  Campos obrigatórios:
+  - title: título da notícia
+  - content: conteúdo em markdown
+  - url_original: URL da notícia original (http ou https, único entre os ativos)
+  - keywords: lista de 5 a 20 palavras-chave (nenhuma vazia)
+
+  Retorna 409 se a url_original já existir entre os registros ativos.
+  No futuro essa rota será exclusiva de administradores.
+}

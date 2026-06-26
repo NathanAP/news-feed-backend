@@ -20,6 +20,7 @@ import (
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/middlewares"
 	"github.com/nathanap/news-feed-backend/services/controllers"
+	articleendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/articles"
 	authendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/auth"
 	sourceendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/sources"
 	userendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/users"
@@ -88,6 +89,7 @@ func main() {
 	refreshTokenCtrl := controllers.NewRefreshTokenController(refreshTokenExpiry)
 	authCtrl := controllers.NewAuthController(oauth2Config, userCtrl, refreshTokenCtrl, prefCtrl, runTx, jwtSecret, accessTokenExpiry)
 	sourceCtrl := controllers.NewSourceController()
+	articleCtrl := controllers.NewArticleController()
 
 	authMiddleware := middlewares.NewAuthMiddleware(jwtSecret, refreshTokenCtrl, runTx)
 
@@ -127,6 +129,13 @@ func main() {
 	sources.Get("", append(authMiddleware, sourceendpoints.ListSources(sourceCtrl, runTx))...)
 	sources.Put("/:id", append(authMiddleware, sourceendpoints.UpdateSource(sourceCtrl, runTx))...)
 	sources.Delete("/:id", append(authMiddleware, sourceendpoints.DeleteSource(sourceCtrl, runTx))...)
+
+	articles := api.Group("/articles")
+	articles.Post("/create", append(authMiddleware, articleendpoints.CreateArticle(articleCtrl, runTx))...)
+	articles.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, runTx))...)
+	articles.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, runTx))...)
+	articles.Put("/:id", append(authMiddleware, articleendpoints.UpdateArticle(articleCtrl, runTx))...)
+	articles.Delete("/:id", append(authMiddleware, articleendpoints.DeleteArticle(articleCtrl, runTx))...)
 
 	apiPort := os.Getenv("API_PORT")
 	if apiPort == "" {

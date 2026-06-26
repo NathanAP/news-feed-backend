@@ -1,0 +1,33 @@
+meta {
+  name: Update Article
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/v1/articles/:id
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:path {
+  id: {{articleId}}
+}
+
+body:json {
+  {
+    "title": "Metallica anuncia nova turnê mundial (atualizado)",
+    "content": "# Metallica anuncia nova turnê\n\nConteúdo atualizado...",
+    "url_original": "https://www.wikimetal.com.br/noticia/metallica-turne",
+    "keywords": ["metallica", "rock", "metal", "turnê", "show"]
+  }
+}
+
+docs {
+  Todos os campos são obrigatórios (mesmas regras do create).
+  Retorna 409 em conflito de url_original e 404 se a notícia não existir.
+}

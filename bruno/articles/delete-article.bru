@@ -1,0 +1,24 @@
+meta {
+  name: Delete Article
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/v1/articles/:id
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:path {
+  id: {{articleId}}
+}
+
+docs {
+  Soft delete: o registro permanece no banco com status = 0.
+  Retorna 204 em caso de sucesso e 404 se a notícia não existir.
+}

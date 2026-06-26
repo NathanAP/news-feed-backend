@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.12.1.0
+0.13.0.0
 
 ## Versão 0.1.0.0
 
@@ -181,7 +181,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.13.0.0
 
-- [ ] Criar uma migração para a tabela de notícias
+- [x] Criar uma migração para a tabela de notícias
     - Nomenclatura da tabela: `articles`
     - Armazene os seguintes dados:
         - id (`UUID` v7)
@@ -193,13 +193,13 @@ Os níveis de tabulação indicam detalhes do assunto.
         - created_at (`timestamp`)
         - modified_at (`timestamp` opcional)
         - removed_at (`timestamp` opcional)
-- [ ] Criar rotas para as notícias
+- [x] Criar rotas para as notícias
     - Lembrete: no futuro essas rotas serão acessadas apenas pelos usuários administradores
-    - [ ] Criação (`POST /v1/articles/create`)
-    - [ ] Edição (`PUT /v1/articles/{id}`)
-    - [ ] Remoção (`DELETE /v1/articles/{id}`) — soft delete
-    - [ ] Buscar por id (`GET /v1/articles/{id}`)
-    - [ ] Buscar por filtro (`GET /v1/articles?url=...`)
+    - [x] Criação (`POST /v1/articles/create`)
+    - [x] Edição (`PUT /v1/articles/{id}`)
+    - [x] Remoção (`DELETE /v1/articles/{id}`) — soft delete
+    - [x] Buscar por id (`GET /v1/articles/{id}`)
+    - [x] Buscar por filtro (`GET /v1/articles?url=...`)
 
 ## Versão 0.14.0.0
 
