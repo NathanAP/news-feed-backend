@@ -222,7 +222,7 @@ Os níveis de tabulação indicam detalhes do assunto.
             - id (`UUID` v7)
             - article_id (`UUID` v7)
             - feed_id (`UUID` v7)
-            - read_by_user (`bool`)
+            - is_read (`bool`)
             - created_at (`timestamp`)
             - modified_at (`timestamp` opcional)
 - [ ] Criar rotas para os feeds
@@ -231,28 +231,10 @@ Os níveis de tabulação indicam detalhes do assunto.
     - [ ] Remoção (`DELETE /v1/feeds/{id}`) — soft delete
     - [ ] Buscar por id (`GET /v1/feeds/{id}`)
     - [ ] Buscar por filtro (`GET /v1/feeds?url=...`)
+- [ ] Criar uma rota em notícias para marcar ela como lida (`PUT /v1/articles/{id}/read`)
+    - Lembrete: essa marcação vai afetar o registro em `article_feeds`
 
 ## Versão 0.15.0.0
-
-- [ ] Criar rotas para as categorias de notícias
-    - Criação
-    - Edição
-    - Remoção
-    - Buscar por id
-    - Buscar por filtro
-- [ ] Criar uma migração para a tabela de categoria x fonte de notícias
-    - É basicamente a tabela relacional entre categoria e fonte de notícias
-    - O arquivo `PROJECT.md` explica melhor como essa tabela funciona
-    - Armazene os seguintes dados:
-        - id (`UUID` v7)
-        - id da categoria de notícia (`UUID` v7 existente em categorias de notícia)
-        - id da fonte de notícia (`UUID` v7 existente em fontes de notícia)
-- [ ] Atualizar todas as rotas criadas ou alteradas ao Bruno
-- [ ] Atualizar testes unitários para todas as rotas criadas ou alteradas
-- [ ] Atualizar testes de integração para todas as rotas criadas ou alteradas
-- [ ] Atualizar testes E2E para todas as rotas criadas ou alteradas
-
-## Versão 0.16.0.0
 
 - [ ] Descobrir notícias de todas as fontes cadastradas
     - O processo ocorre através de cron interna que é executada periodicamente
@@ -264,7 +246,7 @@ Os níveis de tabulação indicam detalhes do assunto.
     - [ ] Personalização
     - [ ] Tradução
 
-## Versão 0.17.0.0
+## Versão 0.16.0.0
 
 - [ ] Deploy
     - [ ] Docker funcionando

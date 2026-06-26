@@ -117,13 +117,17 @@ Usuários que querem um feed de notícias confiável e personalizável do seu je
 - As notícias são descobertas automaticamente através das fontes de notícias.
 - Para uma notícia ser descoberta e registrada, o RSS de cada fonte registrada é consultado de tempos em tempos. Ao notar uma nova notícia presente, uma inteligência artificial é acionada para tratar o conteúdo e gravar essa versão em nosso banco de dados.
 - Um usuário vai ter acesso ao registro da notícia quando ela for julgada como hábil a estar no feed que ele cadastrou.
-- As notícias não podem ser criadas manualmente, porém podem ser editadas ou excluídas por usuário administradores.
+- As notícias só podem ser criadas, editadas ou excluídas por usuário administradores.
     - Essa regra existe apenas para casos extremos de uma notícia que saiu do controle.
 - Quando descobertas, as notícias passam por um julgamento através de uma inteligência artificial para definir palavras-chave às quais ela pertence. As palavras-chave definidas servirão como base para saber em quais feeds ela aparecerá ou não.
 - As notícias devem possuir pelo menos 5 palavras-chave com limite de 20.
     - O campo de palavras-chave é uma lista de `string` (no formato `JSON array (TEXT)`).
     - Quanto mais palavras-chave uma notícia tem, mais amplo vai ser a distribuição aos feeds durante o julgamento.
 - Alterar as palavras-chave de uma notícia não faz com que um novo julgamento aconteça.
+- A URL para se ter acesso à uma notícia é o sempre o mesmo para qualquer usuário com acesso à ela.
+    - Isso implica que qualquer usuário pode ver a notícia através da URL `client_url/articles/{id}`, porém, na hora da obtenção dos dados da notícia através da URL `base_url/v1/articles/{id}`, o retorno deve também levar os dados do relacionamento entre a notícia de o feed do usuário. Aqui abre-se duas possibilidades:
+        - O usuário também recebeu aquela notícia através de um ou mais de seus feeds: marca a notícia como lida em seu(s) próprio(s) feed(s) na tabela relacional (junction table).
+        - O usuário não recebeu aquela notícia através de seus feeds: nada acontece.
 
 ## Feed x Notícias
 
@@ -133,6 +137,7 @@ Usuários que querem um feed de notícias confiável e personalizável do seu je
     - Essa tabela perde o registro automaticamente quando uma notícia é retirada daquele feed na qual estava associado (provavelmente por alguma opção implementada no futuro).
 - Registros nesta tabela são removidos permanentemente ao serem excluídos (hard remove).
 - A população dessa tabela acontece no momento na qual uma nova notícia é descoberta e julgada como hábil a estar naquele feed.
+- O campo `is_read` dessa tabela é marcado quando um usuário a lê.
 
 ## Descobrindo uma notícia
 
