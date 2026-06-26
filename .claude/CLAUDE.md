@@ -49,6 +49,8 @@ API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
 
 ## Arquivos e pastas
 
+Você tem liberdade para acessar qualquer arquivo da pasta `.claude`.
+
 - `CLAUDE.md`: contém um resumo geral e técnico do projeto.
 - `PROJECT.md`: contém um resumo de como o projeto funciona (filosofia, fluxos, features, restrições, etc).
 - `ROADMAP.md`: contém o roadmap do projeto, que também pode ser visto como uma lista de TODO.
