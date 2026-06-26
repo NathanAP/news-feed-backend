@@ -90,9 +90,9 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Endpoints devem possuir logs como especificado na sessão de logs / debug manual.
 - A filosofia para endpoints que retornam um resultado equivalente a dizer "não foi encontrado" deve ser a seguinte:
     - Se o papel de um endpoint é encontrar registros e o resultado dele for vazio (array vazio), o `status_code` dele deve ser `200`.
-        - Por exemplo, se o endpoint de filtragem de categorias de notícias buscou pelo termo "Metallica" e nenhum registro foi encontrado, o retorno deve ser `404` com o `body` contendo uma lista vazia.
+        - Por exemplo, se o endpoint de filtragem de notícias buscou pelo termo "Metallica" e nenhum registro foi encontrado, o retorno deve ser `200` com o `body` contendo uma lista vazia.
     - Se o papel de um endpoint é encontrar um registro único e o resultado dele for vazio (item não existente), o `status_code` dele deve ser `404`.
-        - Por exemplo, se o endpoint de busca de categoria de notícias por `id` não encontrou um registro para aquele `id`, o retorno deve ser `404` e sem `body`.
+        - Por exemplo, se o endpoint de notícias recebe um `id` e não encontra um registro para aquele valor, o retorno deve ser `404` e sem `body`.
 - Utilize verbos HTTP adequados para cada ação (GET para leitura, POST para criação, PUT/PATCH para atualização, DELETE para remoção).
 - Utilize JSON como formato de resposta padrão.
 - Inclua mensagens de erro claras e consistentes em caso de falhas.
@@ -118,7 +118,7 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 
 ## Sobre a pasta fixtures
 
-- Utilize esta pasta para criar métodos reaproveitáveis pelos testes, como criar um usuário de teste, criar uma categoria de notícias de teste, criar uma fonte de notícias de teste, entre outros, onde cada arquivo contém um tipo específico de método (Exemplos: `user_fixtures.go` para métodos relacionados a usuários de teste, `refresh_token_fixtures.go` para métodos relacionados a token de refresh).
+- Utilize esta pasta para criar métodos reaproveitáveis pelos testes, como criar um usuário de teste, notícias de teste, fonte de notícias de teste, entre outros, onde cada arquivo contém um tipo específico de método (Exemplos: `user_fixtures.go` para métodos relacionados a usuários de teste, `refresh_token_fixtures.go` para métodos relacionados a token de refresh).
 
 ## Sobre a pasta integration
 
@@ -128,7 +128,7 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 ## Sobre a pasta end-to-end
 
 - Cada pasta presente em `raiz/services/endpoints/v1/` deve ter uma pasta correspondente dentro de `raiz/tests/end-to-end/api` contendo os testes relacionados a cada endpoint presente nela (Exemplo: `raiz/tests/end-to-end/api/users/me_test.go` seria o teste de ver dados do usuário).
-- Os testes devem ser chamados na ordem que melhor couber para fazer o teste completo (Exemplo: primeiro cadastra um usuário, depois loga ele, depois cria um categoria e assim por diante).
+- Os testes devem ser chamados na ordem que melhor couber para fazer o teste completo (Exemplo: primeiro cadastra um usuário, depois realiza login, em seguida cria um feed e assim por diante).
 - Um banco de dados temporário deve ser criado exclusivamente para cumprir este teste.
 - Os arquivos da pasta `raiz/tests/mocks` estão disponíveis para serem utilizados, porém apenas os seguintes mocks estão liberados:
     - Autenticação via `OAuth2`: como é impossível fazer o processo de cliques e respostas do Google, vamos simular o login através da criação de um mock de `refresh_token` que ficará gravado no banco de dados e será utilizado para criar o `access_token` e dar prosseguimento aos testes que dependem disso. Enquanto isso, o endpoint de login deve simular que esse processo do Google foi realizado com sucesso e prosseguir naturalmente com a sequência lógica dele.

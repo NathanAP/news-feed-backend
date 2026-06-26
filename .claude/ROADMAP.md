@@ -158,7 +158,7 @@ Os níveis de tabulação indicam detalhes do assunto.
     - [x] Edição (`PUT /v1/sources/{id}`)
     - [x] Remoção (`DELETE /v1/sources/{id}`) — soft delete
     - [x] Buscar por id (`GET /v1/sources/{id}`)
-    - [x] Buscar por filtro (`GET /v1/sources?url=...&status=...`)
+    - [x] Buscar por filtro (`GET /v1/sources?url=...`)
     - [x] Descobrir automaticamente URL de RSS (`GET /v1/sources/rss_discovery?url=...`)
         - Estratégia: HTML parsing → common paths → validação com gofeed
         - Retorna 200 com lista vazia quando não encontra nada
@@ -182,14 +182,11 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 - [ ] Criar uma migração para a tabela de notícias
     - Acho que a melhor nomenclatura para essa tabela é `articles`, o que acha?
-    - Campos: id, status, title, content, read, url_original, created_at, modified_at, removed_at, user_id
+    - Campos: id, status, title, content, url_original, created_at, modified_at, removed_at
 - [ ] Criar rotas para as notícias
-    - [ ] Criação (`POST /v1/articles/create`)
-    - [ ] Edição (`PUT /v1/articles/{id}`)
     - [ ] Marcar como lida (`PUT /v1/articles/{id}/read`)
-    - [ ] Remoção (`DELETE /v1/articles/{id}`) — soft delete
     - [ ] Buscar por id (`GET /v1/articles/{id}`)
-    - [ ] Buscar por filtro (`GET /v1/articles?url=...&status=...`)
+    - [ ] Buscar por filtro (`GET /v1/articles?url=...`)
 
 ## Versão 0.14.0.0
 

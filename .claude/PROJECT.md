@@ -6,15 +6,17 @@
 
 ## Ideia geral
 
-Um feed de notícias hiper personalizado que coleta, filtra, traduz e resume notícias baseado nas preferências do usuário. O sistema:
+Um feed de notícias hiper personalizado que coleta, filtra, traduz e resume notícias baseado nas preferências do usuário.
+
+## Características
 
 - Gerencia usuários com autenticação Google.
-- Permite cadastro de categorias temáticas (Metallica, Anime, Tech, etc).
-- Descobre automaticamente feeds RSS das fontes informadas.
-- Filtra notícias por palavras-chave + IA (Gemini 2.5 Flash).
-- Traduz notícias através da IA (Gemini 2.5 Flash).
-- Personaliza notícias através da IA (Gemini 2.5 Flash).
-- Entrega notícia personalizada.
+- Permite criação de feeds personalizados através de `tags`.
+- Descobre automaticamente notícias através do RSS das fontes existentes.
+- Filtra notícias por palavras-chave + inteligência artificial.
+- Julga à quais feeds dos usuários a notícia descoberta pertence.
+- Traduz e clafica notícias através da inteligência artificial.
+- Resume notícias através da IA de forma personalizada através da inteligência artificial.
 
 ## Features
 
@@ -27,29 +29,19 @@ Um feed de notícias hiper personalizado que coleta, filtra, traduz e resume not
 
 ## Público alvo
 
-Usuários que buscam personalizar seus feeds de notícias do seu jeito.
+Usuários que querem um feed de notícias confiável e personalizável do seu jeito.
 
 # Como funciona
-
-## Ambiente
-
-- O atual ambiente sempre está na variável de ambiente chamada `ENVIRONMENT` e devem estar sempre em um desses três valores:
-    - "development": ambiente de desenvolvimento.
-    - "staging": ambiente de homologação.
-    - "production": ambiente de produção.
 
 ## Fluxo principal
 
 0. O usuário se cadastra através da sua conta Google.
-1. O usuário cria uma categoria "Metallica" e seleciona sua(s) fonte(s) de notícias.
-2. O sistema descobre automaticamente RSS de fontes relacionadas informadas pelo usuário.
-3. Novas notícias são descobertas automaticamente.
-    - Um processo percorre cada fonte cadastrada em busca de notícias recentes dela.
-4. Identifica-se a qual usuário aquela notícia pertence.
-    - As notícias sobre a categoria cadastrada aparecem em tempo real de forma personalizada àquele usuário.
-    - Os usuários com a mesma categoria e fonte cadastrada acabam recebendo diferentes versões por conta da hiper personalização ().
-5. Verifica-se as prefêrencias do usuário que receberá a notícia e a personaliza.
-6. O usuário vê a notícia e ela é marcada como lida.
+1. O usuário cria um novo feed e o personaliza conforme preferir.
+2. O sistema descobre notícias automaticamente através das fontes RSS disponíveis.
+3. Cada nova notícia descoberta recebe um tratamento de tradução, melhora e atribuição de palavras-chave para ser gravada no banco de dados.
+4. Identifica-se a quais feeds a notícia pertence.
+5. O usuário acessa a notícia e ela é marcada como lida.
+6. (opcional) O usuário requisita um resumo totalmente personalizado para aquela notícia de acordo com suas preferências.
 
 ## Fluxo de cadastro
 
@@ -100,12 +92,6 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
 - Alterar as preferências do usuário faz com que um novo `access_token` seja gerado, retornando junto ao client, já com as novas informações atualizadas nele.
     - O `access_token` anterior (usado para ativar a atualização das preferências e agora possui dados desatualizados) vai continuar válido até bater o tempo de expiração. Esse comportamento é considerado normal aqui pois fazem parte de um trecho não crítico da aplicação. Se em algum momento houver dados críticos ligado ao `access_token` e preferências do usuário, isso terá que ser mudado.
 
-## Categorias de notícias
-
-- As categorias de notícias são manipuladas apenas pelo seu usuário associado.
-- As keywords são uma lista de palavras-chave 100% abertas e controladas pelo usuário e que serão utilizados pelas fontes para entregar novas notícias a ele.
-- As categorias precisam de pelo menos uma fonte de notícias obrigatoriamente.
-
 ## Fontes de notícias (sources)
 
 - As fontes de notícias são nossa principal fonte para obtenção de informações brutas.
@@ -116,14 +102,49 @@ Usuários que buscam personalizar seus feeds de notícias do seu jeito.
     - padrões comuns como acessar `/rss/`, `/feed/`, `/rss.xml/`, `/feed.xml`.
     - padroes de parsing HTML para encontrar `<link rel="alternate" type="application/rss+xml">`.
 
-## Categorias de notícias x Fontes de notícias
+## Feed
 
-- As categorias e fontes de notícias se relacionam de forma múltipla, ou seja, uma categoria pode possui diversas fontes e as fontes podem estar presentes em diversas categorias.
-- Isso implica em uma tabela relacional (junction table) na qual armazenamos o `id` da categoria assim como o `id` da fonte.
-    - Essa tabela é preenchida automaticamente quando um usuário associa em sua categoria uma fonte.
-    - Essa tabela perde o registro automaticamente quando um usuário desassocia em sua categoria uma fonte.
+- Os feeds são registros que pode ser criado livremente por qualquer usuário e ele só pode ser visualizado pelo usuário que o criou.
+- Os feeds devem possuir pelo menos 5 `tags` com limite de 20.
+    - O campo de `tags` é uma lista de `string`(no formato `JSON array (TEXT)`).
+    - Quanto mais `tags` um feed tem, mais amplo vai ser o recebimento de notícias durante o julgamento.
+- Um usuário pode ter até 5 feeds.
+- Alterar as palavras-chave de um feed não faz com que um novo processo de julgamento das notícias aconteça.
+
+## Notícias
+
+- As notícias são o principal motivo da aplicação existir e podem ser sub-entendidas com a nomenclatura "artigo" também.
+- As notícias são descobertas automaticamente através das fontes de notícias.
+- Para uma notícia ser descoberta e registrada, o RSS de cada fonte registrada é consultado de tempos em tempos. Ao notar uma nova notícia presente, uma inteligência artificial é acionada para tratar o conteúdo e gravar essa versão em nosso banco de dados.
+- Um usuário vai ter acesso ao registro da notícia quando ela for julgada como hábil a estar no feed que ele cadastrou.
+- As notícias não podem ser criadas manualmente, porém podem ser editadas ou excluídas por usuário administradores.
+    - Essa regra existe apenas para casos extremos de uma notícia que saiu do controle.
+- Quando descobertas, as notícias passam por um julgamento através de uma inteligência artificial para definir palavras-chave às quais ela pertence. As palavras-chave definidas servirão como base para saber em quais feeds ela aparecerá ou não.
+- As notícias devem possuir pelo menos 5 `tags` com limite de 20.
+    - O campo de `tags` é uma lista de `string` (no formato `JSON array (TEXT)`).
+    - Quanto mais `tags` uma notícia tem, mais amplo vai ser a distribuição aos feeds durante o julgamento.
+- Alterar as palavras-chave de uma notícia não faz com que um novo julgamento aconteça.
+
+## Feed x Notícias
+
+- O feed e as notícias se relacionam de forma múltipla, ou seja, uma feed pode possuir diversas notícias e as notícias podem estar presentes em diversos feeds.
+- Isso implica em uma tabela relacional (junction table) na qual armazenamos o `id` d feed assim como o `id` da notícia.
+    - Essa tabela é preenchida automaticamente quando uma notícia é atrelada a um feed.
+    - Essa tabela perde o registro automaticamente quando:
+        - uma notícia é excluída.
+        - um feed é excluído.
+        - uma notícia é retirada daquele feed na qual estava associado.
 - Registros nesta tabela são removidos permanentemente ao serem excluídos (hard remove).
-- Para popular essa tabela, o usuário deve enviar junto da requisição de cadastro ou alteração de categoria pelo menos uma fonte de notícias. Isso garante que cada categoria tenha sempre uma fonte de notícias atrelada à ela.
+- A população dessa tabela acontece no momento na qual uma nova notícia é descoberta e julgada como hábil a estar naquele feed.
+
+## Descobrindo uma notícia
+
+## Julgando se uma notícia está no feed do usuário ou não
+
+- Quando uma notícia é descoberta um processo de julgamento é acionado para saber a qual feed aquela notícia será associada.
+- O julgamento nada mais é do que um comparativo de palavras-chave das notícias com o feed. É através de suas palavras-chave que poderemos fazer uma comparação com os registros da tabela de feed para saber se os dois registros estão relacionados ou não.
+    - Quando forem julgados como associados, um novo registro na tabela associativa (junction table) entre feed e notícias é criado.
+- O julgamento de notícias nunca é retroativo.
 
 ## Administradores
 
@@ -209,6 +230,13 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
 ### Utils
 
 - Servem como scripts utilitários para a execução de testes. Sinta-se livre para criar qualquer utilidade aqui, como subir uma instância SQLite temporária com as migrações, por exemplo.
+
+## Ambiente
+
+- O atual ambiente sempre está na variável de ambiente chamada `ENVIRONMENT` e devem estar sempre em um desses três valores:
+    - "development": ambiente de desenvolvimento.
+    - "staging": ambiente de homologação.
+    - "production": ambiente de produção.
 
 ## Logs / debug manual
 
