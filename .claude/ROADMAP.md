@@ -217,6 +217,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.15.0.0
 
+- [ ] Confirmar que o soft remove de usuários existe no controller
 - [ ] Criar uma migração para a tabela de feeds
     - Tabela de feeds
         - Nomenclatura: `feeds`
@@ -301,7 +302,7 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
 - Associação de notícias (como uma notícia se liga à outra?)
 - Usuário administrador
 - Opções de usuário administrador (desativar X, habilitar Y)
-- Endpoint para soft remove de usuário + testes de cascade
+- Endpoint para soft remove de usuário + testes de cascade (métodos já estão ok)
 - Compartilhamento de notícias
 - Múltiplos modelos de IA (Claude, GPT)
 - LangChain para orquestração complexa
