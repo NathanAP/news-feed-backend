@@ -89,11 +89,14 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Se o usuário sofrer soft remove, os seus `refresh_tokens` também devem sofrer soft remove.
 - Se o usuário sofrer hard remove, os seus `refresh_tokens` também devem sofrer hard remove.
 
-## Dados do usuário
+## Usuário
 
 - A edição de dados do usuário ainda não são possíveis e serão feitas futuramente.
 - Alterar os dados do usuário faz com que um novo `access_token` seja gerado e retornado também pela rota, já com as novas informações atualizadas nele.
     - O `access_token` anterior (usado para ativar a atualização dos dados e agora possui informações desatualizadas) vai continuar válido até bater o tempo de expiração. Esse comportamento é considerado normal aqui pois fazem parte de um trecho não crítico da aplicação. Se em algum momento houver dados críticos ligado ao `access_token` e dados do usuário, isso terá que ser mudado.
+- Usuários não podem ser excluídos neste momento mas será pensado em um momento futuro.
+    - Por enquanto, vamos fazer os cascades apenas via código. Todos cascades de usuários devem considerar a existência da possibilidade endpoint de soft remove.
+    - Testes de cascade envolvendo o usuário podem ser ignorados por enquanto.
 
 ## Preferências do usuário (user preferences)
 

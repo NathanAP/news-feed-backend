@@ -301,6 +301,7 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
 - Associação de notícias (como uma notícia se liga à outra?)
 - Usuário administrador
 - Opções de usuário administrador (desativar X, habilitar Y)
+- Endpoint para soft remove de usuário + testes de cascade
 - Compartilhamento de notícias
 - Múltiplos modelos de IA (Claude, GPT)
 - LangChain para orquestração complexa
