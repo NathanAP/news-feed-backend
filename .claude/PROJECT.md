@@ -134,7 +134,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Um usuário pode ter até 5 feeds ativos por vez.
 - Alterar as palavras-chave de um feed não faz com que um novo processo de julgamento das notícias aconteça.
 - Os feeds só podem ser visualizados e manipulados pelos seus próprios usuários associados (`user_id`).
-- A exclusão de registros de feed é irreversível.
+- Apenas para documentação: uma reativação de feeds, apesar de viável (logicamente falando), pode nunca acontecer para evitar futuros problemas graves. Vamos considerar essas exclusões como uma exclusão permanenente.
 - Feeds excluídos (inativos) não podem receber novas notícias através da tabela de relacionamento (junction table) com notícias.
 - Se o usuário sofrer soft remove, todos os seus feeds também devem sofrer soft remove.
 - Se o usuário sofrer hard remove, todos os seus feeds também devem sofrer hard remove.
