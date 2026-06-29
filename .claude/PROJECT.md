@@ -130,6 +130,8 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Quanto mais palavras-chave um feed tem, mais amplo vai ser o recebimento de notícias durante o julgamento.
 - Um usuário pode ter até 5 feeds ativos por vez.
 - Alterar as palavras-chave de um feed não faz com que um novo processo de julgamento das notícias aconteça.
+- Os feeds só podem ser visualizados e manipulados pelos seus próprios usuários associados (`user_id`).
+- A exclusão de feeds é irreversível.
 - Se o usuário sofrer soft remove, todos os seus feeds também devem sofrer soft remove.
 - Se o usuário sofrer hard remove, todos os seus feeds também devem sofrer hard remove.
 
@@ -162,6 +164,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Registros nesta tabela são removidos permanentemente ao serem excluídos (hard remove).
 - A população dessa tabela acontece no momento na qual uma nova notícia é descoberta e julgada como hábil a estar naquele feed.
 - O campo `is_read` dessa tabela é marcado quando um usuário a lê.
+    - A verificação precisa passar pelo usuário que está ligado ao feed.
 - Acessar uma notícia diretamente pelo feed do usuário faz com que uma requisição seja feita para o endpoint de marcação de leitura de notícia.
     - Se a mesma notícia estiver em mais de um feed de um mesmo usuário, todas são marcadas como lida.
     - Note que a URL para se ter acesso à uma notícia é o sempre o mesmo para qualquer usuário com acesso à ela.
