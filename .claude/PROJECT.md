@@ -131,7 +131,8 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Um usuário pode ter até 5 feeds ativos por vez.
 - Alterar as palavras-chave de um feed não faz com que um novo processo de julgamento das notícias aconteça.
 - Os feeds só podem ser visualizados e manipulados pelos seus próprios usuários associados (`user_id`).
-- A exclusão de feeds é irreversível.
+- A exclusão de registros de feed é irreversível.
+- Feeds excluídos (inativos) não podem receber novas notícias através da tabela de relacionamento (junction table) com notícias.
 - Se o usuário sofrer soft remove, todos os seus feeds também devem sofrer soft remove.
 - Se o usuário sofrer hard remove, todos os seus feeds também devem sofrer hard remove.
 
@@ -163,6 +164,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Essa tabela perde o registro automaticamente quando uma notícia é retirada daquele feed na qual estava associado (provavelmente por alguma opção implementada no futuro).
 - Registros nesta tabela são removidos permanentemente ao serem excluídos (hard remove).
 - A população dessa tabela acontece no momento na qual uma nova notícia é descoberta e julgada como hábil a estar naquele feed.
+    - Considerar apenas feeds que estão ativos.
 - O campo `is_read` dessa tabela é marcado quando um usuário a lê.
     - A verificação precisa passar pelo usuário que está ligado ao feed.
 - Acessar uma notícia diretamente pelo feed do usuário faz com que uma requisição seja feita para o endpoint de marcação de leitura de notícia.
@@ -234,6 +236,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - A segunda camada é a garantia através da IA que define um `score` entre 0 e 100, com `threshold` presente na variável de ambiente `JUDGE_SCORE_THRESHOLD`, e define quanto aquela notícia pertence ao feed.
     - Quando forem julgados como associados, um novo registro na tabela associativa (junction table) entre feed e notícias é criado.
 - O julgamento de notícias nunca é retroativo.
+- O julgamento de notícias só pode considerar feeds que estão ativos.
 
 ## Administradores
 
