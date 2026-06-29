@@ -39,6 +39,8 @@ Você não precisa alterar esse arquivo. A ideia é que eu possa atualizar ele c
 ├──────── users/
 ├────────── me.go
 ├────────── ...
+├──── prompts/
+├────── article_translation.yaml
 ├── sqlc/
 ├──── db.go
 ├──── models.go

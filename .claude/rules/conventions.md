@@ -118,11 +118,31 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Endpoints que recebem em valor de data em algum header, body ou query devem garantir que o valor está em UTC, mesmo que uma conversão seja necessária.
 - Endpoints que respondem valores de data devem garantir que o valor está em UTC.
 
+# Convenções de programação com inteligência artificial
+
+- Os prompts utilizados devem ficar na pasta `raiz/services/prompts/` seguindo o padrão de pastas de `structure.md`.
+- Prompts devem estar em inglês.
+- Você tem liberdade de escrever os prompts.
+- Os prompts devem ser escritos de maneira eficiente e clara.
+- Atuais prompts do projeto:
+    - Prompt para tratamento de notícia: deve melhorar a notícia de forma que ela seja mais clara, corrigindo textos mal elaborados ou erros de digitação.
+    - Prompt para decisão de palavras-chave: deve avaliar a notícia para definir quais palavras-chave que mais se encaixam com a informação nela.
+    - Prompt para julgamento de notícias (segunda camada): deve avaliar se as palavras-chave de um feed e uma notícia estão relacionadas de alguma forma.
+    - Prompt de tradução: deve fazer a tradução de uma notícia para o idioma desejado de forma eficaz e sem alterar o contexto e a informação passada pela notícia.
+    - Prompt de resumo: deve fazer o resumo de uma notícia usando o idioma desejado de forma eficaz e sem alterar o contexto e a informação passada pela notícia.
+- Para o futuro do projeto, queremos implementar:
+    - Guardrails.
+    - Uso do Claude ao invés do Gemini.
+    - O uso da biblioteca `LangChain` para padronização de chamadas.
+    - O uso da biblioteca `LangSmith` para testes de comportamento.
+        - Dito isso, testes de comportamento neste momento não serão realizados.
+        - Testes que necessitam respostas sempre utilização mocks.
+
 # Convenções de testes
 
 - Testes nunca podem ser executados em ambientes de homologação ou produção.
 - Não há testes ligados diretamente ao banco de dados. Ao invés disso, faremos todos esses testes através dos endpoints da API, garantindo que o endpoint e o banco de dados estejam funcionando corretamente ao mesmo tempo.
-- Os testes de API devem ficar dentro da pasta `raiz/tests/unit` seguindo o padrão de pastas de `structure.md`.
+- Os testes de API devem ficar dentro da pasta `raiz/tests/unit/` seguindo o padrão de pastas de `structure.md`.
 - Ao criar um novo endpoint na API, um teste unitário correspondente deve ser criado para ele, garantindo que aquela funcionalidade esteja funcionando corretamente e que o código esteja testável.
 - Ao alterar um endpoint existente na API, o teste unitário correspondente deve ser atualizado para refletir as mudanças feitas, garantindo que a funcionalidade continue funcionando corretamente e que o código continue testável.
 - Ao remover um endpoint existente na API, o teste unitário correspondente deve ser removido também, garantindo que o código continue limpo e que não haja testes desnecessários para endpoints que não existem mais.
@@ -136,15 +156,15 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 
 ## Sobre a pasta integration
 
-- Cada pasta presente em `raiz/services/endpoints/v1/` deve ter uma pasta correspondente dentro de `raiz/tests/integration/api` contendo os testes relacionados a cada endpoint presente nela (Exemplo: `raiz/tests/integration/api/users/me_test.go` seria o teste de ver dados do usuário).
-- Os arquivos da pasta `raiz/tests/mocks` estão disponíveis para serem utilizados livremente durante os testes de integração.
+- Cada pasta presente em `raiz/services/endpoints/v1/` deve ter uma pasta correspondente dentro de `raiz/tests/integration/api/` contendo os testes relacionados a cada endpoint presente nela (Exemplo: `raiz/tests/integration/api/users/me_test.go` seria o teste de ver dados do usuário).
+- Os arquivos da pasta `raiz/tests/mocks/` estão disponíveis para serem utilizados livremente durante os testes de integração.
 
 ## Sobre a pasta end-to-end
 
-- Cada pasta presente em `raiz/services/endpoints/v1/` deve ter uma pasta correspondente dentro de `raiz/tests/end-to-end/api` contendo os testes relacionados a cada endpoint presente nela (Exemplo: `raiz/tests/end-to-end/api/users/me_test.go` seria o teste de ver dados do usuário).
+- Cada pasta presente em `raiz/services/endpoints/v1/` deve ter uma pasta correspondente dentro de `raiz/tests/end-to-end/api/` contendo os testes relacionados a cada endpoint presente nela (Exemplo: `raiz/tests/end-to-end/api/users/me_test.go` seria o teste de ver dados do usuário).
 - Os testes devem ser chamados na ordem que melhor couber para fazer o teste completo (Exemplo: primeiro cadastra um usuário, depois realiza login, em seguida cria um feed e assim por diante).
 - Um banco de dados temporário deve ser criado exclusivamente para cumprir este teste.
-- Os arquivos da pasta `raiz/tests/mocks` estão disponíveis para serem utilizados, porém apenas os seguintes mocks estão liberados:
+- Os arquivos da pasta `raiz/tests/mocks/` estão disponíveis para serem utilizados, porém apenas os seguintes mocks estão liberados:
     - Autenticação via `OAuth2`: como é impossível fazer o processo de cliques e respostas do Google, vamos simular o login através da criação de um mock de `refresh_token` que ficará gravado no banco de dados e será utilizado para criar o `access_token` e dar prosseguimento aos testes que dependem disso. Enquanto isso, o endpoint de login deve simular que esse processo do Google foi realizado com sucesso e prosseguir naturalmente com a sequência lógica dele.
 
 ## Sobre a pasta mocks
@@ -154,7 +174,7 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 ## Sobre a pasta unit
 
 - Cada pasta presente em `raiz/services/endpoints/v1/` deve ter uma pasta correspondente dentro de `raiz/tests/unit/` contendo os testes relacionados a cada endpoint presente nela (Exemplo: `raiz/tests/unit/users/me_test.go` seria o teste de ver dados do usuário).
-- Os arquivos da pasta `raiz/tests/mocks` estão disponíveis para serem utilizados livremente durante os testes unitários.
+- Os arquivos da pasta `raiz/tests/mocks/` estão disponíveis para serem utilizados livremente durante os testes unitários.
 
 ## Sobre a pasta utils
 

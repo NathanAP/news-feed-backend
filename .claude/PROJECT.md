@@ -40,7 +40,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 0. O usuário se cadastra através da sua conta Google.
 1. O usuário cria um novo feed e o personaliza conforme preferir.
 2. O sistema descobre notícias automaticamente através das fontes RSS disponíveis.
-3. Cada nova notícia descoberta recebe um tratamento de tradução, melhora e atribuição de palavras-chave para ser gravada no banco de dados.
+3. Cada nova notícia descoberta recebe um tratamento que envolve melhora do texto e atribuição de palavras-chave para ser gravada no banco de dados.
 4. Identifica-se a quais feeds a notícia pertence.
 5. O usuário acessa a notícia e ela é marcada como lida.
 6. (opcional) O usuário requisita um resumo totalmente personalizado para aquela notícia de acordo com suas preferências.
@@ -131,6 +131,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 - Os feeds são registros que pode ser criado livremente por qualquer usuário e ele só pode ser visualizado pelo usuário que o criou.
 - Os feeds devem possuir pelo menos 5 palavras-chave com limite de 20.
+    - Palavras-chave não podem estar repetidas.
     - O campo de palavras-chave é uma lista de `string`(no formato `JSON array (TEXT)`).
     - Quanto mais palavras-chave um feed tem, mais amplo vai ser o recebimento de notícias durante o julgamento.
 - Um usuário pode ter até 5 feeds ativos por vez.
@@ -153,6 +154,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Quando descobertas, as notícias passam por um julgamento através de uma inteligência artificial para definir palavras-chave às quais ela pertence. As palavras-chave definidas servirão como base para saber em quais feeds ela aparecerá ou não.
     - Esse processo deve ser disparado automaticamente após cada criação de notícias.
 - As notícias devem possuir pelo menos 5 palavras-chave com limite de 20.
+    - Palavras-chave não podem estar repetidas.
     - O campo de palavras-chave é uma lista de `string` (no formato `JSON array (TEXT)`).
     - Quanto mais palavras-chave uma notícia tem, mais amplo vai ser a distribuição aos feeds durante o julgamento.
 - Alterar as palavras-chave de uma notícia não faz com que um novo julgamento aconteça.
@@ -209,7 +211,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Trazer opinião própria.
 - Depois de tratada, a notícia é finalmente salva no banco de dados e pode passar então para o julgamento.
 
-### Traduzindo notícias
+## Traduzindo notícias
 
 - A tradução de notícias é uma opção dada ao usuário em suas preferências.
 - Ao entrar na notícia o usuário que tiver a preferência `translate_content` marcada como `true` e a preferência `language` identificada como diferente da original irá automaticamente receber ela traduzida.
@@ -224,7 +226,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Alterar sentido, sintaxe, ideia ou contexto do conteúdo da notícia.
     - Trazer opinião própria.
 
-### Resumindo notícias
+## Resumindo notícias
 
 - O resumo de notícias é uma opção dada ao usuário pelo client.
 - Ao entrar na notícia o usuário tem a opção de resumir a notícia.
