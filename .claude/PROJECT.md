@@ -174,9 +174,14 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Se a mesma notícia estiver em mais de um feed de um mesmo usuário, todas são marcadas como lida.
     - Note que a URL para se ter acesso à uma notícia é o sempre o mesmo para qualquer usuário com acesso à ela.
         - Assim, qualquer usuário pode ver a notícia através da URL `client_url/articles/{id}`.
-        - Ao abrir a URL `client_url/articles/{id}`, uma requisição para `base_url/v1/articles/{id}/read` deve ser disparada. Neste momento abre-se duas possibilidades:
-            - O usuário possui aquela notícia em um ou mais feed: a marcação de leitura daquela notícia é feita em todos os feeds que estão ligados à notícia.
-            - O usuário não recebeu aquela notícia em seu(s) feed(s): nada acontece.
+        - Ao abrir a URL `client_url/articles/{id}`, uma requisição para `base_url/v1/articles/{id}/read` deve ser disparada. Neste momento abrem-se as seguintes situações:
+            - O usuário possui aquela notícia em um ou mais feed: a marcação de leitura daquela notícia é feita em todos os feeds que estão ligados à notícia (retorno do endpoint se torna 200).
+            - O usuário não recebeu aquela notícia em seu(s) feed(s): nada acontece (retorno do endpoint se torna 204).
+            - O usuário já leu aquela notícia (já está marcado `true` em `is_read`): nada acontece (retorno do endpoint também é 200).
+- Se o feed sofrer soft remove, todos os registros atrelados a ele também devem sofrer soft remove.
+- Se a notícia sofrer soft remove, todos os registros atrelados à ela também devem sofrer soft remove.
+- Se o feed sofrer hard remove, todos os registros atrelados a ele também devem sofrer hard remove.
+- Se a notícia sofrer hard remove, todos os registros atrelados à ela também devem sofrer hard remove.
 
 ## Descobrindo uma notícia
 

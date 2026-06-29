@@ -256,7 +256,7 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Lembrete: essa marcação vai afetar o registro em `articles_feeds`
     - Lembrete: se a notícia estiver em um ou mais feeds do usuário, todas são marcadas como lida
     - Lembrete: se a notícia não existir em nenhum feed do usuário, nada acontece
-    - Lembrete: diversas vezes vamos precisar olhar pelo usuário atrelado ao feed, talvez aqui seja uma ótima ideia ter um "atalho"
+    - Lembrete: se a notícia já estiver lida, nada acontece (o retorno pode continuar sendo 200)
 
 ## Versão 0.17.0.0
 
