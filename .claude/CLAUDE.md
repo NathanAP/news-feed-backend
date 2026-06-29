@@ -13,18 +13,19 @@ API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
 - Você tem liberdade para durante a criação de testes unitários, de integração e end-to-end.
 - Durante a etapa de criação de testes, não tem problema se houver grande volume de código ou tempo para as tantas diversas situações que podem ocorrer em uma rota ou handler. O importante é garantir que ela cobre a maioria das situações.
 - O desenvolvimento deve seguir estas etapas:
-    - entendimento da tarefa.
-    - melhoria da clareza escrita na especificação da tarefa.
-    - planejamento de programação da tarefa.
-    - execução.
-    - atualização nos testes unitários, de integração e end-to-end.
-    - atualização de arquivos de controle de versão.
-    - criar um arquivo na pasta `versions` para resumir o que foi feito.
+    - Entendimento da tarefa.
+    - Melhoria da clareza escrita na especificação da tarefa.
+    - Planejamento de programação da tarefa.
+    - Execução.
+    - Atualização nos testes unitários, de integração e end-to-end.
+    - Atualização de arquivos de controle de versão.
+    - Criar um arquivo na pasta `versions` para resumir o que foi feito.
+    - Atualização de arquivos de controle de memória.
+    - Resumir o que foi feito.
+    - Explicar a melhor forma de testar o que foi feito (quando aplicável).
 - Sempre atualize a versão do arquivo `ROADMAP.md` conforme a versão desenvolvida.
 - Ao seguir o arquivo `ROADMAP.md`, desenvolva uma versão de cada vez e confirme comigo antes de avançar para a próxima etapa.
-- Ao analisar as srpints do arquivo `ROADMAP.md`, você tem liberdade para criticar ou corrigir tamanho de sprint, altas complexidades de código ou regras de negócio, assim como quebras de fluxos já escritos, conflito de convenções e até mesmo dificuldades futuras. Isso fará com que nós possamos pensar juntos em soluções e deixará a aplicação melhor. Seu papel nisso é fundamental.
-- Ao final de uma atualização de código sempre me traga um resumo sobre o que foi feito.
-- Ao final de uma atualização do código, quando aplicável, me traga uma forma de como testar o que foi feito.
+- Ao analisar as sprints do arquivo `ROADMAP.md`, você tem liberdade para criticar ou corrigir tamanho de sprint, altas complexidades de código ou regras de negócio, assim como quebras de fluxos já escritos, conflito de convenções e até mesmo dificuldades futuras. Isso fará com que nós possamos pensar juntos em soluções e deixará a aplicação melhor. Seu papel nisso é fundamental.
 - Você tem liberdade para corrigir erros claros de ortografia na documentação, como falta de letras ou acentos.
 - Você tem liberdade em decidir que uma revisão de código usando um modelo maior é necessária quando uma nova versão for feita ou muito tempo tenha se passado desde a última revisão.
 
@@ -47,6 +48,19 @@ API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
     - Inconsistência de versionamento (como `UUID4` ao invés de `UUID7`).
     - Código considerado depreciado pela biblioteca ou semi-depreciado (ou seja, que vai se tornar depreciado).
 
+# Regras de memória
+
+- Use a pasta `.claude/memory/` para armazenar um resumo atualizado sobre o projeto, as regras e o projeto como um todo.
+- Ela é uma pasta entendida como "comece aqui para entender resumidamente o projeto", então poderá ser usada por outros Claudes relacionados a este mesmo projeto (como o client) para entender resumidamente o escopo do projeto.
+    - Minha recomendação é uma explicação sobre a tecnologia, os endpoints, a estrutura do banco de dados, os modelos, os controllers, entre outros.
+    - Outra recomendação é separar de acordo com o assunto, assim se outra instância do projeto vier, pode apenas olhar ali.
+        - Por exemplo, se o Claude do projeto do web client vier entender as rotas de um endpoint, ele pode olhar diretamente ali ao invés de todo o código que ele precisa.
+- Você provavelmente quer atualizar os arquivos presente ali na maioria das tarefas conforme as mudanças de documentação e escopo acontecem.
+- Não exponha dados sensíveis ou valores de variáveis de ambiente, apenas a chave delas quando necessário.
+- Eu não vou controlar quais arquivos você vai ter ali dentro, porém vou fazer questionamentos se encontrar inconsistências lógicas ou incoerentes com a realidade do projeto.
+- Os arquivos são seus, quem escreve é você do seu jeito. Faça seu melhor para ficar claro. Lembre-se apenas que ele é um resumo geral, não uma reescrita.
+- Novamente: a ideia é que a pasta sirva como um resumo, então você pode e deve continuar consultando os arquivos da pasta `.claude` para ter mais detalhes sobre um tópico específico.
+
 ## Arquivos e pastas
 
 Você tem liberdade para acessar qualquer arquivo da pasta `.claude`.
@@ -56,6 +70,7 @@ Você tem liberdade para acessar qualquer arquivo da pasta `.claude`.
 - `ROADMAP.md`: contém o roadmap do projeto, que também pode ser visto como uma lista de TODO.
 - `agents/`: contém os agentes que dão suporte e estão presentes no desenvolvimento do projeto.
 - `rules/`: contém um conjunto de regras para ajudar no desenvolvimento do projeto.
+- `memory/`: contém um conjunto de resumos criados por você mesmo para ajudar a sua memória ser mais enxuta e não depender de ler todo o projeto toda vez.
 - `versions/`: contém um conjunto de arquivos especificando o que foi feito por você em cada versão do projeto.
 
 ## Stack
