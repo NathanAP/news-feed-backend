@@ -115,6 +115,7 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 # Convenções de datas
 
 - Todas as datas devem ser tratadas como UTC nesta aplicação.
+- Bancos de dados salvam datas sempre no fuso horário UTC.
 - Endpoints que recebem em valor de data em algum header, body ou query devem garantir que o valor está em UTC, mesmo que uma conversão seja necessária.
 - Endpoints que respondem valores de data devem garantir que o valor está em UTC.
 

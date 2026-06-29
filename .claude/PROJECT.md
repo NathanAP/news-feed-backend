@@ -193,7 +193,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - `RSS_FEED_CRON_ACTIVE`: deve estar em `true` para ser considerado ativo.
     - `RSS_FEED_CRON_SCHEDULE`: o intervalo na qual a CRON irá rodar.
 - A descoberta de notícias deve acessar cada uma das fontes de notícias cadastradas no banco de dados, olhando pelo RSS de cada uma delas para decidir se há alguma nova notícia.
-    - As notícias só podem ser consideradas como novas quando elas foram publicadas desde a última vez que a CRON foi executada.
+    - As notícias só podem ser consideradas como novas quando elas foram publicadas desde a última vez que a CRON foi executada. Essa variável está presente na tabela `system`.
 - Quando descoberta uma nova notícia o tratamento de notícias é iniciado (as regras de tratamento de notícias estão na sessão "tratamento de notícias").
 
 ## Tratamento de notícias
@@ -256,6 +256,15 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Ações que deveriam ser feitas pelos usuários administradores por enquanto podem ser feitas por qualquer usuário "comum".
 - Endpoints que deveriam ser acessados pelos usuários administradores por enquanto podem ser feitas por qualquer usuário "comum".
     - Atualmente são eles: `DELETE base_url/v1/auth/invalidate`, `DELETE base_url/v1/auth/invalidate_all`, `POST base_url/v1/sources/create`, `PUT base_url/v1/sources/{id}`, `DELETE base_url/v1/sources/{id}`
+
+### Painel de controle
+
+- Usuários administradores tem acesso à alguns endpoints exclusivos da tabela `system`.
+- A tabela `system` é um grande painel de controle que é capaz de ativar ou desativar funcionalidades de forma temporária para resolver erros momentâneos.
+- As atuais funcionalidades são:
+    - `app_status`: estado da aplicação. Todos os endpoints devem garantir que o estado atual da aplicação é `true`. Quando em `false` o erro deve ser 503.
+    - `last_article_discovery_at`: data do último descobrimento de notícias.
+- Novas funcionalidades virão futuramente.
 
 ## Exclusão de registros
 

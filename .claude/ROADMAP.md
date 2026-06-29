@@ -265,6 +265,14 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.18.0.0
 
+- [ ] Criar uma migração para a tabela `system`
+    - Tabela de sistema:
+        - `app_status` (`true` ou `false`)
+        - `last_article_discovery_at` (`datetime` UTC)
+    - Lembrete: a migração deve criar um novo registro nessa tabela durante a migração
+    - Lembrete: essa tabela nunca aceita novos registros ou exclusões, apenas atualizações
+    - Lembrete: todas as rotas devem levar em conta se `app_status` está ativo ou não
+    - Lembrete: no futuro essas rotas serão acessadas apenas pelos usuários administradores
 - [ ] Descobrir notícias de todas as fontes cadastradas
     - O processo ocorre através de CRON interna que é executada periodicamente
     - Utilize as variáveis de ambiente para controlar a atividade da CRON interna (`RSS_FEED_CRON_ACTIVE` e `RSS_FEED_CRON_SCHEDULE`)
