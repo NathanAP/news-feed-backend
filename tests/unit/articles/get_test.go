@@ -37,7 +37,7 @@ func TestGetArticle_Success(t *testing.T) {
 			return article, nil
 		},
 	}
-	app := buildApp(ctrl)
+	app := buildApp(ctrl, &mockArticleFeedCtrl{})
 
 	resp := getArticle(t, app, article.ID, true)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -58,7 +58,7 @@ func TestGetArticle_NotFound(t *testing.T) {
 			return db.Article{}, controllers.ErrArticleNotFound
 		},
 	}
-	app := buildApp(ctrl)
+	app := buildApp(ctrl, &mockArticleFeedCtrl{})
 
 	resp := getArticle(t, app, "missing-id", true)
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
@@ -72,7 +72,7 @@ func TestGetArticle_DBError(t *testing.T) {
 			return db.Article{}, assert.AnError
 		},
 	}
-	app := buildApp(ctrl)
+	app := buildApp(ctrl, &mockArticleFeedCtrl{})
 
 	resp := getArticle(t, app, "some-id", true)
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)

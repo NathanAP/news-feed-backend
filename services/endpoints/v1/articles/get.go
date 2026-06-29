@@ -6,14 +6,17 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/nathanap/news-feed-backend/logger"
+	"github.com/nathanap/news-feed-backend/middlewares"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
-func GetArticle(ctrl controllers.ArticleControllerInterface, runTx controllers.TransactionRunner) fiber.Handler {
+func GetArticle(ctrl controllers.ArticleControllerInterface, afCtrl controllers.ArticleFeedControllerInterface, runTx controllers.TransactionRunner) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
+
+		claims := middlewares.GetClaims(c)
 
 		id := c.Params("id")
 		if id == "" {
@@ -21,9 +24,17 @@ func GetArticle(ctrl controllers.ArticleControllerInterface, runTx controllers.T
 		}
 
 		var article db.Article
+		var afRecords []db.ArticleFeed
 		err := runTx(c.Context(), func(q db.Querier) error {
 			var err error
 			article, err = ctrl.FindByID(c.Context(), q, id)
+			if err != nil {
+				return err
+			}
+
+			// Enrich with the user's read state. An empty slice means the article is not
+			// in any of the user's feeds — is_read will be nil in the response.
+			afRecords, err = afCtrl.FindByArticleAndUser(c.Context(), q, id, claims.UserID)
 			return err
 		})
 		if err != nil {
@@ -37,6 +48,7 @@ func GetArticle(ctrl controllers.ArticleControllerInterface, runTx controllers.T
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to build article response"})
 		}
+		response.IsRead = controllers.IsReadState(afRecords)
 
 		return c.JSON(response)
 	}

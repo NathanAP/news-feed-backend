@@ -43,7 +43,7 @@ func TestDeleteArticle_NotFound(t *testing.T) {
 			return db.Article{}, controllers.ErrArticleNotFound
 		},
 	}
-	app := buildApp(ctrl)
+	app := buildApp(ctrl, &mockArticleFeedCtrl{})
 
 	resp := deleteArticle(t, app, "missing", true)
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
@@ -60,7 +60,7 @@ func TestDeleteArticle_DBError(t *testing.T) {
 			return assert.AnError
 		},
 	}
-	app := buildApp(ctrl)
+	app := buildApp(ctrl, &mockArticleFeedCtrl{})
 
 	resp := deleteArticle(t, app, "some-id", true)
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)

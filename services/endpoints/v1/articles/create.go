@@ -84,6 +84,10 @@ func validateArticleInput(title, content, urlOriginal string, keywords []string)
 	return ""
 }
 
+func isNotFoundError(err error) bool {
+	return errors.Is(err, controllers.ErrArticleNotFound)
+}
+
 func isValidURL(raw string) bool {
 	parsed, err := url.ParseRequestURI(raw)
 	if err != nil {

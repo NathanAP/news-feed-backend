@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.15.0.0
+0.16.0.0
 
 ## Versão 0.1.0.0
 
@@ -242,7 +242,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.16.0.0
 
-- [ ] Criar uma migração para a tabela relacional (junction table) entre feeds e notícias
+- [x] Criar uma migração para a tabela relacional (junction table) entre feeds e notícias
     - Tabela relacional:
         - Nomenclatura: `articles_feeds`
         - Armazene os seguintes dados:
@@ -252,7 +252,7 @@ Os níveis de tabulação indicam detalhes do assunto.
             - is_read (`bool`)
             - created_at (`timestamp`)
             - modified_at (`timestamp` opcional)
-- [ ] Criar uma rota em notícias para marcar ela como lida (`PUT /v1/articles/{id}/read`)
+- [x] Criar uma rota em notícias para marcar ela como lida (`PUT /v1/articles/{id}/read`)
     - Lembrete: essa marcação vai afetar o registro em `articles_feeds`
     - Lembrete: se a notícia estiver em um ou mais feeds do usuário, todas são marcadas como lida
     - Lembrete: se a notícia não existir em nenhum feed do usuário, nada acontece

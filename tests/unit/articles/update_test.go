@@ -40,7 +40,7 @@ func TestUpdateArticle_Success(t *testing.T) {
 			return a, nil
 		},
 	}
-	app := buildApp(ctrl)
+	app := buildApp(ctrl, &mockArticleFeedCtrl{})
 
 	body := `{"title":"Updated","content":"C","url_original":"https://e.com/u","keywords":["a","b","c","d","e"]}`
 	resp := putArticle(t, app, article.ID, body, true)
@@ -59,7 +59,7 @@ func TestUpdateArticle_NotFound(t *testing.T) {
 			return db.Article{}, controllers.ErrArticleNotFound
 		},
 	}
-	app := buildApp(ctrl)
+	app := buildApp(ctrl, &mockArticleFeedCtrl{})
 
 	body := `{"title":"T","content":"C","url_original":"https://e.com/u","keywords":["a","b","c","d","e"]}`
 	resp := putArticle(t, app, "missing", body, true)
@@ -74,7 +74,7 @@ func TestUpdateArticle_Conflict(t *testing.T) {
 			return db.Article{}, controllers.ErrArticleAlreadyExists
 		},
 	}
-	app := buildApp(ctrl)
+	app := buildApp(ctrl, &mockArticleFeedCtrl{})
 
 	body := `{"title":"T","content":"C","url_original":"https://e.com/dup","keywords":["a","b","c","d","e"]}`
 	resp := putArticle(t, app, "some-id", body, true)

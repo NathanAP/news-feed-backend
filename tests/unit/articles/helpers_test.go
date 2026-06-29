@@ -91,13 +91,42 @@ func (m *mockArticleCtrl) SoftDelete(ctx context.Context, q db.Querier, id strin
 
 var _ controllers.ArticleControllerInterface = (*mockArticleCtrl)(nil)
 
-func buildApp(ctrl controllers.ArticleControllerInterface) *fiber.App {
+// mockArticleFeedCtrl is a no-op by default — returns empty records (nil is_read state).
+type mockArticleFeedCtrl struct {
+	createFn               func(ctx context.Context, q db.Querier, articleID, feedID string) (db.ArticleFeed, error)
+	findByArticleAndUserFn func(ctx context.Context, q db.Querier, articleID, userID string) ([]db.ArticleFeed, error)
+	markAsReadFn           func(ctx context.Context, q db.Querier, articleID, userID string) (bool, error)
+}
+
+func (m *mockArticleFeedCtrl) Create(ctx context.Context, q db.Querier, articleID, feedID string) (db.ArticleFeed, error) {
+	if m.createFn != nil {
+		return m.createFn(ctx, q, articleID, feedID)
+	}
+	return db.ArticleFeed{}, nil
+}
+func (m *mockArticleFeedCtrl) FindByArticleAndUser(ctx context.Context, q db.Querier, articleID, userID string) ([]db.ArticleFeed, error) {
+	if m.findByArticleAndUserFn != nil {
+		return m.findByArticleAndUserFn(ctx, q, articleID, userID)
+	}
+	return []db.ArticleFeed{}, nil
+}
+func (m *mockArticleFeedCtrl) MarkAsRead(ctx context.Context, q db.Querier, articleID, userID string) (bool, error) {
+	if m.markAsReadFn != nil {
+		return m.markAsReadFn(ctx, q, articleID, userID)
+	}
+	return false, nil
+}
+
+var _ controllers.ArticleFeedControllerInterface = (*mockArticleFeedCtrl)(nil)
+
+func buildApp(ctrl controllers.ArticleControllerInterface, afCtrl controllers.ArticleFeedControllerInterface) *fiber.App {
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
 
 	a := app.Group("/v1/articles")
 	a.Post("/create", append(authMiddleware, articleendpoints.CreateArticle(ctrl, fakeTxRunner))...)
-	a.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(ctrl, fakeTxRunner))...)
+	a.Put("/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(ctrl, afCtrl, fakeTxRunner))...)
+	a.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(ctrl, afCtrl, fakeTxRunner))...)
 	a.Get("", append(authMiddleware, articleendpoints.ListArticles(ctrl, fakeTxRunner))...)
 	a.Put("/:id", append(authMiddleware, articleendpoints.UpdateArticle(ctrl, fakeTxRunner))...)
 	a.Delete("/:id", append(authMiddleware, articleendpoints.DeleteArticle(ctrl, fakeTxRunner))...)
@@ -106,7 +135,7 @@ func buildApp(ctrl controllers.ArticleControllerInterface) *fiber.App {
 }
 
 func defaultApp() *fiber.App {
-	return buildApp(&mockArticleCtrl{})
+	return buildApp(&mockArticleCtrl{}, &mockArticleFeedCtrl{})
 }
 
 func authHeader(t *testing.T) string {

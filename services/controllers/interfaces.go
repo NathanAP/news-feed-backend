@@ -68,3 +68,9 @@ type FeedControllerInterface interface {
 	Update(ctx context.Context, q db.Querier, id, userID, name string, keywords []string) (db.Feed, error)
 	SoftDelete(ctx context.Context, q db.Querier, id, userID string) error
 }
+
+type ArticleFeedControllerInterface interface {
+	Create(ctx context.Context, q db.Querier, articleID, feedID string) (db.ArticleFeed, error)
+	FindByArticleAndUser(ctx context.Context, q db.Querier, articleID, userID string) ([]db.ArticleFeed, error)
+	MarkAsRead(ctx context.Context, q db.Querier, articleID, userID string) (bool, error)
+}

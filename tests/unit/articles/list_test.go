@@ -34,7 +34,7 @@ func TestListArticles_Success(t *testing.T) {
 			return []db.Article{fixtures.NewTestArticle(), fixtures.NewTestArticleAlt()}, nil
 		},
 	}
-	app := buildApp(ctrl)
+	app := buildApp(ctrl, &mockArticleFeedCtrl{})
 
 	resp := listArticles(t, app, "", true)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -52,7 +52,7 @@ func TestListArticles_Empty(t *testing.T) {
 			return []db.Article{}, nil
 		},
 	}
-	app := buildApp(ctrl)
+	app := buildApp(ctrl, &mockArticleFeedCtrl{})
 
 	resp := listArticles(t, app, "", true)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -72,7 +72,7 @@ func TestListArticles_FilterByURL(t *testing.T) {
 			return []db.Article{a1, a2}, nil
 		},
 	}
-	app := buildApp(ctrl)
+	app := buildApp(ctrl, &mockArticleFeedCtrl{})
 
 	resp := listArticles(t, app, "?url=other-site", true)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -91,7 +91,7 @@ func TestListArticles_DBError(t *testing.T) {
 			return nil, assert.AnError
 		},
 	}
-	app := buildApp(ctrl)
+	app := buildApp(ctrl, &mockArticleFeedCtrl{})
 
 	resp := listArticles(t, app, "", true)
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)

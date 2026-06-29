@@ -33,4 +33,7 @@ type ArticleResponse struct {
 	SourceID    string     `json:"source_id"`
 	CreatedAt   time.Time  `json:"created_at"`
 	ModifiedAt  *time.Time `json:"modified_at,omitempty"`
+	// IsRead is null when the article is not in any of the requesting user's feeds,
+	// false when it is in at least one feed and unread, true when all are read.
+	IsRead *bool `json:"is_read"`
 }

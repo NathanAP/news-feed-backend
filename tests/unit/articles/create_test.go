@@ -114,7 +114,7 @@ func TestCreateArticle_Conflict(t *testing.T) {
 			return db.Article{}, controllers.ErrArticleAlreadyExists
 		},
 	}
-	app := buildApp(ctrl)
+	app := buildApp(ctrl, &mockArticleFeedCtrl{})
 	resp := postCreate(t, app, validCreateBody(), true)
 	assert.Equal(t, http.StatusConflict, resp.StatusCode)
 }
@@ -127,7 +127,7 @@ func TestCreateArticle_DBError(t *testing.T) {
 			return db.Article{}, assert.AnError
 		},
 	}
-	app := buildApp(ctrl)
+	app := buildApp(ctrl, &mockArticleFeedCtrl{})
 	resp := postCreate(t, app, validCreateBody(), true)
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 }
@@ -149,7 +149,7 @@ func TestCreateArticle_SourceInvalid(t *testing.T) {
 			return db.Article{}, controllers.ErrArticleSourceInvalid
 		},
 	}
-	app := buildApp(ctrl)
+	app := buildApp(ctrl, &mockArticleFeedCtrl{})
 	resp := postCreate(t, app, validCreateBody(), true)
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }

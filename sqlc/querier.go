@@ -11,6 +11,7 @@ import (
 type Querier interface {
 	CountActiveFeedsByUser(ctx context.Context, userID string) (int64, error)
 	CreateArticle(ctx context.Context, arg CreateArticleParams) (Article, error)
+	CreateArticleFeed(ctx context.Context, arg CreateArticleFeedParams) (ArticleFeed, error)
 	CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, error)
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error)
 	CreateSource(ctx context.Context, arg CreateSourceParams) (Source, error)
@@ -19,6 +20,7 @@ type Querier interface {
 	ExtendRefreshToken(ctx context.Context, arg ExtendRefreshTokenParams) error
 	FindActiveRefreshTokenByUserID(ctx context.Context, userID string) (RefreshToken, error)
 	FindArticleByID(ctx context.Context, id string) (Article, error)
+	FindArticleFeedsByArticleAndUser(ctx context.Context, arg FindArticleFeedsByArticleAndUserParams) ([]ArticleFeed, error)
 	FindFeedByIDAndUser(ctx context.Context, arg FindFeedByIDAndUserParams) (Feed, error)
 	FindRefreshTokenByID(ctx context.Context, id string) (RefreshToken, error)
 	FindSourceByID(ctx context.Context, id string) (Source, error)
@@ -26,6 +28,7 @@ type Querier interface {
 	FindUserByID(ctx context.Context, id string) (User, error)
 	FindUserPreferencesByUserID(ctx context.Context, userID string) (UserPreference, error)
 	ListArticles(ctx context.Context) ([]Article, error)
+	MarkArticleAsReadForUser(ctx context.Context, arg MarkArticleAsReadForUserParams) error
 	ListFeedsByUser(ctx context.Context, userID string) ([]Feed, error)
 	ListSources(ctx context.Context) ([]Source, error)
 	RevokeAllRefreshTokensByUserID(ctx context.Context, userID string) error

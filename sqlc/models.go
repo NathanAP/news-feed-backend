@@ -78,3 +78,12 @@ type Feed struct {
 	ModifiedAt sql.NullTime `json:"modified_at"`
 	RemovedAt  sql.NullTime `json:"removed_at"`
 }
+
+type ArticleFeed struct {
+	ID         string       `json:"id"`
+	ArticleID  string       `json:"article_id"`
+	FeedID     string       `json:"feed_id"`
+	IsRead     int64        `json:"is_read"`
+	CreatedAt  time.Time    `json:"created_at"`
+	ModifiedAt sql.NullTime `json:"modified_at"`
+}

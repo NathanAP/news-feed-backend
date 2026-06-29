@@ -1,0 +1,31 @@
+meta {
+  name: Mark Article as Read
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{baseUrl}}/v1/articles/:id/read
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:path {
+  id: {{articleId}}
+}
+
+docs {
+  Marca uma notícia como lida nos feeds do usuário autenticado.
+
+  Respostas possíveis:
+  - 200: a notícia está em pelo menos um feed do usuário (marcada ou já estava lida)
+  - 204: a notícia não está em nenhum feed do usuário (nada acontece)
+  - 404: a notícia não existe
+
+  A operação é idempotente: chamar múltiplas vezes não muda o resultado.
+  Se a notícia estiver em mais de um feed do usuário, todos são marcados como lidos.
+}
