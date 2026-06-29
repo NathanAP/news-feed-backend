@@ -1,0 +1,24 @@
+meta {
+  name: Get Feed
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/v1/feeds/:id
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:path {
+  id: {{feedId}}
+}
+
+docs {
+  Só retorna o feed se ele pertencer ao usuário do token.
+  Feed de outro usuário (ou inexistente) retorna 404.
+}

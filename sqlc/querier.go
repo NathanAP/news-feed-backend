@@ -9,7 +9,9 @@ import (
 )
 
 type Querier interface {
+	CountActiveFeedsByUser(ctx context.Context, userID string) (int64, error)
 	CreateArticle(ctx context.Context, arg CreateArticleParams) (Article, error)
+	CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, error)
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error)
 	CreateSource(ctx context.Context, arg CreateSourceParams) (Source, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
@@ -17,21 +19,26 @@ type Querier interface {
 	ExtendRefreshToken(ctx context.Context, arg ExtendRefreshTokenParams) error
 	FindActiveRefreshTokenByUserID(ctx context.Context, userID string) (RefreshToken, error)
 	FindArticleByID(ctx context.Context, id string) (Article, error)
+	FindFeedByIDAndUser(ctx context.Context, arg FindFeedByIDAndUserParams) (Feed, error)
 	FindRefreshTokenByID(ctx context.Context, id string) (RefreshToken, error)
 	FindSourceByID(ctx context.Context, id string) (Source, error)
 	FindUserByGoogleID(ctx context.Context, googleID string) (User, error)
 	FindUserByID(ctx context.Context, id string) (User, error)
 	FindUserPreferencesByUserID(ctx context.Context, userID string) (UserPreference, error)
 	ListArticles(ctx context.Context) ([]Article, error)
+	ListFeedsByUser(ctx context.Context, userID string) ([]Feed, error)
 	ListSources(ctx context.Context) ([]Source, error)
 	RevokeAllRefreshTokensByUserID(ctx context.Context, userID string) error
 	RevokeRefreshToken(ctx context.Context, id string) error
 	SoftDeleteArticle(ctx context.Context, id string) error
 	SoftDeleteArticlesBySourceID(ctx context.Context, sourceID string) error
+	SoftDeleteFeedByIDAndUser(ctx context.Context, arg SoftDeleteFeedByIDAndUserParams) error
+	SoftDeleteFeedsByUser(ctx context.Context, userID string) error
 	SoftDeleteSource(ctx context.Context, id string) error
 	SoftDeleteUser(ctx context.Context, id string) error
 	SoftDeleteUserPreferences(ctx context.Context, userID string) error
 	UpdateArticle(ctx context.Context, arg UpdateArticleParams) (Article, error)
+	UpdateFeedByIDAndUser(ctx context.Context, arg UpdateFeedByIDAndUserParams) (Feed, error)
 	UpdateSource(ctx context.Context, arg UpdateSourceParams) (Source, error)
 	UpdateUserLastLogin(ctx context.Context, id string) error
 	UpdateUserPreferences(ctx context.Context, arg UpdateUserPreferencesParams) (UserPreference, error)

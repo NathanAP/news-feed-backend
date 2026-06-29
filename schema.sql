@@ -75,3 +75,16 @@ CREATE TABLE articles (
 -- Uniqueness applies only to active rows: a soft-deleted article must not block creating
 -- a new article with the same url_original (status convention).
 CREATE UNIQUE INDEX idx_articles_url_original_active ON articles(url_original) WHERE removed_at IS NULL;
+
+CREATE TABLE feeds (
+    id TEXT NOT NULL,
+    status INTEGER NOT NULL DEFAULT 1,
+    name TEXT NOT NULL,
+    keywords TEXT NOT NULL DEFAULT '[]',
+    user_id TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    modified_at DATETIME,
+    removed_at DATETIME,
+    PRIMARY KEY (id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);

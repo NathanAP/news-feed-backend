@@ -88,9 +88,11 @@ func (c *UserController) UpdateUserLastLogin(ctx context.Context, q db.Querier, 
 	return nil
 }
 
-// SoftDeleteUser soft-deletes the user, soft-deletes its preferences and revokes all its
-// refresh tokens on the given querier without committing. Running them together (in the
-// caller's transaction) guarantees a deleted user can no longer authenticate or refresh.
+// SoftDeleteUser soft-deletes the user and cascades the soft-delete to its preferences,
+// refresh tokens and feeds on the given querier without committing. Running them together
+// (in the caller's transaction) guarantees a deleted user can no longer authenticate,
+// refresh, or keep owning feeds. There is no endpoint exposing this yet — user removal is a
+// future feature — but the cascade is kept correct for when one lands.
 func (c *UserController) SoftDeleteUser(ctx context.Context, q db.Querier, id string) error {
 	if err := q.SoftDeleteUser(ctx, id); err != nil {
 		return fmt.Errorf("failed to delete user: %w", err)
@@ -102,6 +104,10 @@ func (c *UserController) SoftDeleteUser(ctx context.Context, q db.Querier, id st
 
 	if err := q.RevokeAllRefreshTokensByUserID(ctx, id); err != nil {
 		return fmt.Errorf("failed to revoke user sessions: %w", err)
+	}
+
+	if err := q.SoftDeleteFeedsByUser(ctx, id); err != nil {
+		return fmt.Errorf("failed to delete user feeds: %w", err)
 	}
 
 	return nil

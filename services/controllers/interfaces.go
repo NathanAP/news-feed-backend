@@ -60,3 +60,11 @@ type ArticleControllerInterface interface {
 	Update(ctx context.Context, q db.Querier, id, title, content, urlOriginal string, keywords []string) (db.Article, error)
 	SoftDelete(ctx context.Context, q db.Querier, id string) error
 }
+
+type FeedControllerInterface interface {
+	Create(ctx context.Context, q db.Querier, userID, name string, keywords []string) (db.Feed, error)
+	FindByID(ctx context.Context, q db.Querier, id, userID string) (db.Feed, error)
+	List(ctx context.Context, q db.Querier, userID string) ([]db.Feed, error)
+	Update(ctx context.Context, q db.Querier, id, userID, name string, keywords []string) (db.Feed, error)
+	SoftDelete(ctx context.Context, q db.Querier, id, userID string) error
+}

@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.14.1.0
+0.15.0.0
 
 ## Versão 0.1.0.0
 
@@ -217,8 +217,8 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.15.0.0
 
-- [ ] Confirmar que o soft remove de usuários existe no controller
-- [ ] Criar uma migração para a tabela de feeds
+- [x] Confirmar que o soft remove de usuários existe no controller
+- [x] Criar uma migração para a tabela de feeds
     - Tabela de feeds
         - Nomenclatura: `feeds`
         - Armazene os seguintes dados:
@@ -230,12 +230,12 @@ Os níveis de tabulação indicam detalhes do assunto.
             - created_at (`timestamp`)
             - modified_at (`timestamp` opcional)
             - removed_at (`timestamp` opcional)
-- [ ] Criar rotas para os feeds
-    - [ ] Criação (`POST /v1/feeds/create`)
-    - [ ] Edição (`PUT /v1/feeds/{id}`)
-    - [ ] Remoção (`DELETE /v1/feeds/{id}`) — soft delete
-    - [ ] Buscar por id (`GET /v1/feeds/{id}`)
-    - [ ] Buscar por filtro (`GET /v1/feeds?name=...`)
+- [x] Criar rotas para os feeds
+    - [x] Criação (`POST /v1/feeds/create`)
+    - [x] Edição (`PUT /v1/feeds/{id}`)
+    - [x] Remoção (`DELETE /v1/feeds/{id}`) — soft delete
+    - [x] Buscar por id (`GET /v1/feeds/{id}`)
+    - [x] Buscar por filtro (`GET /v1/feeds?name=...`)
     - Lembrete: lembre-se que apenas o próprio usuário da requisição pode ver o feed requisitado na url/query
     - Lembrete: se um usuário requisitar feed de outro usuário, deve-se retornar 404 e não 403
     - Lembrete: fazer cascateamento para quando um usuário for removido (soft ou hard)

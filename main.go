@@ -22,6 +22,7 @@ import (
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	articleendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/articles"
 	authendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/auth"
+	feedendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/feeds"
 	sourceendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/sources"
 	userendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/users"
 )
@@ -90,6 +91,7 @@ func main() {
 	authCtrl := controllers.NewAuthController(oauth2Config, userCtrl, refreshTokenCtrl, prefCtrl, runTx, jwtSecret, accessTokenExpiry)
 	sourceCtrl := controllers.NewSourceController()
 	articleCtrl := controllers.NewArticleController()
+	feedCtrl := controllers.NewFeedController()
 
 	authMiddleware := middlewares.NewAuthMiddleware(jwtSecret, refreshTokenCtrl, runTx)
 
@@ -136,6 +138,13 @@ func main() {
 	articles.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, runTx))...)
 	articles.Put("/:id", append(authMiddleware, articleendpoints.UpdateArticle(articleCtrl, runTx))...)
 	articles.Delete("/:id", append(authMiddleware, articleendpoints.DeleteArticle(articleCtrl, runTx))...)
+
+	feeds := api.Group("/feeds")
+	feeds.Post("/create", append(authMiddleware, feedendpoints.CreateFeed(feedCtrl, runTx))...)
+	feeds.Get("/:id", append(authMiddleware, feedendpoints.GetFeed(feedCtrl, runTx))...)
+	feeds.Get("", append(authMiddleware, feedendpoints.ListFeeds(feedCtrl, runTx))...)
+	feeds.Put("/:id", append(authMiddleware, feedendpoints.UpdateFeed(feedCtrl, runTx))...)
+	feeds.Delete("/:id", append(authMiddleware, feedendpoints.DeleteFeed(feedCtrl, runTx))...)
 
 	apiPort := os.Getenv("API_PORT")
 	if apiPort == "" {

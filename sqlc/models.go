@@ -67,3 +67,14 @@ type Article struct {
 	ModifiedAt  sql.NullTime `json:"modified_at"`
 	RemovedAt   sql.NullTime `json:"removed_at"`
 }
+
+type Feed struct {
+	ID         string       `json:"id"`
+	Status     int64        `json:"status"`
+	Name       string       `json:"name"`
+	Keywords   string       `json:"keywords"`
+	UserID     string       `json:"user_id"`
+	CreatedAt  time.Time    `json:"created_at"`
+	ModifiedAt sql.NullTime `json:"modified_at"`
+	RemovedAt  sql.NullTime `json:"removed_at"`
+}

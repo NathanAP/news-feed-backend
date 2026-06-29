@@ -1,0 +1,30 @@
+meta {
+  name: List Feeds
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/v1/feeds
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  name:
+}
+
+docs {
+  Lista apenas os feeds do usuário do token.
+
+  Filtro opcional:
+  - name: filtra por substring no nome (case-insensitive)
+
+  Exemplos:
+  - /v1/feeds
+  - /v1/feeds?name=metal
+}

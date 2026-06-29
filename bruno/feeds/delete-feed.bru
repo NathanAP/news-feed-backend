@@ -1,0 +1,25 @@
+meta {
+  name: Delete Feed
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/v1/feeds/:id
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:path {
+  id: {{feedId}}
+}
+
+docs {
+  Soft delete: o registro vira status = 0. A exclusão é permanente
+  (não há reativação de feeds). Retorna 204 em sucesso e 404 se o feed
+  não existir ou pertencer a outro usuário.
+}

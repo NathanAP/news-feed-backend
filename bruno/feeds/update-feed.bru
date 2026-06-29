@@ -1,0 +1,31 @@
+meta {
+  name: Update Feed
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/v1/feeds/:id
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:path {
+  id: {{feedId}}
+}
+
+body:json {
+  {
+    "name": "Metallica (atualizado)",
+    "keywords": ["metallica", "rock", "metal", "show", "turnê"]
+  }
+}
+
+docs {
+  Mesmas regras de validação do create. O dono (user_id) é imutável.
+  Feed de outro usuário (ou inexistente) retorna 404.
+}
