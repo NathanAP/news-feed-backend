@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.16.0.0
+0.17.0.0
 
 ## Versão 0.1.0.0
 
@@ -260,8 +260,8 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.17.0.0
 
-- [ ] Fazer revisão
-- [ ] Falar sobre memory
+- [x] Fazer revisão
+- [x] Falar sobre memory
 
 ## Versão 0.18.0.0
 

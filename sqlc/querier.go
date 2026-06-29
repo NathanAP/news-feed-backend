@@ -18,7 +18,6 @@ type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserPreferences(ctx context.Context, arg CreateUserPreferencesParams) (UserPreference, error)
 	ExtendRefreshToken(ctx context.Context, arg ExtendRefreshTokenParams) error
-	FindActiveRefreshTokenByUserID(ctx context.Context, userID string) (RefreshToken, error)
 	FindArticleByID(ctx context.Context, id string) (Article, error)
 	FindArticleFeedsByArticleAndUser(ctx context.Context, arg FindArticleFeedsByArticleAndUserParams) ([]ArticleFeed, error)
 	FindFeedByIDAndUser(ctx context.Context, arg FindFeedByIDAndUserParams) (Feed, error)

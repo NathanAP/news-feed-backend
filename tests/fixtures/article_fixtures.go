@@ -36,8 +36,3 @@ func NewTestArticleAlt() db.Article {
 		RemovedAt:   sql.NullTime{Valid: false},
 	}
 }
-
-// ValidArticleKeywords returns a keyword slice satisfying the 5-20 rule for request payloads.
-func ValidArticleKeywords() []string {
-	return []string{"metallica", "rock", "metal", "music", "concert"}
-}

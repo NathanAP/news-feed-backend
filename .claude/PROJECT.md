@@ -97,6 +97,8 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Usuários não podem ser excluídos neste momento diretamente via endpoint mas será pensado em um momento futuro.
     - Por enquanto, vamos deixar pronta a exclusão junto com os cascades via código.
     - Testes de cascade envolvendo o usuário podem ser ignorados por enquanto.
+    - Consequência atual: um usuário inativo (soft removed) não consegue logar atualmente pois o login busca apenas usuários ativos e a unicidade de `google_id`/`email` impediria um novo cadastro.
+        - Isso é aceitável hoje porque não há endpoint de exclusão. Quando esse endpoint for criado, o comportamento (reativar o registro vs. recadastrar vs. tratar como LGPD/erasure) precisa ser decidido. Por ser uma decisão mais complexa do que parece vamos manter assim por enquanto.
 
 ## Preferências do usuário (user preferences)
 

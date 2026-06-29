@@ -42,6 +42,9 @@ JOIN feeds f ON f.id = af.feed_id
     AND f.user_id = ?
     AND f.status = 1
     AND f.removed_at IS NULL
+JOIN articles a ON a.id = af.article_id
+    AND a.status = 1
+    AND a.removed_at IS NULL
 WHERE af.article_id = ?
 `
 
@@ -86,6 +89,10 @@ UPDATE articles_feeds
 SET is_read = 1, modified_at = CURRENT_TIMESTAMP
 WHERE article_id = ?
   AND is_read = 0
+  AND article_id IN (
+      SELECT id FROM articles
+      WHERE status = 1 AND removed_at IS NULL
+  )
   AND feed_id IN (
       SELECT id FROM feeds
       WHERE user_id = ? AND status = 1 AND removed_at IS NULL

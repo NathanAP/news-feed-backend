@@ -8,11 +8,6 @@ SELECT * FROM refresh_tokens
 WHERE id = ? AND status = 1 AND removed_at IS NULL
 LIMIT 1;
 
--- name: FindActiveRefreshTokenByUserID :one
-SELECT * FROM refresh_tokens
-WHERE user_id = ? AND status = 1 AND removed_at IS NULL
-LIMIT 1;
-
 -- name: ExtendRefreshToken :exec
 UPDATE refresh_tokens
 SET expires_at = ?, modified_at = CURRENT_TIMESTAMP

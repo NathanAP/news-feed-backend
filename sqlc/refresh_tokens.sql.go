@@ -53,27 +53,6 @@ func (q *Queries) ExtendRefreshToken(ctx context.Context, arg ExtendRefreshToken
 	return err
 }
 
-const findActiveRefreshTokenByUserID = `-- name: FindActiveRefreshTokenByUserID :one
-SELECT id, user_id, status, expires_at, created_at, modified_at, removed_at FROM refresh_tokens
-WHERE user_id = ? AND status = 1 AND removed_at IS NULL
-LIMIT 1
-`
-
-func (q *Queries) FindActiveRefreshTokenByUserID(ctx context.Context, userID string) (RefreshToken, error) {
-	row := q.db.QueryRowContext(ctx, findActiveRefreshTokenByUserID, userID)
-	var i RefreshToken
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.Status,
-		&i.ExpiresAt,
-		&i.CreatedAt,
-		&i.ModifiedAt,
-		&i.RemovedAt,
-	)
-	return i, err
-}
-
 const findRefreshTokenByID = `-- name: FindRefreshTokenByID :one
 SELECT id, user_id, status, expires_at, created_at, modified_at, removed_at FROM refresh_tokens
 WHERE id = ? AND status = 1 AND removed_at IS NULL

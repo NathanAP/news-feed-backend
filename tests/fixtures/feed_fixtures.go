@@ -32,8 +32,3 @@ func NewTestFeedAlt(userID string) db.Feed {
 		RemovedAt:  sql.NullTime{Valid: false},
 	}
 }
-
-// ValidFeedKeywords returns a keyword slice satisfying the 5-20 rule for request payloads.
-func ValidFeedKeywords() []string {
-	return []string{"metallica", "rock", "metal", "music", "concert"}
-}
