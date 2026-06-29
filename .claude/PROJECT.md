@@ -178,10 +178,10 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
             - O usuário possui aquela notícia em um ou mais feed: a marcação de leitura daquela notícia é feita em todos os feeds que estão ligados à notícia (retorno do endpoint se torna 200).
             - O usuário não recebeu aquela notícia em seu(s) feed(s): nada acontece (retorno do endpoint se torna 204).
             - O usuário já leu aquela notícia (já está marcado `true` em `is_read`): nada acontece (retorno do endpoint também é 200).
-- Se o feed sofrer soft remove, todos os registros atrelados a ele também devem sofrer soft remove.
-- Se a notícia sofrer soft remove, todos os registros atrelados à ela também devem sofrer soft remove.
-- Se o feed sofrer hard remove, todos os registros atrelados a ele também devem sofrer hard remove.
-- Se a notícia sofrer hard remove, todos os registros atrelados à ela também devem sofrer hard remove.
+- Registros nessa tabela só são considerados ativos quando o feed e a notícia estão ativos (`status` marcados em `true` e sem `removed_at`).
+    - Se o feed ou a notícia sofrer soft remove, o registro dessa tabela não é excluído, ele apenas fica invisível (inacessível).
+    - Dito isso, é importante ter essa conferência para garantir que tanto o feed quanto a notícia estão ativas.
+- Registros nessa tabela sofrem de hard remove quando o feed ou a notícia atrelado a ele sofrem de hard remove (efeito cascata de ambos os lados).
 
 ## Descobrindo uma notícia
 
