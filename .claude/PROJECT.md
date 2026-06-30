@@ -63,6 +63,14 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Segunda camada de inteligência artificial e `score`.
 8. Notícia e feed se relacionam através de um novo registro em `article_feeds`.
 
+## Fluxo de tratamento
+
+0. Uma nova notícia descoberta entra em etapa de tratamento.
+1. Uma primeira chamada para a inteligência artificial faz a notícia ser revisada, corrigida e melhorada conforme as convenções da aplicação.
+2. Uma segunda chamada para a inteligência artificial faz a notícia receber palavras-chave correspondente ao seu conteúdo.
+3. A notícia é salva no banco de dados.
+4. A notícia segue para a etapa de julgamento.
+
 ## Autenticação
 
 - O secret dos tokens está na variável de ambiente chamada `JWT_SECRET_KEY`.
