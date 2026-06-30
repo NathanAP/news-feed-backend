@@ -100,3 +100,15 @@ CREATE TABLE articles_feeds (
     FOREIGN KEY (article_id) REFERENCES articles(id),
     FOREIGN KEY (feed_id) REFERENCES feeds(id)
 );
+
+-- Singleton control-panel table: exactly one row, only ever updated (never inserted into or
+-- deleted from by application code). No status/removed_at — a maintenance switch is not a
+-- soft-deletable record; the switch itself is app_status.
+CREATE TABLE system (
+    id TEXT NOT NULL,
+    app_status INTEGER NOT NULL DEFAULT 1,
+    last_article_discovery_at DATETIME,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    modified_at DATETIME,
+    PRIMARY KEY (id)
+);

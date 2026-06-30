@@ -28,7 +28,8 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
   commitam (ver "Transações" abaixo).
 - `services/endpoints/v1/<modelo>/` — handlers HTTP (um arquivo por rota).
 - `services/rss/` — descoberta de RSS.
-- `middlewares/` — `auth.go` (parse JWT + valida sessão).
+- `middlewares/` — `auth.go` (parse JWT + valida sessão); `app_status.go` (guard de manutenção
+  global: 503 quando `system.app_status=0`, exceto `/health` e o toggle).
 - `tests/` — `unit/`, `integration/api/`, `end-to-end/api/`, `fixtures/`, `mocks/`, `utils/`.
 
 ## Domínios já implementados
@@ -41,6 +42,7 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
 | Notícias | `articles` | Globais; ligadas a uma `source`; CRUD (criação manual/admin por ora) |
 | Feeds | `feeds` | Por usuário; palavras-chave; máx. 5 ativos |
 | Feed × Notícia | `articles_feeds` | Junction com `is_read` |
+| Sistema | `system` | Singleton; `app_status` (chave de manutenção global) + `last_article_discovery_at` |
 
 Ainda **não** implementado: descoberta automática via cron, tratamento/tradução/resumo por
 IA, julgamento notícia→feed, deploy, usuário administrador, exclusão de usuário.

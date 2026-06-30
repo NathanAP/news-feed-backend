@@ -74,3 +74,8 @@ type ArticleFeedControllerInterface interface {
 	FindByArticleAndUser(ctx context.Context, q db.Querier, articleID, userID string) ([]db.ArticleFeed, error)
 	MarkAsRead(ctx context.Context, q db.Querier, articleID, userID string) (bool, error)
 }
+
+type SystemControllerInterface interface {
+	Get(ctx context.Context, q db.Querier) (db.System, error)
+	UpdateAppStatus(ctx context.Context, q db.Querier, active bool) (db.System, error)
+}

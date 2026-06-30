@@ -1,0 +1,31 @@
+meta {
+  name: Update App Status
+  type: http
+  seq: 1
+}
+
+put {
+  url: {{baseUrl}}/v1/system/app-status
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "app_status": true
+  }
+}
+
+vars:pre-request {
+  baseUrl: http://localhost:3000
+}
+
+docs {
+  Liga (true) ou desliga (false) a aplicação globalmente (chave de manutenção).
+  
+  Com app_status=false, todas as rotas retornam 503 — exceto /v1/health e esta própria rota,
+  que permanecem acessíveis para que a aplicação sempre possa ser religada pela API.
+  
+  Campo app_status é obrigatório (400 se ausente). Aberta por enquanto; futuramente restrita a
+  administradores.
+}

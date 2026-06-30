@@ -5,8 +5,20 @@
 > Convenção de "não encontrado": busca em lista vazia → 200 `[]`; busca de item único
 > inexistente → 404.
 
+## Guard de manutenção (global)
+- Middleware global lê `system.app_status` a cada request. Quando `false`, **toda rota retorna
+  503** — exceto as duas isentas: `GET /v1/health` e `PUT /v1/system/app-status` (registradas
+  antes do guard). O guard roda **antes da auth**, então em manutenção uma rota protegida sem
+  token responde 503 (não 401). Sem cache: o toggle reflete no próximo request.
+
 ## Health
-- `GET /v1/health` — **sem auth**. Retorna `{ status, version }`.
+- `GET /v1/health` — **sem auth**, isenta do guard. Retorna `{ status, version, app_status,
+  server_time }` (`app_status` = estado global; `server_time` = hora do servidor em UTC).
+
+## System (`/v1/system`)
+- `PUT /system/app-status` — **aberta** (admin-futuro), isenta do guard. Body
+  `{ app_status: bool }` (obrigatório) → 200 `SystemResponse` / 400 (campo ausente) / 500.
+  Liga/desliga a aplicação globalmente; isenta do guard para nunca trancar o religamento.
 
 ## Auth (`/v1/auth`)
 - `GET /auth/google` — **sem auth**. Redireciona para o Google.

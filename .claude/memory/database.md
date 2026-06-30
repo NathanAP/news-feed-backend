@@ -52,6 +52,16 @@ Sem unicidade (nomes duplicados permitidos). Máx. **5 feeds ativos** por usuár
 desnormalização). Hard delete quando um pai sofre hard remove; no soft remove de um pai o
 registro **permanece** mas fica invisível (filtrado pelo JOIN de ativos).
 
+### system (singleton — painel de controle)
+`id` (UUID v7), `app_status` (0/1), `last_article_discovery_at` (DATETIME nullable),
+`created_at`, `modified_at`. **Exceção de convenção:** sem `status`/`removed_at` — é um painel
+de controle, não um registro soft-deletável. **Linha única**: semeada na migração e **só sofre
+update** (nunca insert/delete por código). O `id` é um literal v7 fixo
+(`01900000-0000-7000-8000-000000000001`) pois o SQLite não gera v7 — comentado na migração.
+Queries: `GetSystem` (`LIMIT 1`) e `UpdateSystemAppStatus`. `app_status` é a chave de
+manutenção global (ver guard em `endpoints.md`/`auth`). `last_article_discovery_at` será usado
+pela descoberta via CRON (0.19).
+
 ## Cascades (executados nos controllers)
 
 - `users` soft remove → soft remove de `user_preferences`, `refresh_tokens`, `feeds`.

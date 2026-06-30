@@ -13,3 +13,10 @@ get {
 vars:pre-request {
   baseUrl: http://localhost:3000
 }
+
+docs {
+  Sem autenticação. Isenta da chave de manutenção (responde mesmo com app_status=false).
+
+  Retorna: status, version, app_status (estado global da aplicação) e server_time (hora atual
+  do servidor em UTC).
+}

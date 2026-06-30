@@ -87,3 +87,11 @@ type ArticleFeed struct {
 	CreatedAt  time.Time    `json:"created_at"`
 	ModifiedAt sql.NullTime `json:"modified_at"`
 }
+
+type System struct {
+	ID                     string       `json:"id"`
+	AppStatus              int64        `json:"app_status"`
+	LastArticleDiscoveryAt sql.NullTime `json:"last_article_discovery_at"`
+	CreatedAt              time.Time    `json:"created_at"`
+	ModifiedAt             sql.NullTime `json:"modified_at"`
+}

@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.17.0.0
+0.18.0.0
 
 ## Versão 0.1.0.0
 
@@ -265,7 +265,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.18.0.0
 
-- [ ] Criar uma migração para a tabela `system`
+- [x] Criar uma migração para a tabela `system`
     - Tabela de sistema:
         - id (`UUID` v7)
         - app_status (`true` ou `false`)
@@ -275,10 +275,10 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Lembrete: a migração deve criar um novo registro nessa tabela durante a migração
     - Lembrete: essa tabela nunca aceita novos registros ou exclusões, apenas atualizações
     - Lembrete: todas as rotas devem levar em conta se `app_status` está ativo ou não
-- [ ] Criar uma rota para alterar o status do app
+- [x] Criar uma rota para alterar o status do app
     - Pode estar debaixo de `PUT base_url/v1/system/app-status`
     - Lembrete: no futuro essas rotas serão acessadas apenas pelos usuários administradores
-- [ ] Adicionar à rota `health`:
+- [x] Adicionar à rota `health`:
     - A hora atual do servidor (em UTC)
     - O status do servidor (`app_status` da tabela `system`)
 

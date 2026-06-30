@@ -23,7 +23,9 @@ import (
 	articleendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/articles"
 	authendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/auth"
 	feedendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/feeds"
+	healthendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/health"
 	sourceendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/sources"
+	systemendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/system"
 	userendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/users"
 )
 
@@ -93,6 +95,7 @@ func main() {
 	articleCtrl := controllers.NewArticleController()
 	afCtrl := controllers.NewArticleFeedController()
 	feedCtrl := controllers.NewFeedController()
+	systemCtrl := controllers.NewSystemController()
 
 	authMiddleware := middlewares.NewAuthMiddleware(jwtSecret, refreshTokenCtrl, runTx)
 
@@ -103,14 +106,14 @@ func main() {
 	apiVersion := os.Getenv("API_VERSION")
 	api := app.Group("/" + apiVersion)
 
-	api.Get("/health", func(c *fiber.Ctx) error {
-		logger.RouteStart(c.Path())
-		defer logger.RouteEnd(c.Path())
-		return c.JSON(fiber.Map{
-			"status":  "ok",
-			"version": os.Getenv("PROJECT_VERSION"),
-		})
-	})
+	// Routes exempt from the maintenance guard. They must keep working while app_status is off:
+	// /health for monitoring, and the toggle so the API can always be brought back online.
+	api.Get("/health", healthendpoints.Check(systemCtrl, runTx))
+	api.Put("/system/app-status", systemendpoints.UpdateAppStatus(systemCtrl, runTx))
+
+	// Global maintenance guard: every route registered below returns 503 while app_status is
+	// off. The two routes above are registered earlier and therefore stay reachable.
+	api.Use(middlewares.NewAppStatusMiddleware(systemCtrl, runTx))
 
 	auth := api.Group("/auth")
 	auth.Get("/google", authendpoints.GoogleLogin(oauth2Config))

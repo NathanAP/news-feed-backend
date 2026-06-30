@@ -26,6 +26,7 @@ type Querier interface {
 	FindUserByGoogleID(ctx context.Context, googleID string) (User, error)
 	FindUserByID(ctx context.Context, id string) (User, error)
 	FindUserPreferencesByUserID(ctx context.Context, userID string) (UserPreference, error)
+	GetSystem(ctx context.Context) (System, error)
 	ListArticles(ctx context.Context) ([]Article, error)
 	MarkArticleAsReadForUser(ctx context.Context, arg MarkArticleAsReadForUserParams) error
 	ListFeedsByUser(ctx context.Context, userID string) ([]Feed, error)
@@ -42,6 +43,7 @@ type Querier interface {
 	UpdateArticle(ctx context.Context, arg UpdateArticleParams) (Article, error)
 	UpdateFeedByIDAndUser(ctx context.Context, arg UpdateFeedByIDAndUserParams) (Feed, error)
 	UpdateSource(ctx context.Context, arg UpdateSourceParams) (Source, error)
+	UpdateSystemAppStatus(ctx context.Context, appStatus int64) (System, error)
 	UpdateUserLastLogin(ctx context.Context, id string) error
 	UpdateUserPreferences(ctx context.Context, arg UpdateUserPreferencesParams) (UserPreference, error)
 }
