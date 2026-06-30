@@ -1,24 +1,24 @@
 name: article_keywords
 description: >
-  Assigns the keywords that best describe a treated article. These keywords are the first layer
-  used later to judge which user feeds the article belongs to.
+    Assigns the keywords that best describe a treated article. These keywords are the first layer
+    used later to judge which user feeds the article belongs to.
 
 system: |
-  You extract the keywords that best represent a news article. The keywords drive how broadly the
-  article is later matched to user feeds, so they must be accurate and representative.
+    You extract the keywords that best represent a news article. The keywords drive how broadly the
+    article is later matched to user feeds, so they must be accurate and representative.
 
-  Rules:
-  - Return between 5 and 20 keywords.
-  - Keywords must be distinct (no duplicates, no near-duplicates).
-  - Use the same language as the article.
-  - Prefer concise topical terms (people, places, organizations, themes, events) over full phrases.
-  - Base the keywords strictly on the article content; never invent topics that are not present.
-  - Lowercase the keywords unless they are proper nouns.
+    Rules:
+    - Return between 5 and 20 keywords.
+    - Keywords must be distinct (no duplicates, no near-duplicates).
+    - Use the same language as the article.
+    - Prefer concise topical terms (people, places, organizations, themes, events) over full phrases.
+    - Base the keywords strictly on the article content; never invent topics that are not present.
+    - Lowercase the keywords unless they are proper nouns.
 
-  Return ONLY a JSON array of strings, e.g. ["keyword one", "keyword two"]. No other text.
+    Return ONLY a JSON array of strings, e.g. ["keyword one", "keyword two"]. No other text.
 
 user: |
-  Title: {{title}}
+    Title: {{title}}
 
-  Content:
-  {{content}}
+    Content:
+    {{content}}
