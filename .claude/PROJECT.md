@@ -195,6 +195,12 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - A descoberta de notícias deve acessar cada uma das fontes de notícias cadastradas no banco de dados, olhando pelo RSS de cada uma delas para decidir se há alguma nova notícia.
     - As notícias só podem ser consideradas como novas quando elas foram publicadas desde a última vez que a CRON foi executada. Essa variável está presente na tabela `system`.
 - Quando descoberta uma nova notícia o tratamento de notícias é iniciado (as regras de tratamento de notícias estão na sessão "tratamento de notícias").
+- Ao final da descoberta de notícias a variável `last_article_discovery_at` na tabela `system` é escrita com a hora atual.
+- Um endpoint de teste para esse processo pode ser encontrado em `GET base_url/v1/sources/{id}/discovery`.
+    - Esse endpoint deve ser exclusivo para administradores.
+    - Esse endpoint deve aceitar os seguintes parâmetros para testes:
+        - `id`: uma fonte de notícias válida.
+        - `last_article_discovery_at` (query opcional): uma data para fazer o teste sem depender da espera de uma notícia nova naquela fonte de notícias.
 
 ## Tratamento de notícias
 
