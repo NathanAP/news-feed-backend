@@ -330,9 +330,11 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
 - Transportar a iniciação de endpoints para outro lugar, health para /api
 - Criar uma rota para aceitar sugestões de fontes de notícias
 - Tratar notícias que se auto-atualizam
-    - Talvez dá pra fazer a IA descobrir se a notícia está marcada como "em atualização" para flaggear no banco de dados
-    - A partir daquele momento, outra tarefa da CRON vai atrás apenas das notícias em atualização para ir atualizando ela de tempos em tempos, passando por todo o tratamento toda vez até que sua flag se torne "false"
     - O Claude falou que gofeed consegue fazer essa detecção também que pode servir como uma outra solução para esses casos
+        - Provavelmente já serve como primeira camada confiável o suficiente. Podemos testar e verificar se precisa de uma segunda camada.
+    - A segunda camada seria:
+        - Talvez dá pra fazer a IA descobrir se a notícia está marcada como "em atualização" para flaggear no banco de dados
+        - A partir daquele momento, outra tarefa da CRON vai atrás apenas das notícias em atualização para ir atualizando ela de tempos em tempos, passando por todo o tratamento toda vez até que sua flag se torne "false"
 - Logger e observabilidade
 - Swagger
 - Associação de notícias (como uma notícia se liga à outra?)
