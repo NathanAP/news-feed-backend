@@ -1,0 +1,33 @@
+meta {
+  name: Article Discovery (dry-run)
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/v1/sources/:id/article-discovery?last_article_discovery_at=2025-06-30T18:00:00Z
+  body: none
+  auth: bearer
+}
+
+params:query {
+  last_article_discovery_at: 2025-06-30T18:00:00Z
+}
+
+params:path {
+  id: {{sourceId}}
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  Dry-run da descoberta de notícias para uma única source, simulando os exatos passos da CRON
+  (parsing do RSS + dedup por `url_original`). NÃO grava nada no banco nem avança o watermark.
+  
+  A query `last_article_discovery_at` (RFC3339 UTC) é opcional e adiciona um limite inferior por
+  data, útil para testar. Retorna 200 com os itens que iriam adiante para o tratamento (vazia →
+  `articles: []`); 404 se a source não existir. Aberta por enquanto; futuramente restrita a
+  administradores.
+}

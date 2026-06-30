@@ -73,6 +73,19 @@ func (c *ArticleController) FindByID(ctx context.Context, q db.Querier, id strin
 	return article, nil
 }
 
+// FindByURLOriginal looks up an active article by its original URL. Used by discovery to skip
+// articles that already exist (deduplication by url_original).
+func (c *ArticleController) FindByURLOriginal(ctx context.Context, q db.Querier, urlOriginal string) (db.Article, error) {
+	article, err := q.FindArticleByURLOriginal(ctx, urlOriginal)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return db.Article{}, ErrArticleNotFound
+		}
+		return db.Article{}, fmt.Errorf("failed to find article by url: %w", err)
+	}
+	return article, nil
+}
+
 func (c *ArticleController) List(ctx context.Context, q db.Querier) ([]db.Article, error) {
 	articles, err := q.ListArticles(ctx)
 	if err != nil {

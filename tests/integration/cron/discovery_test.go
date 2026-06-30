@@ -61,7 +61,7 @@ func TestIntegration_DiscoveryRunner_DiscoversAndAdvancesWatermark(t *testing.T)
 
 	seedSource(t, queries, "01900000-0000-7000-8000-0000000000c1", feedURL)
 
-	// Set the watermark to an old date so the dated items qualify as "new".
+	// Seed an old watermark so we can assert the run advances it at the end.
 	_, err := queries.UpdateSystemLastArticleDiscovery(t.Context(), sql.NullTime{
 		Time:  time.Date(2025, 1, 8, 0, 0, 0, 0, time.UTC),
 		Valid: true,
@@ -83,9 +83,10 @@ func TestIntegration_DiscoveryRunner_DiscoversAndAdvancesWatermark(t *testing.T)
 
 	require.NoError(t, runner.Run(t.Context()))
 
-	// Fresh News (10 Jan) + Undated News qualify; Old News (06 Jan) is filtered out.
+	// The CRON no longer filters by date — all feed items are handed to the processor, which is
+	// where url_original dedup happens. SampleRSSFeedDated has 3 items.
 	require.Equal(t, 1, proc.calls)
-	assert.Len(t, proc.got, 2)
+	assert.Len(t, proc.got, 3)
 
 	// Watermark advanced past the old value.
 	system, err := queries.GetSystem(t.Context())

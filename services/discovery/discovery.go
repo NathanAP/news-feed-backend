@@ -2,7 +2,6 @@ package discovery
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"time"
@@ -14,7 +13,7 @@ import (
 )
 
 // DiscoveredArticle is a raw item pulled from a source's RSS feed, before any AI treatment or
-// persistence (both land in 0.20). It is what the discovery pipeline hands to a Processor.
+// persistence. It is what the discovery pipeline hands to a Processor.
 type DiscoveredArticle struct {
 	Title       string     `json:"title"`
 	Content     string     `json:"content"`
@@ -23,40 +22,18 @@ type DiscoveredArticle struct {
 	SourceID    string     `json:"source_id"`
 }
 
-// Processor consumes the articles found by a discovery run. In 0.19 nothing is persisted, so the
-// wired implementation is a no-op; in 0.20 it will run treatment, judgment and persistence. This
-// interface is the evolution seam the roadmap asks to leave prepared.
+// Processor consumes the articles found by a discovery run. The deduplication-by-url_original,
+// AI treatment and persistence all live behind this seam (see TreatmentProcessor).
 type Processor interface {
 	Process(ctx context.Context, articles []DiscoveredArticle) error
 }
 
-// NoopProcessor is the 0.19 processor: discovery only fetches and reports, it does not write
-// anything to the database.
-type NoopProcessor struct{}
-
-func NewNoopProcessor() *NoopProcessor {
-	return &NoopProcessor{}
-}
-
-func (NoopProcessor) Process(_ context.Context, _ []DiscoveredArticle) error {
-	return nil
-}
-
-// EffectiveSince returns the lower bound used to decide what counts as a "new" article. When the
-// watermark is unset (the first ever run) it falls back to `now`, so the first run does not flood
-// the pipeline with each feed's entire current backlog (per PROJECT.md, "Descobrindo uma notícia").
-func EffectiveSince(watermark sql.NullTime, now time.Time) time.Time {
-	if watermark.Valid {
-		return watermark.Time.UTC()
-	}
-	return now.UTC()
-}
-
-// DiscoverFromSource fetches a source's RSS feed and returns the items published after `since`.
-// Items without a publication date are always included — they cannot be placed on the timeline,
-// and deduplication by url_original (added with persistence in 0.20) is the real safeguard against
-// duplicates. A feed that is unreachable or unparseable returns an error so callers can isolate
-// it; one bad source must never abort a whole run.
+// DiscoverFromSource fetches a source's RSS feed and returns its items. Deduplication is done
+// downstream by url_original (the reliable identity), so by default every current feed item is
+// returned. The optional `since` lower bound is a convenience for the dry-run test endpoint: when
+// non-zero, items published on or before it are dropped; items without a publication date are
+// always kept. A feed that is unreachable or unparseable returns an error so callers can isolate
+// it — one bad source must never abort a whole run.
 func DiscoverFromSource(ctx context.Context, client *http.Client, source db.Source, since time.Time) ([]DiscoveredArticle, error) {
 	feed, err := fetchFeed(ctx, client, source.UrlRss)
 	if err != nil {
@@ -73,8 +50,8 @@ func DiscoverFromSource(ctx context.Context, client *http.Client, source db.Sour
 		if item.PublishedParsed != nil {
 			utc := item.PublishedParsed.UTC()
 			publishedAt = &utc
-			if !utc.After(since) {
-				continue // older than (or equal to) the watermark — not new
+			if !since.IsZero() && !utc.After(since) {
+				continue // older than (or equal to) the requested lower bound
 			}
 		}
 

@@ -27,7 +27,7 @@ func sourceWithFeed() *mockSourceCtrl {
 func discoveryGet(t *testing.T, ctrl controllers.SourceControllerInterface, responses map[string]external.MockRSSResponse, query string) *http.Response {
 	t.Helper()
 	app := buildApp(ctrl, external.NewMockRSSClient(responses))
-	target := "/v1/sources/src-1/discovery"
+	target := "/v1/sources/src-1/article-discovery"
 	if query != "" {
 		target += "?" + query
 	}
@@ -95,7 +95,7 @@ func TestSourceDiscovery_Unauthenticated(t *testing.T) {
 	requireNotProduction(t)
 
 	app := buildApp(sourceWithFeed(), http.DefaultClient)
-	req, err := http.NewRequest(http.MethodGet, "/v1/sources/src-1/discovery", nil)
+	req, err := http.NewRequest(http.MethodGet, "/v1/sources/src-1/article-discovery", nil)
 	require.NoError(t, err)
 	resp, err := app.Test(req)
 	require.NoError(t, err)

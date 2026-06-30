@@ -73,6 +73,30 @@ func (q *Queries) FindArticleByID(ctx context.Context, id string) (Article, erro
 	return i, err
 }
 
+const findArticleByURLOriginal = `-- name: FindArticleByURLOriginal :one
+SELECT id, status, title, content, url_original, keywords, source_id, created_at, modified_at, removed_at FROM articles
+WHERE url_original = ? AND status = 1 AND removed_at IS NULL
+LIMIT 1
+`
+
+func (q *Queries) FindArticleByURLOriginal(ctx context.Context, urlOriginal string) (Article, error) {
+	row := q.db.QueryRowContext(ctx, findArticleByURLOriginal, urlOriginal)
+	var i Article
+	err := row.Scan(
+		&i.ID,
+		&i.Status,
+		&i.Title,
+		&i.Content,
+		&i.UrlOriginal,
+		&i.Keywords,
+		&i.SourceID,
+		&i.CreatedAt,
+		&i.ModifiedAt,
+		&i.RemovedAt,
+	)
+	return i, err
+}
+
 const listArticles = `-- name: ListArticles :many
 SELECT id, status, title, content, url_original, keywords, source_id, created_at, modified_at, removed_at FROM articles
 WHERE status = 1 AND removed_at IS NULL

@@ -43,7 +43,7 @@ func TestE2E_SourceDiscovery_DryRun(t *testing.T) {
 	id := created["id"].(string)
 
 	// Dry-run discovery with an old lower bound → Fresh + Undated qualify.
-	discReq, _ := http.NewRequest(http.MethodGet, "/v1/sources/"+id+"/discovery?last_article_discovery_at=2025-01-08T00:00:00Z", nil)
+	discReq, _ := http.NewRequest(http.MethodGet, "/v1/sources/"+id+"/article-discovery?last_article_discovery_at=2025-01-08T00:00:00Z", nil)
 	discReq.Header.Set("Authorization", "Bearer "+token)
 	discResp, err := app.Test(discReq)
 	require.NoError(t, err)

@@ -53,7 +53,7 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth, httpClient *http.
 		runTx, []byte(jwtmock.TestJWTSecret), time.Hour,
 	)
 	sourceCtrl := controllers.NewSourceController()
-	systemCtrl := controllers.NewSystemController()
+	articleCtrl := controllers.NewArticleController()
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
@@ -63,8 +63,8 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth, httpClient *http.
 
 	s := app.Group("/v1/sources")
 	s.Post("/create", append(authMiddleware, sourceendpoints.CreateSource(sourceCtrl, runTx))...)
-	s.Get("/rss_discovery", append(authMiddleware, sourceendpoints.RSSDiscovery(httpClient))...)
-	s.Get("/:id/discovery", append(authMiddleware, sourceendpoints.SourceDiscovery(sourceCtrl, systemCtrl, runTx, httpClient))...)
+	s.Get("/rss-discovery", append(authMiddleware, sourceendpoints.RSSDiscovery(httpClient))...)
+	s.Get("/:id/article-discovery", append(authMiddleware, sourceendpoints.SourceArticleDiscovery(sourceCtrl, articleCtrl, runTx, httpClient))...)
 	s.Get("/:id", append(authMiddleware, sourceendpoints.GetSource(sourceCtrl, runTx))...)
 	s.Get("", append(authMiddleware, sourceendpoints.ListSources(sourceCtrl, runTx))...)
 	s.Put("/:id", append(authMiddleware, sourceendpoints.UpdateSource(sourceCtrl, runTx))...)
@@ -278,7 +278,7 @@ func TestE2E_Sources_RequiresAuth(t *testing.T) {
 		{http.MethodGet, "/v1/sources/some-id", ""},
 		{http.MethodPut, "/v1/sources/some-id", `{"url":"https://x.com","url_rss":"https://x.com/rss"}`},
 		{http.MethodDelete, "/v1/sources/some-id", ""},
-		{http.MethodGet, "/v1/sources/rss_discovery?url=https://x.com", ""},
+		{http.MethodGet, "/v1/sources/rss-discovery?url=https://x.com", ""},
 	} {
 		var bodyReader *strings.Reader
 		if tc.body != "" {
@@ -315,7 +315,7 @@ func TestE2E_RSSDiscovery_FindsAndReturnsFeeds(t *testing.T) {
 	app, queries := setupE2EApp(t, oauth, mockHTTP)
 	token := loginViaCallback(t, app, queries)
 
-	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss_discovery?url=https://site.com", nil)
+	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss-discovery?url=https://site.com", nil)
 	require.NoError(t, err)
 	req.Header.Set("Authorization", "Bearer "+token)
 
@@ -344,7 +344,7 @@ func TestE2E_RSSDiscovery_ReturnsEmptyWhenNotFound(t *testing.T) {
 	app, queries := setupE2EApp(t, oauth, mockHTTP)
 	token := loginViaCallback(t, app, queries)
 
-	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss_discovery?url=https://nofeeds.com", nil)
+	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss-discovery?url=https://nofeeds.com", nil)
 	require.NoError(t, err)
 	req.Header.Set("Authorization", "Bearer "+token)
 

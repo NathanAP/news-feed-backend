@@ -43,15 +43,15 @@ func setupIntegrationApp(t *testing.T, httpClient *http.Client) (*fiber.App, db.
 	runTx := controllers.NewTransactionRunner(database)
 
 	sourceCtrl := controllers.NewSourceController()
-	systemCtrl := controllers.NewSystemController()
+	articleCtrl := controllers.NewArticleController()
 	refreshTokenCtrl := controllers.NewRefreshTokenController(30 * 24 * time.Hour)
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	s := app.Group("/v1/sources")
 	s.Post("/create", append(authMiddleware, sourceendpoints.CreateSource(sourceCtrl, runTx))...)
-	s.Get("/rss_discovery", append(authMiddleware, sourceendpoints.RSSDiscovery(httpClient))...)
-	s.Get("/:id/discovery", append(authMiddleware, sourceendpoints.SourceDiscovery(sourceCtrl, systemCtrl, runTx, httpClient))...)
+	s.Get("/rss-discovery", append(authMiddleware, sourceendpoints.RSSDiscovery(httpClient))...)
+	s.Get("/:id/article-discovery", append(authMiddleware, sourceendpoints.SourceArticleDiscovery(sourceCtrl, articleCtrl, runTx, httpClient))...)
 	s.Get("/:id", append(authMiddleware, sourceendpoints.GetSource(sourceCtrl, runTx))...)
 	s.Get("", append(authMiddleware, sourceendpoints.ListSources(sourceCtrl, runTx))...)
 	s.Put("/:id", append(authMiddleware, sourceendpoints.UpdateSource(sourceCtrl, runTx))...)
@@ -493,7 +493,7 @@ func TestIntegration_RSSDiscovery_FindsFeed(t *testing.T) {
 	app, queries := setupIntegrationApp(t, mockClient)
 	_, token := seedUser(t, queries)
 
-	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss_discovery?url=https://mock-site.com", nil)
+	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss-discovery?url=https://mock-site.com", nil)
 	require.NoError(t, err)
 	req.Header.Set("Authorization", "Bearer "+token)
 
@@ -519,7 +519,7 @@ func TestIntegration_RSSDiscovery_EmptyOnNoFeeds(t *testing.T) {
 	app, queries := setupIntegrationApp(t, mockClient)
 	_, token := seedUser(t, queries)
 
-	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss_discovery?url=https://no-feed.com", nil)
+	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss-discovery?url=https://no-feed.com", nil)
 	require.NoError(t, err)
 	req.Header.Set("Authorization", "Bearer "+token)
 

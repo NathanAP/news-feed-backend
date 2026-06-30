@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.19.0.0
+0.20.0.0
 
 ## Versão 0.1.0.0
 
@@ -298,15 +298,15 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.20.0.0
 
-- [ ] Alterar a rota de `baseUrl/v1/sources/rss_discovery` para `rss-discovery`
-- [ ] Alterar a rota de `baseUrl/v1/sources/discovery` para `article-discovery`
-- [ ] Aplicar nova lógica de descoberta de notícias (através da URL original ao invés da hora)
-- [ ] Tratamento de notícias
+- [x] Alterar a rota de `baseUrl/v1/sources/rss_discovery` para `rss-discovery`
+- [x] Alterar a rota de `baseUrl/v1/sources/discovery` para `article-discovery`
+- [x] Aplicar nova lógica de descoberta de notícias (através da URL original ao invés da hora)
+- [x] Tratamento de notícias
     - Realizar o tratamento de notícias de acordo com o `PROJECT.md`
     - Ao final do tratamento a notícia é salva no banco de dados normalmente
     - Lembrete: esse método precisa fazer parte da CRON da descoberta de notícias, porém ela deve ser independente dos outros métodos
     - Lembrete: vamos utilizar Google Gemini 2.5 Flash para os primeiros testes
-- [ ] Criar uma rota de teste para tratar notícias a partir dos dados crus de uma notícia, simulando a exata execução da CRON através do Bruno
+- [x] Criar uma rota de teste para tratar notícias a partir dos dados crus de uma notícia, simulando a exata execução da CRON através do Bruno
     - Detalhes presentes em `PROJECT.md`
     - Pode estar debaixo de `POST /v1/articles/treatment`
     - Vamos adicionar o usuário administrador depois, então essa rota por enquanto pode ficar aberta

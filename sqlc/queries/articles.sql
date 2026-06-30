@@ -8,6 +8,11 @@ SELECT * FROM articles
 WHERE id = ? AND status = 1 AND removed_at IS NULL
 LIMIT 1;
 
+-- name: FindArticleByURLOriginal :one
+SELECT * FROM articles
+WHERE url_original = ? AND status = 1 AND removed_at IS NULL
+LIMIT 1;
+
 -- name: ListArticles :many
 SELECT * FROM articles
 WHERE status = 1 AND removed_at IS NULL

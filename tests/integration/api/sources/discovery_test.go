@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	db "github.com/nathanap/news-feed-backend/sqlc"
 	"github.com/nathanap/news-feed-backend/tests/mocks/external"
 )
 
@@ -39,7 +40,7 @@ func TestIntegration_SourceDiscovery_DryRunReturnsItemsWithoutWriting(t *testing
 	_, token := seedUser(t, queries)
 	id := seedDiscoverySource(t, app, token)
 
-	req, _ := http.NewRequest(http.MethodGet, "/v1/sources/"+id+"/discovery?last_article_discovery_at=2025-01-08T00:00:00Z", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/v1/sources/"+id+"/article-discovery?last_article_discovery_at=2025-01-08T00:00:00Z", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	resp, err := app.Test(req)
 	require.NoError(t, err)
@@ -59,7 +60,9 @@ func TestIntegration_SourceDiscovery_DryRunReturnsItemsWithoutWriting(t *testing
 	assert.Empty(t, articles, "dry-run must not persist any article")
 }
 
-func TestIntegration_SourceDiscovery_WithoutOverrideUsesWatermark(t *testing.T) {
+// TestIntegration_SourceDiscovery_DeduplicatesExisting proves the dry-run mirrors the CRON's
+// url_original deduplication: an article already in the DB is excluded from the discovered set.
+func TestIntegration_SourceDiscovery_DeduplicatesExisting(t *testing.T) {
 	requireNotProduction(t)
 
 	mockClient := external.NewMockRSSClient(map[string]external.MockRSSResponse{
@@ -69,8 +72,19 @@ func TestIntegration_SourceDiscovery_WithoutOverrideUsesWatermark(t *testing.T) 
 	_, token := seedUser(t, queries)
 	id := seedDiscoverySource(t, app, token)
 
-	// No override: watermark is NULL → treated as "now" → only the undated item qualifies.
-	req, _ := http.NewRequest(http.MethodGet, "/v1/sources/"+id+"/discovery", nil)
+	// Pre-create one of the feed's items (https://example.com/fresh) so it gets deduplicated.
+	_, err := queries.CreateArticle(t.Context(), db.CreateArticleParams{
+		ID:          "01900000-0000-7000-8000-0000000000d1",
+		Title:       "Fresh News",
+		Content:     "# already here",
+		UrlOriginal: "https://example.com/fresh",
+		Keywords:    `["a","b","c","d","e"]`,
+		SourceID:    id,
+	})
+	require.NoError(t, err)
+
+	// No date override: all 3 feed items are candidates; the pre-existing one is dropped → 2 left.
+	req, _ := http.NewRequest(http.MethodGet, "/v1/sources/"+id+"/article-discovery", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	resp, err := app.Test(req)
 	require.NoError(t, err)
@@ -79,8 +93,10 @@ func TestIntegration_SourceDiscovery_WithoutOverrideUsesWatermark(t *testing.T) 
 	var result map[string]any
 	require.NoError(t, readJSON(resp, &result))
 	articles := result["articles"].([]any)
-	require.Len(t, articles, 1)
-	assert.Equal(t, "Undated News", articles[0].(map[string]any)["title"])
+	require.Len(t, articles, 2)
+	for _, a := range articles {
+		assert.NotEqual(t, "https://example.com/fresh", a.(map[string]any)["url_original"])
+	}
 }
 
 func TestIntegration_SourceDiscovery_NotFound(t *testing.T) {
@@ -89,7 +105,7 @@ func TestIntegration_SourceDiscovery_NotFound(t *testing.T) {
 	app, queries := setupIntegrationApp(t, http.DefaultClient)
 	_, token := seedUser(t, queries)
 
-	req, _ := http.NewRequest(http.MethodGet, "/v1/sources/non-existent/discovery", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/v1/sources/non-existent/article-discovery", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	resp, err := app.Test(req)
 	require.NoError(t, err)

@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/require"
@@ -94,35 +93,48 @@ func (m *mockSourceCtrl) SoftDelete(ctx context.Context, q db.Querier, id string
 
 var _ controllers.SourceControllerInterface = (*mockSourceCtrl)(nil)
 
-// mockSystemCtrl satisfies SystemControllerInterface for the discovery endpoint. By default it
-// reports an unset watermark (Valid: false), so discovery falls back to "now".
-type mockSystemCtrl struct {
-	getFn func(ctx context.Context, q db.Querier) (db.System, error)
+// mockArticleCtrl satisfies ArticleControllerInterface for the article-discovery endpoint. By
+// default FindByURLOriginal reports "not found", so no item is deduplicated.
+type mockArticleCtrl struct {
+	findByURLOriginalFn func(ctx context.Context, q db.Querier, urlOriginal string) (db.Article, error)
 }
 
-func (m *mockSystemCtrl) Get(ctx context.Context, q db.Querier) (db.System, error) {
-	if m.getFn != nil {
-		return m.getFn(ctx, q)
+func (m *mockArticleCtrl) Create(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string) (db.Article, error) {
+	return db.Article{}, nil
+}
+func (m *mockArticleCtrl) FindByID(_ context.Context, _ db.Querier, _ string) (db.Article, error) {
+	return db.Article{}, controllers.ErrArticleNotFound
+}
+func (m *mockArticleCtrl) FindByURLOriginal(ctx context.Context, q db.Querier, urlOriginal string) (db.Article, error) {
+	if m.findByURLOriginalFn != nil {
+		return m.findByURLOriginalFn(ctx, q, urlOriginal)
 	}
-	return db.System{ID: "01900000-0000-7000-8000-000000000001", AppStatus: 1}, nil
+	return db.Article{}, controllers.ErrArticleNotFound
 }
-func (m *mockSystemCtrl) UpdateAppStatus(_ context.Context, _ db.Querier, _ bool) (db.System, error) {
-	return db.System{}, nil
+func (m *mockArticleCtrl) List(_ context.Context, _ db.Querier) ([]db.Article, error) {
+	return []db.Article{}, nil
 }
-func (m *mockSystemCtrl) UpdateLastArticleDiscovery(_ context.Context, _ db.Querier, _ time.Time) (db.System, error) {
-	return db.System{}, nil
+func (m *mockArticleCtrl) Update(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string) (db.Article, error) {
+	return db.Article{}, nil
+}
+func (m *mockArticleCtrl) SoftDelete(_ context.Context, _ db.Querier, _ string) error {
+	return nil
 }
 
-var _ controllers.SystemControllerInterface = (*mockSystemCtrl)(nil)
+var _ controllers.ArticleControllerInterface = (*mockArticleCtrl)(nil)
 
 func buildApp(ctrl controllers.SourceControllerInterface, httpClient *http.Client) *fiber.App {
+	return buildAppWithArticles(ctrl, &mockArticleCtrl{}, httpClient)
+}
+
+func buildAppWithArticles(ctrl controllers.SourceControllerInterface, articleCtrl controllers.ArticleControllerInterface, httpClient *http.Client) *fiber.App {
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
 
 	s := app.Group("/v1/sources")
 	s.Post("/create", append(authMiddleware, sourceendpoints.CreateSource(ctrl, fakeTxRunner))...)
-	s.Get("/rss_discovery", append(authMiddleware, sourceendpoints.RSSDiscovery(httpClient))...)
-	s.Get("/:id/discovery", append(authMiddleware, sourceendpoints.SourceDiscovery(ctrl, &mockSystemCtrl{}, fakeTxRunner, httpClient))...)
+	s.Get("/rss-discovery", append(authMiddleware, sourceendpoints.RSSDiscovery(httpClient))...)
+	s.Get("/:id/article-discovery", append(authMiddleware, sourceendpoints.SourceArticleDiscovery(ctrl, articleCtrl, fakeTxRunner, httpClient))...)
 	s.Get("/:id", append(authMiddleware, sourceendpoints.GetSource(ctrl, fakeTxRunner))...)
 	s.Get("", append(authMiddleware, sourceendpoints.ListSources(ctrl, fakeTxRunner))...)
 	s.Put("/:id", append(authMiddleware, sourceendpoints.UpdateSource(ctrl, fakeTxRunner))...)

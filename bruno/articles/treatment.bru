@@ -1,0 +1,34 @@
+meta {
+  name: Article Treatment (dry-run)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/v1/articles/treatment
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "article": {
+      "title": "Título cru da notícia",
+      "content": "Conteúdo cru da notícia, como sai da descoberta do RSS.",
+      "url_original": "https://example.com/news/raw"
+    }
+  }
+}
+
+docs {
+  Dry-run do tratamento de uma notícia: roda as duas chamadas de IA (tratar o conteúdo e depois
+  nomear as palavras-chave sobre o conteúdo já tratado) e retorna o resultado. NÃO grava nada.
+  
+  Atenção: chama o provedor de IA de verdade (consome quota). `article.title` e `article.content`
+  são obrigatórios (400). Retorna 200 com `{ content, keywords }`; 500 em falha de IA. Aberta por
+  enquanto; futuramente restrita a administradores.
+}

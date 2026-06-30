@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"embed"
 	"fmt"
@@ -19,6 +20,8 @@ import (
 
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/middlewares"
+	"github.com/nathanap/news-feed-backend/services/ai"
+	"github.com/nathanap/news-feed-backend/services/ai/gemini"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	"github.com/nathanap/news-feed-backend/services/cron"
 	"github.com/nathanap/news-feed-backend/services/discovery"
@@ -98,6 +101,7 @@ func main() {
 	afCtrl := controllers.NewArticleFeedController()
 	feedCtrl := controllers.NewFeedController()
 	systemCtrl := controllers.NewSystemController()
+	aiClient := buildAIClient()
 
 	authMiddleware := middlewares.NewAuthMiddleware(jwtSecret, refreshTokenCtrl, runTx)
 
@@ -134,8 +138,8 @@ func main() {
 
 	sources := api.Group("/sources")
 	sources.Post("/create", append(authMiddleware, sourceendpoints.CreateSource(sourceCtrl, runTx))...)
-	sources.Get("/rss_discovery", append(authMiddleware, sourceendpoints.RSSDiscovery(&http.Client{}))...)
-	sources.Get("/:id/discovery", append(authMiddleware, sourceendpoints.SourceDiscovery(sourceCtrl, systemCtrl, runTx, discoveryHTTPClient))...)
+	sources.Get("/rss-discovery", append(authMiddleware, sourceendpoints.RSSDiscovery(&http.Client{}))...)
+	sources.Get("/:id/article-discovery", append(authMiddleware, sourceendpoints.SourceArticleDiscovery(sourceCtrl, articleCtrl, runTx, discoveryHTTPClient))...)
 	sources.Get("/:id", append(authMiddleware, sourceendpoints.GetSource(sourceCtrl, runTx))...)
 	sources.Get("", append(authMiddleware, sourceendpoints.ListSources(sourceCtrl, runTx))...)
 	sources.Put("/:id", append(authMiddleware, sourceendpoints.UpdateSource(sourceCtrl, runTx))...)
@@ -143,6 +147,7 @@ func main() {
 
 	articles := api.Group("/articles")
 	articles.Post("/create", append(authMiddleware, articleendpoints.CreateArticle(articleCtrl, runTx))...)
+	articles.Post("/treatment", append(authMiddleware, articleendpoints.TreatArticle(aiClient))...)
 	articles.Put("/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(articleCtrl, afCtrl, runTx))...)
 	articles.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, runTx))...)
 	articles.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, runTx))...)
@@ -158,7 +163,8 @@ func main() {
 
 	if os.Getenv("RSS_FEED_CRON_ACTIVE") == "true" {
 		cronVerbose := os.Getenv("RSS_FEED_CRON_VERBOSE_MODE") == "true"
-		runner := cron.NewDiscoveryRunner(runTx, sourceCtrl, systemCtrl, discovery.NewNoopProcessor(), discoveryHTTPClient, cronVerbose)
+		processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, aiClient, cronVerbose)
+		runner := cron.NewDiscoveryRunner(runTx, sourceCtrl, systemCtrl, processor, discoveryHTTPClient, cronVerbose)
 		scheduler, err := cron.NewScheduler(os.Getenv("RSS_FEED_CRON_SCHEDULE"), runner)
 		if err != nil {
 			log.Fatalf("Failed to set up discovery cron: %v", err)
@@ -173,6 +179,25 @@ func main() {
 	}
 
 	log.Fatal(app.Listen(":" + apiPort))
+}
+
+// buildAIClient wires the configured AI provider. When GOOGLE_API_KEY/PRIMARY_AI_MODEL are not
+// set (e.g. local dev without credentials) it returns a disabled client so the app still boots and
+// serves non-AI features; AI-dependent paths then fail clearly instead of crashing at startup.
+func buildAIClient() ai.Client {
+	apiKey := os.Getenv("GOOGLE_API_KEY")
+	model := os.Getenv("PRIMARY_AI_MODEL")
+	if apiKey == "" || model == "" {
+		log.Println("AI disabled: set GOOGLE_API_KEY and PRIMARY_AI_MODEL to enable treatment")
+		return ai.NewDisabledClient()
+	}
+
+	client, err := gemini.NewClient(context.Background(), apiKey, model)
+	if err != nil {
+		log.Printf("Failed to initialize Gemini client, AI disabled: %v", err)
+		return ai.NewDisabledClient()
+	}
+	return client
 }
 
 func runMigrations(database *sql.DB) error {

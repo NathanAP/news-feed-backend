@@ -53,7 +53,6 @@ func (r *DiscoveryRunner) Run(ctx context.Context) error {
 
 	var (
 		active  bool
-		since   time.Time
 		sources []db.Source
 	)
 	err := r.runTx(ctx, func(q db.Querier) error {
@@ -62,7 +61,6 @@ func (r *DiscoveryRunner) Run(ctx context.Context) error {
 			return err
 		}
 		active = system.AppStatus == 1
-		since = discovery.EffectiveSince(system.LastArticleDiscoveryAt, now)
 		if !active {
 			return nil
 		}
@@ -78,19 +76,18 @@ func (r *DiscoveryRunner) Run(ctx context.Context) error {
 		return nil
 	}
 
-	r.log(fmt.Sprintf("@@@ DISCOVERY START - %d source(s), since %s @@@", len(sources), since.Format(time.RFC3339)), logger.ColorYellow)
+	r.log(fmt.Sprintf("@@@ DISCOVERY START - %d source(s) @@@", len(sources)), logger.ColorYellow)
 
 	all := make([]discovery.DiscoveredArticle, 0)
 	for _, source := range sources {
-		items, err := discovery.DiscoverFromSource(ctx, r.httpClient, source, since)
+		// No date lower bound: deduplication by url_original (in the processor) is the reliable
+		// "is it new?" mechanism.
+		items, err := discovery.DiscoverFromSource(ctx, r.httpClient, source, time.Time{})
 		if err != nil {
 			r.log(fmt.Sprintf("  source %s (%s) FAILED: %v", source.ID, source.UrlRss, err), logger.ColorRed)
 			continue // isolate the failure — one bad feed must not abort the run
 		}
-		r.log(fmt.Sprintf("  source %s (%s): %d new item(s)", source.ID, source.UrlRss, len(items)), logger.ColorCyan)
-		for _, item := range items {
-			r.log(fmt.Sprintf("    - %s (%s)", item.Title, item.URLOriginal), logger.ColorBlue)
-		}
+		r.log(fmt.Sprintf("  source %s (%s): %d feed item(s)", source.ID, source.UrlRss, len(items)), logger.ColorCyan)
 		all = append(all, items...)
 	}
 
@@ -107,7 +104,7 @@ func (r *DiscoveryRunner) Run(ctx context.Context) error {
 		return err
 	}
 
-	r.log(fmt.Sprintf("@@@ DISCOVERY END - %d total new item(s), watermark=%s @@@", len(all), now.Format(time.RFC3339)), logger.ColorGreen)
+	r.log(fmt.Sprintf("@@@ DISCOVERY END - %d feed item(s) processed, watermark=%s @@@", len(all), now.Format(time.RFC3339)), logger.ColorGreen)
 	return nil
 }
 

@@ -25,7 +25,7 @@ func TestRSSDiscovery_FindsFeedViaHTMLLink(t *testing.T) {
 	})
 	app := buildApp(&mockSourceCtrl{}, mockClient)
 
-	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss_discovery?url=https://example.com", nil)
+	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss-discovery?url=https://example.com", nil)
 	require.NoError(t, err)
 	req.Header.Set("Authorization", authHeader(t))
 
@@ -56,7 +56,7 @@ func TestRSSDiscovery_FindsFeedViaCommonPath(t *testing.T) {
 	})
 	app := buildApp(&mockSourceCtrl{}, mockClient)
 
-	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss_discovery?url=https://example.com", nil)
+	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss-discovery?url=https://example.com", nil)
 	require.NoError(t, err)
 	req.Header.Set("Authorization", authHeader(t))
 
@@ -82,7 +82,7 @@ func TestRSSDiscovery_NoFeedsFound(t *testing.T) {
 	})
 	app := buildApp(&mockSourceCtrl{}, mockClient)
 
-	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss_discovery?url=https://example.com", nil)
+	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss-discovery?url=https://example.com", nil)
 	require.NoError(t, err)
 	req.Header.Set("Authorization", authHeader(t))
 
@@ -101,7 +101,7 @@ func TestRSSDiscovery_MissingURLParam(t *testing.T) {
 	requireNotProduction(t)
 
 	app := defaultApp()
-	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss_discovery", nil)
+	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss-discovery", nil)
 	require.NoError(t, err)
 	req.Header.Set("Authorization", authHeader(t))
 
@@ -114,7 +114,7 @@ func TestRSSDiscovery_InvalidURL(t *testing.T) {
 	requireNotProduction(t)
 
 	app := defaultApp()
-	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss_discovery?url=not-a-url", nil)
+	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss-discovery?url=not-a-url", nil)
 	require.NoError(t, err)
 	req.Header.Set("Authorization", authHeader(t))
 
@@ -127,7 +127,7 @@ func TestRSSDiscovery_Unauthenticated(t *testing.T) {
 	requireNotProduction(t)
 
 	app := defaultApp()
-	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss_discovery?url=https://example.com", nil)
+	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss-discovery?url=https://example.com", nil)
 	require.NoError(t, err)
 
 	resp, err := app.Test(req)
@@ -143,7 +143,7 @@ func TestRSSDiscovery_HTTPErrorReturnsEmptyFeeds(t *testing.T) {
 	})
 	app := buildApp(&mockSourceCtrl{}, mockClient)
 
-	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss_discovery?url=https://unreachable.com", nil)
+	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss-discovery?url=https://unreachable.com", nil)
 	require.NoError(t, err)
 	req.Header.Set("Authorization", authHeader(t))
 

@@ -51,11 +51,12 @@ func (m *mockRefreshTokenCtrl) RevokeAll(_ context.Context, _ db.Querier, _ stri
 var _ controllers.RefreshTokenControllerInterface = (*mockRefreshTokenCtrl)(nil)
 
 type mockArticleCtrl struct {
-	createFn     func(ctx context.Context, q db.Querier, title, content, urlOriginal, sourceID string, keywords []string) (db.Article, error)
-	findByIDFn   func(ctx context.Context, q db.Querier, id string) (db.Article, error)
-	listFn       func(ctx context.Context, q db.Querier) ([]db.Article, error)
-	updateFn     func(ctx context.Context, q db.Querier, id, title, content, urlOriginal string, keywords []string) (db.Article, error)
-	softDeleteFn func(ctx context.Context, q db.Querier, id string) error
+	createFn            func(ctx context.Context, q db.Querier, title, content, urlOriginal, sourceID string, keywords []string) (db.Article, error)
+	findByIDFn          func(ctx context.Context, q db.Querier, id string) (db.Article, error)
+	findByURLOriginalFn func(ctx context.Context, q db.Querier, urlOriginal string) (db.Article, error)
+	listFn              func(ctx context.Context, q db.Querier) ([]db.Article, error)
+	updateFn            func(ctx context.Context, q db.Querier, id, title, content, urlOriginal string, keywords []string) (db.Article, error)
+	softDeleteFn        func(ctx context.Context, q db.Querier, id string) error
 }
 
 func (m *mockArticleCtrl) Create(ctx context.Context, q db.Querier, title, content, urlOriginal, sourceID string, keywords []string) (db.Article, error) {
@@ -69,6 +70,12 @@ func (m *mockArticleCtrl) FindByID(ctx context.Context, q db.Querier, id string)
 		return m.findByIDFn(ctx, q, id)
 	}
 	return fixtures.NewTestArticle(), nil
+}
+func (m *mockArticleCtrl) FindByURLOriginal(ctx context.Context, q db.Querier, urlOriginal string) (db.Article, error) {
+	if m.findByURLOriginalFn != nil {
+		return m.findByURLOriginalFn(ctx, q, urlOriginal)
+	}
+	return db.Article{}, controllers.ErrArticleNotFound
 }
 func (m *mockArticleCtrl) List(ctx context.Context, q db.Querier) ([]db.Article, error) {
 	if m.listFn != nil {

@@ -15,6 +15,25 @@ type CreateArticleRequest struct {
 	SourceID    string   `json:"source_id"`
 }
 
+// RawArticleInput is the untreated article data (as it comes out of discovery), used as input to
+// the treatment dry-run endpoint.
+type RawArticleInput struct {
+	Title       string `json:"title"`
+	Content     string `json:"content"`
+	URLOriginal string `json:"url_original"`
+}
+
+type TreatArticleRequest struct {
+	Article RawArticleInput `json:"article"`
+}
+
+// ArticleTreatmentResponse is the result of treating a raw article: cleaned content plus the
+// assigned keywords.
+type ArticleTreatmentResponse struct {
+	Content  string   `json:"content"`
+	Keywords []string `json:"keywords"`
+}
+
 // UpdateArticleRequest intentionally omits source_id: the article's source is immutable.
 type UpdateArticleRequest struct {
 	Title       string   `json:"title"`
