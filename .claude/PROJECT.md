@@ -197,6 +197,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - As notícias só podem ser consideradas como novas quando elas foram publicadas desde a última vez que a CRON foi executada. Essa variável está presente na tabela `system`.
 - Quando descoberta uma nova notícia o tratamento de notícias é iniciado (as regras de tratamento de notícias estão na sessão "tratamento de notícias").
 - Ao final da descoberta de notícias a variável `last_article_discovery_at` na tabela `system` é escrita com a hora atual.
+- Quando a primeira descoberta for feita (`last_article_discovery_at` estiver com valor vazio), a aplicação deve considerar o valor `now()` para não superlotar o tratamento de notícias. Depois o fluxo segue normalmente utilizando o atual valor de `last_article_discovery_at`.
 - Um endpoint de teste para esse processo pode ser encontrado em `GET base_url/v1/sources/{id}/discovery`.
     - Esse endpoint deve ser exclusivo para administradores.
     - Esse endpoint é considerada uma dry-run, ou seja, ela não cria ou altera nenhum registro do banco de dados (incluindo `last_article_discovery_at` de `system`).

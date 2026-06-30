@@ -290,6 +290,7 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Crie um bom log para mostrar a CRON funcionando, principalmente porque nesse ponto do dev nada será gravado no banco de dados, então para o teste visual é importante ver algo como "a CRON rodou e trouxe isso aqui" (variável de ambiente `RSS_FEED_CRON_VERBOSE_MODE`)
     - Lembrete: ao final desse processo, deve escrever em `system.last_article_discovery_at` a hora atual para armazenar a última descoberta de notícias
     - Lembrete: o próximo passo após a descoberta é o tratamento e julgamento que será feito na versão 0.20, deixe isso preparado para evoluir
+    - Lembrete: aplicar o tratamento de `now()` quando `last_article_discovery_at` estiver vazio (primeira run da cron)
 - [ ] Criar uma rota de teste para descobrir notícias a partir de uma source, simulando a exata execução da CRON através do Bruno
     - Detalhes presentes em `PROJECT.md`
     - Vamos adicionar o usuário administrador depois, então essa rota por enquanto pode ficar aberta
