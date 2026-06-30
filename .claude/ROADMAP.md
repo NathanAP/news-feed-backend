@@ -303,16 +303,23 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [ ] Aplicar nova lógica de descoberta de notícias (através da URL original ao invés da hora)
 - [ ] Tratamento de notícias
     - Lembrete: vamos utilizar Google Gemini 2.5 Flash para os primeiros testes
+- [ ] Criar uma rota de teste para tratar notícias a partir dos dados crus de uma notícia, simulando a exata execução da CRON através do Bruno
+    - Detalhes presentes em `PROJECT.md`
+    - Dúvida: "treatment" é um bom termo aqui?
+    - Vamos adicionar o usuário administrador depois, então essa rota por enquanto pode ficar aberta
+
+## Versão 0.21.0.0
+
 - [ ] Julgamento de notícias aos feeds
 - [ ] Implementar julgamento de notícias por palavras-chave
 - [ ] Implementar julgamento de notícias por IA
 
-## Versão 0.21.0.0
+## Versão 0.22.0.0
 
 - [ ] Resumo personalizado
 - [ ] Tradução personalizada
 
-## Versão 0.22.0.0
+## Versão 0.23.0.0
 
 - [ ] Deploy
     - [ ] Docker funcionando

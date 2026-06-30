@@ -203,9 +203,10 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Um endpoint de teste para esse processo pode ser encontrado em `GET base_url/v1/sources/{id}/article-discovery`.
     - Esse endpoint deve ser exclusivo para administradores.
     - Esse endpoint é considerada uma dry-run, ou seja, ela não cria ou altera nenhum registro do banco de dados (incluindo `last_article_discovery_at` de `system`).
-    - Esse endpoint deve aceitar os seguintes parâmetros para testes:
+    - Esse endpoint deve aceitar os seguintes parâmetros:
         - `id`: uma fonte de notícias válida.
         - `last_article_discovery_at` (query opcional): uma data para fazer o teste sem depender da espera de uma notícia nova naquela fonte de notícias.
+    - Esse endpoint responde pelos dados dos artigos descobertos.
 
 ## Tratamento de notícias
 
@@ -221,6 +222,12 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Personalizar a notícia: tentaremos manter a seriedade e tom de humor que a notícia tem originalmente.
     - Trazer opinião própria.
 - Depois de tratada, a notícia é finalmente salva no banco de dados e pode passar então para o julgamento.
+- Um endpoint de teste para esse processo pode ser encontrado em `POST base_url/v1/sources/article-treatment`.
+    - Esse endpoint deve ser exclusivo para administradores.
+    - Esse endpoint é considerada uma dry-run, ou seja, ela não cria ou altera nenhum registro do banco de dados.
+    - O body deste endpoint deve aceitar:
+        - `article`: um `json` contendo os dados de uma notícia, obtidos diretamente através da descoberta de notícias.
+    - Esse endpoint responde pelos dados do tratamento de notícias.
 
 ## Traduzindo notícias
 
