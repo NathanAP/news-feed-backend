@@ -300,6 +300,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 - [ ] Alterar a rota de `baseUrl/v1/sources/rss_discovery` para `rss-discovery`
 - [ ] Alterar a rota de `baseUrl/v1/sources/discovery` para `article-discovery`
+- [ ] Aplicar nova lógica de descoberta de notícias (através da URL original ao invés da hora)
 - [ ] Tratamento de notícias
     - Lembrete: vamos utilizar Google Gemini 2.5 Flash para os primeiros testes
 - [ ] Julgamento de notícias aos feeds
@@ -328,6 +329,10 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
 - Limpar o main
 - Transportar a iniciação de endpoints para outro lugar, health para /api
 - Criar uma rota para aceitar sugestões de fontes de notícias
+- Tratar notícias que se auto-atualizam
+    - Talvez dá pra fazer a IA descobrir se a notícia está marcada como "em atualização" para flaggear no banco de dados
+    - A partir daquele momento, outra tarefa da CRON vai atrás apenas das notícias em atualização para ir atualizando ela de tempos em tempos, passando por todo o tratamento toda vez até que sua flag se torne "false"
+    - O Claude falou que gofeed consegue fazer essa detecção também que pode servir como uma outra solução para esses casos
 - Logger e observabilidade
 - Swagger
 - Associação de notícias (como uma notícia se liga à outra?)

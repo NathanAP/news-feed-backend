@@ -146,7 +146,9 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 - As notícias são o principal motivo da aplicação existir e podem ser sub-entendidas com a nomenclatura "artigo" também.
 - As notícias são descobertas automaticamente através das fontes de notícias.
-- Para uma notícia ser descoberta e registrada, o RSS de cada fonte registrada é consultado de tempos em tempos. Ao notar uma nova notícia presente, uma inteligência artificial é acionada para tratar o conteúdo e gravar essa versão em nosso banco de dados.
+- Para uma notícia ser descoberta e registrada, o RSS de cada fonte registrada é consultado de tempos em tempos. Ao notar uma nova notícia presente, tratamento de conteúdo também é acionado para fazer suas ações até gravar essa versão em nosso banco de dados.
+- Uma notícia do RSS é considerada nova quando a URL original dela não está presente na nossa lista de notícias.
+    - Dito isso, a `url_original` da notícia é única dentro das outras notícias ativas no banco de dados.
 - Um usuário tem acesso a qualquer notícia registrada na aplicação.
     - As regras para quando a notícia não está em nenhum dos feeds do usuário estão explicadas na sessão "Feed x Notícias".
 - As notícias só podem ser criadas, editadas ou excluídas por usuário administradores.
@@ -194,7 +196,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - `RSS_FEED_CRON_SCHEDULE`: o intervalo na qual a CRON irá rodar.
     - `RSS_FEED_CRON_VERBOSE_MODE`: apesar de não ser importante para rodar a CRON, essa variável de ambiente mostra junto as logs a saída de cada chamada da CRON quando estiver marcada como `true`.
 - A descoberta de notícias deve acessar cada uma das fontes de notícias cadastradas no banco de dados, olhando pelo RSS de cada uma delas para decidir se há alguma nova notícia.
-    - As notícias só podem ser consideradas como novas quando elas foram publicadas desde a última vez que a CRON foi executada. Essa variável está presente na tabela `system`.
+    - Uma notícia do RSS é considerada nova quando a URL original dela não está presente na nossa lista de notícias.
 - Quando descoberta uma nova notícia o tratamento de notícias é iniciado (as regras de tratamento de notícias estão na sessão "tratamento de notícias").
 - Ao final da descoberta de notícias a variável `last_article_discovery_at` na tabela `system` é escrita com a hora atual.
 - Quando a primeira descoberta for feita (`last_article_discovery_at` estiver com valor vazio), a aplicação deve considerar o valor `now()` para não superlotar o tratamento de notícias. Depois o fluxo segue normalmente utilizando o atual valor de `last_article_discovery_at`.
