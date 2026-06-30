@@ -38,6 +38,7 @@
 ## Sources (`/v1/sources`) — auth (semântica admin; hoje aberta a qualquer autenticado)
 - `POST /sources/create` — `{ url, url_rss }` → 201 / 400 / 409 (url duplicada entre ativas) / 500.
 - `GET /sources/rss_discovery?url=` — descobre feeds RSS da URL → 200 `{ feeds: [...] }` (lista pode ser vazia) / 400.
+- `GET /sources/:id/discovery` — **dry-run** da descoberta de notícias de 1 source (simula a CRON). Não grava nada nem avança o watermark. Query opcional `last_article_discovery_at` (RFC3339 UTC) sobrepõe o limite inferior; sem ela usa `system.last_article_discovery_at` (vazio → tratado como agora). → 200 `{ articles: [...] }` (pode ser vazia) / 400 (data inválida) / 404 (source inexistente). Aberta (admin-futuro).
 - `GET /sources/:id` → 200 / 404.
 - `GET /sources?url=` — filtro por substring na url → 200 (lista).
 - `PUT /sources/:id` — `{ url, url_rss }` → 200 / 400 / 404 / 409.
@@ -61,6 +62,13 @@
 - `GET /feeds?name=` — só os próprios feeds, filtro por substring no nome → 200 (lista).
 - `PUT /feeds/:id` — `{ name, keywords }` (sem `user_id`, imutável) → 200 / 400 / 404.
 - `DELETE /feeds/:id` — soft delete (permanente, sem reativação) → 204 / 404.
+
+## Descoberta automática (CRON, sem rota)
+- CRON interna (`services/cron`, `robfig/cron/v3`) varre as sources ativas em `RSS_FEED_CRON_SCHEDULE`,
+  ativa por `RSS_FEED_CRON_ACTIVE`. Lê o RSS de cada source (gofeed), filtra "novo" por
+  `system.last_article_discovery_at` (vazio → agora; item sem data sempre entra) e ao final grava o
+  watermark. **0.19 não persiste** notícias (seam `Processor` = no-op; persistência/IA na 0.20).
+  Pula a run quando `app_status` está off. Logs gated por `RSS_FEED_CRON_VERBOSE_MODE`.
 
 ## Notas
 - Todo endpoint dispara log de início/fim quando `VERBOSE_MODE=true`.

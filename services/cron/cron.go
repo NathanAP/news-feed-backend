@@ -1,0 +1,143 @@
+package cron
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"time"
+
+	robfigcron "github.com/robfig/cron/v3"
+
+	"github.com/nathanap/news-feed-backend/logger"
+	"github.com/nathanap/news-feed-backend/services/controllers"
+	"github.com/nathanap/news-feed-backend/services/discovery"
+	db "github.com/nathanap/news-feed-backend/sqlc"
+)
+
+// DiscoveryRunner executes one discovery sweep over every active source. The scheduler invokes it
+// on each tick, and the test endpoint mirrors the same logic scoped to a single source.
+type DiscoveryRunner struct {
+	runTx      controllers.TransactionRunner
+	sourceCtrl controllers.SourceControllerInterface
+	systemCtrl controllers.SystemControllerInterface
+	processor  discovery.Processor
+	httpClient *http.Client
+	verbose    bool
+}
+
+func NewDiscoveryRunner(
+	runTx controllers.TransactionRunner,
+	sourceCtrl controllers.SourceControllerInterface,
+	systemCtrl controllers.SystemControllerInterface,
+	processor discovery.Processor,
+	httpClient *http.Client,
+	verbose bool,
+) *DiscoveryRunner {
+	return &DiscoveryRunner{
+		runTx:      runTx,
+		sourceCtrl: sourceCtrl,
+		systemCtrl: systemCtrl,
+		processor:  processor,
+		httpClient: httpClient,
+		verbose:    verbose,
+	}
+}
+
+// Run performs a full discovery sweep: it reads the active sources and the watermark, fetches each
+// feed (isolating per-source failures), hands the results to the processor, and finally advances
+// the watermark. Network calls happen outside any transaction. While the app is under maintenance
+// (app_status off) the run is skipped. Nothing is persisted in 0.19 — the processor is a no-op and
+// the verbose log is the visual proof that the CRON ran and what it brought.
+func (r *DiscoveryRunner) Run(ctx context.Context) error {
+	now := time.Now().UTC()
+
+	var (
+		active  bool
+		since   time.Time
+		sources []db.Source
+	)
+	err := r.runTx(ctx, func(q db.Querier) error {
+		system, err := r.systemCtrl.Get(ctx, q)
+		if err != nil {
+			return err
+		}
+		active = system.AppStatus == 1
+		since = discovery.EffectiveSince(system.LastArticleDiscoveryAt, now)
+		if !active {
+			return nil
+		}
+		sources, err = r.sourceCtrl.List(ctx, q)
+		return err
+	})
+	if err != nil {
+		r.log(fmt.Sprintf("@@@ DISCOVERY ABORTED: %v @@@", err), logger.ColorRed)
+		return err
+	}
+	if !active {
+		r.log("@@@ DISCOVERY SKIPPED - app_status is off (maintenance) @@@", logger.ColorYellow)
+		return nil
+	}
+
+	r.log(fmt.Sprintf("@@@ DISCOVERY START - %d source(s), since %s @@@", len(sources), since.Format(time.RFC3339)), logger.ColorYellow)
+
+	all := make([]discovery.DiscoveredArticle, 0)
+	for _, source := range sources {
+		items, err := discovery.DiscoverFromSource(ctx, r.httpClient, source, since)
+		if err != nil {
+			r.log(fmt.Sprintf("  source %s (%s) FAILED: %v", source.ID, source.UrlRss, err), logger.ColorRed)
+			continue // isolate the failure — one bad feed must not abort the run
+		}
+		r.log(fmt.Sprintf("  source %s (%s): %d new item(s)", source.ID, source.UrlRss, len(items)), logger.ColorCyan)
+		for _, item := range items {
+			r.log(fmt.Sprintf("    - %s (%s)", item.Title, item.URLOriginal), logger.ColorBlue)
+		}
+		all = append(all, items...)
+	}
+
+	if err := r.processor.Process(ctx, all); err != nil {
+		r.log(fmt.Sprintf("@@@ DISCOVERY PROCESSOR FAILED: %v @@@", err), logger.ColorRed)
+		return err
+	}
+
+	if err := r.runTx(ctx, func(q db.Querier) error {
+		_, err := r.systemCtrl.UpdateLastArticleDiscovery(ctx, q, now)
+		return err
+	}); err != nil {
+		r.log(fmt.Sprintf("@@@ DISCOVERY WATERMARK UPDATE FAILED: %v @@@", err), logger.ColorRed)
+		return err
+	}
+
+	r.log(fmt.Sprintf("@@@ DISCOVERY END - %d total new item(s), watermark=%s @@@", len(all), now.Format(time.RFC3339)), logger.ColorGreen)
+	return nil
+}
+
+func (r *DiscoveryRunner) log(message string, color logger.Color) {
+	if r.verbose {
+		logger.Print(message, color)
+	}
+}
+
+// Scheduler wraps the cron engine that ticks the discovery run on RSS_FEED_CRON_SCHEDULE.
+type Scheduler struct {
+	cron *robfigcron.Cron
+}
+
+// NewScheduler builds a scheduler that runs the discovery sweep on the given schedule (e.g.
+// "@every 15m"). It does not start ticking until Start is called.
+func NewScheduler(schedule string, runner *DiscoveryRunner) (*Scheduler, error) {
+	c := robfigcron.New()
+	if _, err := c.AddFunc(schedule, func() {
+		_ = runner.Run(context.Background())
+	}); err != nil {
+		return nil, fmt.Errorf("invalid cron schedule %q: %w", schedule, err)
+	}
+	return &Scheduler{cron: c}, nil
+}
+
+func (s *Scheduler) Start() {
+	s.cron.Start()
+}
+
+func (s *Scheduler) Stop() {
+	s.cron.Stop()
+}

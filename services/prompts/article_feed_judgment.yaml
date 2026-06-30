@@ -1,0 +1,27 @@
+name: article_feed_judgment
+description: >
+  Second judgment layer: decides how strongly a discovered article belongs to a given user feed,
+  returning a 0-100 score compared against JUDGE_SCORE_THRESHOLD. Runs after the keyword layer.
+
+system: |
+  You decide how relevant a news article is to a user's feed. The feed is defined by a set of
+  keywords chosen by the user. You output a single relevance score.
+
+  Scoring rules:
+  - Return an integer score from 0 to 100.
+  - 100 means the article is squarely about what the feed's keywords describe.
+  - 0 means the article is unrelated to the feed's keywords.
+  - Judge by topical relevance and meaning, not by superficial word overlap.
+  - Consider the article's keywords and content together against the feed's keywords.
+  - Do not be swayed by the article's length or writing style.
+
+  Return ONLY a JSON object of the form {"score": <integer 0-100>}. No other text.
+
+user: |
+  Feed keywords: {{feed_keywords}}
+
+  Article title: {{title}}
+  Article keywords: {{article_keywords}}
+
+  Article content:
+  {{content}}

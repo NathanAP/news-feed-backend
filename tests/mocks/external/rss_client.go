@@ -56,6 +56,34 @@ const SampleRSSFeed = `<?xml version="1.0" encoding="UTF-8"?>
   </channel>
 </rss>`
 
+// SampleRSSFeedDated is an RSS 2.0 document with dated items plus one undated item, used to test
+// the discovery "new since" filter. Dates: old = 2025-01-06, fresh = 2025-01-10.
+const SampleRSSFeedDated = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Dated Feed</title>
+    <link>https://example.com</link>
+    <description>A dated test RSS feed</description>
+    <item>
+      <title>Old News</title>
+      <link>https://example.com/old</link>
+      <description>Old item</description>
+      <pubDate>Mon, 06 Jan 2025 08:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Fresh News</title>
+      <link>https://example.com/fresh</link>
+      <description>Fresh item</description>
+      <pubDate>Fri, 10 Jan 2025 08:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Undated News</title>
+      <link>https://example.com/undated</link>
+      <description>Undated item</description>
+    </item>
+  </channel>
+</rss>`
+
 // SampleHTMLWithRSSLink is an HTML page that declares a feed via <link rel="alternate">.
 const SampleHTMLWithRSSLink = `<!DOCTYPE html>
 <html>

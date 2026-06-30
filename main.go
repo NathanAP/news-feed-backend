@@ -20,6 +20,8 @@ import (
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/middlewares"
 	"github.com/nathanap/news-feed-backend/services/controllers"
+	"github.com/nathanap/news-feed-backend/services/cron"
+	"github.com/nathanap/news-feed-backend/services/discovery"
 	articleendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/articles"
 	authendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/auth"
 	feedendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/feeds"
@@ -128,9 +130,12 @@ func main() {
 	users.Get("/me/preferences", append(authMiddleware, userendpoints.GetPreferences())...)
 	users.Put("/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(prefCtrl, authCtrl, runTx, int(accessTokenExpiry.Seconds())))...)
 
+	discoveryHTTPClient := &http.Client{Timeout: 30 * time.Second}
+
 	sources := api.Group("/sources")
 	sources.Post("/create", append(authMiddleware, sourceendpoints.CreateSource(sourceCtrl, runTx))...)
 	sources.Get("/rss_discovery", append(authMiddleware, sourceendpoints.RSSDiscovery(&http.Client{}))...)
+	sources.Get("/:id/discovery", append(authMiddleware, sourceendpoints.SourceDiscovery(sourceCtrl, systemCtrl, runTx, discoveryHTTPClient))...)
 	sources.Get("/:id", append(authMiddleware, sourceendpoints.GetSource(sourceCtrl, runTx))...)
 	sources.Get("", append(authMiddleware, sourceendpoints.ListSources(sourceCtrl, runTx))...)
 	sources.Put("/:id", append(authMiddleware, sourceendpoints.UpdateSource(sourceCtrl, runTx))...)
@@ -150,6 +155,17 @@ func main() {
 	feeds.Get("", append(authMiddleware, feedendpoints.ListFeeds(feedCtrl, runTx))...)
 	feeds.Put("/:id", append(authMiddleware, feedendpoints.UpdateFeed(feedCtrl, runTx))...)
 	feeds.Delete("/:id", append(authMiddleware, feedendpoints.DeleteFeed(feedCtrl, runTx))...)
+
+	if os.Getenv("RSS_FEED_CRON_ACTIVE") == "true" {
+		cronVerbose := os.Getenv("RSS_FEED_CRON_VERBOSE_MODE") == "true"
+		runner := cron.NewDiscoveryRunner(runTx, sourceCtrl, systemCtrl, discovery.NewNoopProcessor(), discoveryHTTPClient, cronVerbose)
+		scheduler, err := cron.NewScheduler(os.Getenv("RSS_FEED_CRON_SCHEDULE"), runner)
+		if err != nil {
+			log.Fatalf("Failed to set up discovery cron: %v", err)
+		}
+		scheduler.Start()
+		log.Println("Discovery cron started")
+	}
 
 	apiPort := os.Getenv("API_PORT")
 	if apiPort == "" {

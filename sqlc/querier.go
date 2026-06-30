@@ -6,6 +6,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 type Querier interface {
@@ -44,6 +45,7 @@ type Querier interface {
 	UpdateFeedByIDAndUser(ctx context.Context, arg UpdateFeedByIDAndUserParams) (Feed, error)
 	UpdateSource(ctx context.Context, arg UpdateSourceParams) (Source, error)
 	UpdateSystemAppStatus(ctx context.Context, appStatus int64) (System, error)
+	UpdateSystemLastArticleDiscovery(ctx context.Context, lastArticleDiscoveryAt sql.NullTime) (System, error)
 	UpdateUserLastLogin(ctx context.Context, id string) error
 	UpdateUserPreferences(ctx context.Context, arg UpdateUserPreferencesParams) (UserPreference, error)
 }

@@ -50,6 +50,28 @@ func Log(message any, color ...Color) {
 	fmt.Printf("\033[%dm%s\033[0m\n", int(c), text)
 }
 
+// Print writes a colored message to stdout unconditionally, ignoring the global VERBOSE_MODE
+// gate. Use it for output controlled by its own dedicated flag (e.g. the discovery CRON, gated
+// by RSS_FEED_CRON_VERBOSE_MODE). Color defaults to blue.
+func Print(message any, color ...Color) {
+	c := ColorBlue
+	if len(color) > 0 {
+		c = color[0]
+	}
+
+	var text string
+	switch v := message.(type) {
+	case string:
+		text = v
+	case error:
+		text = v.Error()
+	default:
+		text = fmt.Sprintf("%+v", v)
+	}
+
+	fmt.Printf("\033[%dm%s\033[0m\n", int(c), text)
+}
+
 // RouteStart logs a route entry marker. Call at the beginning of each handler.
 func RouteStart(path string) {
 	Log(fmt.Sprintf("@@@ ROUTE START - %s - %s @@@", path, now()), ColorYellow)

@@ -1,0 +1,33 @@
+meta {
+  name: Source Discovery (dry-run)
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/v1/sources/:id/discovery?last_article_discovery_at=2025-01-01T00:00:00Z
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:path {
+  id: {{sourceId}}
+}
+
+params:query {
+  last_article_discovery_at: 2025-01-01T00:00:00Z
+}
+
+docs {
+  Dry-run da descoberta de notícias para uma única source, simulando a execução da CRON. NÃO
+  grava nada no banco nem avança o watermark (`system.last_article_discovery_at`).
+
+  A query `last_article_discovery_at` (RFC3339 UTC) é opcional e sobrepõe o limite inferior, útil
+  para testar sem esperar uma notícia nova. Sem ela, usa o watermark atual (vazio = tratado como
+  agora). Retorna 200 com a lista de itens descobertos (vazia → 200 com `articles: []`); 404 se a
+  source não existir. Aberta por enquanto; futuramente restrita a administradores.
+}

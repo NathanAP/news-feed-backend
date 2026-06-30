@@ -6,6 +6,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const getSystem = `-- name: GetSystem :one
@@ -34,6 +35,25 @@ RETURNING id, app_status, last_article_discovery_at, created_at, modified_at
 
 func (q *Queries) UpdateSystemAppStatus(ctx context.Context, appStatus int64) (System, error) {
 	row := q.db.QueryRowContext(ctx, updateSystemAppStatus, appStatus)
+	var i System
+	err := row.Scan(
+		&i.ID,
+		&i.AppStatus,
+		&i.LastArticleDiscoveryAt,
+		&i.CreatedAt,
+		&i.ModifiedAt,
+	)
+	return i, err
+}
+
+const updateSystemLastArticleDiscovery = `-- name: UpdateSystemLastArticleDiscovery :one
+UPDATE system
+SET last_article_discovery_at = ?, modified_at = CURRENT_TIMESTAMP
+RETURNING id, app_status, last_article_discovery_at, created_at, modified_at
+`
+
+func (q *Queries) UpdateSystemLastArticleDiscovery(ctx context.Context, lastArticleDiscoveryAt sql.NullTime) (System, error) {
+	row := q.db.QueryRowContext(ctx, updateSystemLastArticleDiscovery, lastArticleDiscoveryAt)
 	var i System
 	err := row.Scan(
 		&i.ID,

@@ -53,6 +53,7 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth, httpClient *http.
 		runTx, []byte(jwtmock.TestJWTSecret), time.Hour,
 	)
 	sourceCtrl := controllers.NewSourceController()
+	systemCtrl := controllers.NewSystemController()
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
@@ -63,6 +64,7 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth, httpClient *http.
 	s := app.Group("/v1/sources")
 	s.Post("/create", append(authMiddleware, sourceendpoints.CreateSource(sourceCtrl, runTx))...)
 	s.Get("/rss_discovery", append(authMiddleware, sourceendpoints.RSSDiscovery(httpClient))...)
+	s.Get("/:id/discovery", append(authMiddleware, sourceendpoints.SourceDiscovery(sourceCtrl, systemCtrl, runTx, httpClient))...)
 	s.Get("/:id", append(authMiddleware, sourceendpoints.GetSource(sourceCtrl, runTx))...)
 	s.Get("", append(authMiddleware, sourceendpoints.ListSources(sourceCtrl, runTx))...)
 	s.Put("/:id", append(authMiddleware, sourceendpoints.UpdateSource(sourceCtrl, runTx))...)
@@ -302,7 +304,7 @@ func TestE2E_RSSDiscovery_FindsAndReturnsFeeds(t *testing.T) {
 	requireNotProduction(t)
 
 	mockHTTP := external.NewMockRSSClient(map[string]external.MockRSSResponse{
-		"https://site.com": {StatusCode: http.StatusOK, Body: external.SampleHTMLWithRSSLink},
+		"https://site.com":         {StatusCode: http.StatusOK, Body: external.SampleHTMLWithRSSLink},
 		"https://site.com/rss.xml": {StatusCode: http.StatusOK, Body: external.SampleRSSFeed},
 	})
 	oauth := external.MockGoogleOAuth{

@@ -61,8 +61,8 @@ func TestListSources_Empty(t *testing.T) {
 func TestListSources_FilterByURL(t *testing.T) {
 	requireNotProduction(t)
 
-	s1 := fixtures.NewTestSource()       // url: https://example.com
-	s2 := fixtures.NewTestSourceAlt()    // url: https://other-source.com
+	s1 := fixtures.NewTestSource()    // url: https://example.com
+	s2 := fixtures.NewTestSourceAlt() // url: https://other-source.com
 	ctrl := &mockSourceCtrl{
 		listFn: func(_ context.Context, _ db.Querier) ([]db.Source, error) {
 			return []db.Source{s1, s2}, nil

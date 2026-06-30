@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"golang.org/x/oauth2"
 
@@ -78,4 +79,5 @@ type ArticleFeedControllerInterface interface {
 type SystemControllerInterface interface {
 	Get(ctx context.Context, q db.Querier) (db.System, error)
 	UpdateAppStatus(ctx context.Context, q db.Querier, active bool) (db.System, error)
+	UpdateLastArticleDiscovery(ctx context.Context, q db.Querier, at time.Time) (db.System, error)
 }

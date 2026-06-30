@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
@@ -44,6 +45,19 @@ func (c *SystemController) UpdateAppStatus(ctx context.Context, q db.Querier, ac
 			return db.System{}, ErrSystemNotFound
 		}
 		return db.System{}, fmt.Errorf("failed to update app status: %w", err)
+	}
+	return system, nil
+}
+
+// UpdateLastArticleDiscovery records the moment the discovery CRON finished a run. The value is
+// the lower bound used to decide what counts as "new" on the next run.
+func (c *SystemController) UpdateLastArticleDiscovery(ctx context.Context, q db.Querier, at time.Time) (db.System, error) {
+	system, err := q.UpdateSystemLastArticleDiscovery(ctx, sql.NullTime{Time: at.UTC(), Valid: true})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return db.System{}, ErrSystemNotFound
+		}
+		return db.System{}, fmt.Errorf("failed to update last article discovery: %w", err)
 	}
 	return system, nil
 }

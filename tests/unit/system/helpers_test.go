@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/require"
@@ -35,8 +36,9 @@ const testSystemID = "01900000-0000-7000-8000-000000000001"
 
 // mockSystemCtrl holds optional function overrides for each method.
 type mockSystemCtrl struct {
-	getFn             func(ctx context.Context, q db.Querier) (db.System, error)
-	updateAppStatusFn func(ctx context.Context, q db.Querier, active bool) (db.System, error)
+	getFn                      func(ctx context.Context, q db.Querier) (db.System, error)
+	updateAppStatusFn          func(ctx context.Context, q db.Querier, active bool) (db.System, error)
+	updateLastArticleDiscovery func(ctx context.Context, q db.Querier, at time.Time) (db.System, error)
 }
 
 func (m *mockSystemCtrl) Get(ctx context.Context, q db.Querier) (db.System, error) {
@@ -55,6 +57,13 @@ func (m *mockSystemCtrl) UpdateAppStatus(ctx context.Context, q db.Querier, acti
 		status = 1
 	}
 	return db.System{ID: testSystemID, AppStatus: status}, nil
+}
+
+func (m *mockSystemCtrl) UpdateLastArticleDiscovery(ctx context.Context, q db.Querier, at time.Time) (db.System, error) {
+	if m.updateLastArticleDiscovery != nil {
+		return m.updateLastArticleDiscovery(ctx, q, at)
+	}
+	return db.System{ID: testSystemID, AppStatus: 1}, nil
 }
 
 var _ controllers.SystemControllerInterface = (*mockSystemCtrl)(nil)

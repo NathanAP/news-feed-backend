@@ -27,7 +27,10 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
 - `services/controllers/` — regras de negócio. **Stateless**, recebem `db.Querier`, nunca
   commitam (ver "Transações" abaixo).
 - `services/endpoints/v1/<modelo>/` — handlers HTTP (um arquivo por rota).
-- `services/rss/` — descoberta de RSS.
+- `services/rss/` — descoberta de URLs de RSS (a partir de uma URL principal).
+- `services/discovery/` — descoberta de **notícias** no RSS de uma source (gofeed + filtro por
+  watermark + retry). Seam `Processor` (hoje `NoopProcessor`; 0.20 = tratamento/julgamento/persist).
+- `services/cron/` — scheduler (`robfig/cron/v3`) + `DiscoveryRunner` que varre as sources ativas.
 - `middlewares/` — `auth.go` (parse JWT + valida sessão); `app_status.go` (guard de manutenção
   global: 503 quando `system.app_status=0`, exceto `/health` e o toggle).
 - `tests/` — `unit/`, `integration/api/`, `end-to-end/api/`, `fixtures/`, `mocks/`, `utils/`.
@@ -44,8 +47,10 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
 | Feed × Notícia | `articles_feeds` | Junction com `is_read` |
 | Sistema | `system` | Singleton; `app_status` (chave de manutenção global) + `last_article_discovery_at` |
 
-Ainda **não** implementado: descoberta automática via cron, tratamento/tradução/resumo por
-IA, julgamento notícia→feed, deploy, usuário administrador, exclusão de usuário.
+Descoberta via CRON **já existe** (0.19) mas **não persiste nada ainda**: só busca no RSS e
+reporta (logs/endpoint). Ainda **não** implementado: tratamento/tradução/resumo por IA,
+julgamento notícia→feed, **persistência** das notícias descobertas (tudo 0.20+), deploy,
+usuário administrador, exclusão de usuário.
 
 ## Transações (regra central)
 

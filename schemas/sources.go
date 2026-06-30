@@ -24,3 +24,15 @@ type SourceResponse struct {
 type RSSDiscoveryResponse struct {
 	Feeds []string `json:"feeds"`
 }
+
+type DiscoveredArticleResponse struct {
+	Title       string     `json:"title"`
+	Content     string     `json:"content"`
+	URLOriginal string     `json:"url_original"`
+	PublishedAt *time.Time `json:"published_at,omitempty"`
+	SourceID    string     `json:"source_id"`
+}
+
+type SourceDiscoveryResponse struct {
+	Articles []DiscoveredArticleResponse `json:"articles"`
+}
