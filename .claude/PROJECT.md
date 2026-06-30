@@ -53,8 +53,8 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 0. Uma source é cadastrada na aplicação.
 1. A CRON é disparada quando for o momento.
-2. O processo busca por todas as fontes de notícias ativas
-3. Para cada uma delas faz o parsing RSS com o `gofeed`
+2. O processo busca por todas as fontes de notícias ativas.
+3. Para cada uma delas faz o parsing RSS com o `gofeed`.
 4. Deduplica em comparação à `url_original` das notícias já existentes.
 5. Notícias passam pelo tratamento de notícias para terem seu conteúdo tratado.
 6. Notícias são salvas no banco de dados.
@@ -211,6 +211,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Ao final da descoberta de notícias a variável `last_article_discovery_at` na tabela `system` é escrita com a hora atual.
 - Em termos de código esse método precisa ser independente para poder ser chamado fora da CRON caso necessário.
 - Um endpoint de teste para esse processo pode ser encontrado em `GET base_url/v1/sources/{id}/article-discovery`.
+    - Deve simular os exatos mesmos processos que rodaria na CRON.
     - Esse endpoint deve ser exclusivo para administradores.
     - Esse endpoint é considerada uma dry-run, ou seja, ela não cria ou altera nenhum registro do banco de dados (incluindo `last_article_discovery_at` de `system`).
     - Esse endpoint deve aceitar os seguintes parâmetros:
@@ -235,6 +236,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Depois de tratada, a notícia é finalmente salva no banco de dados e pode passar então para o julgamento.
 - Em termos de código esse método precisa ser independente para poder ser chamado fora da CRON caso necessário.
 - Um endpoint de teste para esse processo pode ser encontrado em `POST base_url/v1/articles/treatment`.
+    - Deve simular os exatos mesmos processos que rodaria na CRON.
     - Esse endpoint deve ser exclusivo para administradores.
     - Esse endpoint é considerada uma dry-run, ou seja, ela não cria ou altera nenhum registro do banco de dados.
     - O body deste endpoint deve aceitar:

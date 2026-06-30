@@ -134,6 +134,7 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
     - Prompt de resumo: deve fazer o resumo de uma notícia usando o idioma desejado de forma eficaz e sem alterar o contexto e a informação passada pela notícia.
 - Para o futuro do projeto, queremos implementar:
     - Guardrails.
+    - Fallback.
     - Uso do Claude ao invés do Gemini.
     - O uso da biblioteca `LangChain` para padronização de chamadas.
     - O uso da biblioteca `LangSmith` para testes de comportamento.
