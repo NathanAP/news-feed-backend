@@ -148,6 +148,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - As notícias são descobertas automaticamente através das fontes de notícias.
 - Para uma notícia ser descoberta e registrada, o RSS de cada fonte registrada é consultado de tempos em tempos. Ao notar uma nova notícia presente, tratamento de conteúdo também é acionado para fazer suas ações até gravar essa versão em nosso banco de dados.
 - Uma notícia do RSS é considerada nova quando a URL original dela não está presente na nossa lista de notícias.
+    - Ou seja, outras notícias já existentes não devem ser passadas adiante para o tratamento e julgamento de notícias.
     - Dito isso, a `url_original` da notícia é única dentro das outras notícias ativas no banco de dados.
 - Um usuário tem acesso a qualquer notícia registrada na aplicação.
     - As regras para quando a notícia não está em nenhum dos feeds do usuário estão explicadas na sessão "Feed x Notícias".
@@ -197,9 +198,10 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - `RSS_FEED_CRON_VERBOSE_MODE`: apesar de não ser importante para rodar a CRON, essa variável de ambiente mostra junto as logs a saída de cada chamada da CRON quando estiver marcada como `true`.
 - A descoberta de notícias deve acessar cada uma das fontes de notícias cadastradas no banco de dados, olhando pelo RSS de cada uma delas para decidir se há alguma nova notícia.
     - Uma notícia do RSS é considerada nova quando a URL original dela não está presente na nossa lista de notícias.
+        - Ou seja, outras notícias já existentes não devem ser passadas adiante para o tratamento e julgamento de notícias.
 - Quando descoberta uma nova notícia o tratamento de notícias é iniciado (as regras de tratamento de notícias estão na sessão "tratamento de notícias").
 - Ao final da descoberta de notícias a variável `last_article_discovery_at` na tabela `system` é escrita com a hora atual.
-- Quando a primeira descoberta for feita (`last_article_discovery_at` estiver com valor vazio), a aplicação deve considerar o valor `now()` para não superlotar o tratamento de notícias. Depois o fluxo segue normalmente utilizando o atual valor de `last_article_discovery_at`.
+- Em termos de código esse método precisa ser independente para poder ser chamado fora da CRON caso necessário.
 - Um endpoint de teste para esse processo pode ser encontrado em `GET base_url/v1/sources/{id}/article-discovery`.
     - Esse endpoint deve ser exclusivo para administradores.
     - Esse endpoint é considerada uma dry-run, ou seja, ela não cria ou altera nenhum registro do banco de dados (incluindo `last_article_discovery_at` de `system`).
@@ -215,6 +217,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Organizar conteúdo confuso ou mal escrito.
     - Corrigir erros de escrita.
     - Nomear palavras-chave para a notícia.
+    - Salvar a notícia no banco de dados.
 - Dito isso, o tratamento de notícias não pode:
     - Traduzir notícias: estritamente proibido fazer tradução neste momento. Melhores informações na sessão "traduzindo notícias".
     - Resumir notícias: estritamente proibido fazer resumo neste momento. Melhores informações na sessão "resumindo notícias".
@@ -222,6 +225,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Personalizar a notícia: tentaremos manter a seriedade e tom de humor que a notícia tem originalmente.
     - Trazer opinião própria.
 - Depois de tratada, a notícia é finalmente salva no banco de dados e pode passar então para o julgamento.
+- Em termos de código esse método precisa ser independente para poder ser chamado fora da CRON caso necessário.
 - Um endpoint de teste para esse processo pode ser encontrado em `POST base_url/v1/sources/article-treatment`.
     - Esse endpoint deve ser exclusivo para administradores.
     - Esse endpoint é considerada uma dry-run, ou seja, ela não cria ou altera nenhum registro do banco de dados.
@@ -267,6 +271,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Quando forem julgados como associados, um novo registro na tabela associativa (junction table) entre feed e notícias é criado.
 - O julgamento de notícias nunca é retroativo.
 - O julgamento de notícias só pode considerar feeds que estão ativos.
+- Em termos de código esse método precisa ser independente para poder ser chamado fora da CRON caso necessário.
 
 ## Administradores
 
