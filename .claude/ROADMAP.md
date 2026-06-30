@@ -273,6 +273,9 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Lembrete: essa tabela nunca aceita novos registros ou exclusões, apenas atualizações
     - Lembrete: todas as rotas devem levar em conta se `app_status` está ativo ou não
     - Lembrete: no futuro essas rotas serão acessadas apenas pelos usuários administradores
+
+## Versão 0.19.0.0
+
 - [ ] Descobrir notícias de todas as fontes cadastradas
     - O processo ocorre através de CRON interna que é executada periodicamente
     - Utilize as variáveis de ambiente para controlar a atividade da CRON interna (`RSS_FEED_CRON_ACTIVE` e `RSS_FEED_CRON_SCHEDULE`)
@@ -282,7 +285,7 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Vamos adicionar o usuário administrador depois, então essa rota por enquanto pode ficar aberta
 - [ ] Criar os prompts que serão utilizados na versão 0.19
 
-## Versão 0.19.0.0
+## Versão 0.20.0.0
 
 - [ ] Tratamento de notícias
     - Lembrete: vamos utilizar Google Gemini 2.5 Flash para os primeiros testes
@@ -290,12 +293,12 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [ ] Implementar julgamento de notícias por palavras-chave
 - [ ] Implementar julgamento de notícias por IA
 
-## Versão 0.20.0.0
+## Versão 0.21.0.0
 
 - [ ] Resumo personalizado
 - [ ] Tradução personalizada
 
-## Versão 0.21.0.0
+## Versão 0.22.0.0
 
 - [ ] Deploy
     - [ ] Docker funcionando
