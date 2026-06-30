@@ -226,7 +226,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Trazer opinião própria.
 - Depois de tratada, a notícia é finalmente salva no banco de dados e pode passar então para o julgamento.
 - Em termos de código esse método precisa ser independente para poder ser chamado fora da CRON caso necessário.
-- Um endpoint de teste para esse processo pode ser encontrado em `POST base_url/v1/sources/article-treatment`.
+- Um endpoint de teste para esse processo pode ser encontrado em `POST base_url/v1/articles/treatment`.
     - Esse endpoint deve ser exclusivo para administradores.
     - Esse endpoint é considerada uma dry-run, ou seja, ela não cria ou altera nenhum registro do banco de dados.
     - O body deste endpoint deve aceitar:

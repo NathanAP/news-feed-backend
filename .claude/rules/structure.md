@@ -34,6 +34,12 @@ Você não precisa alterar esse arquivo. A ideia é que eu possa atualizar ele c
 ├──── controllers/
 ├────── users.go
 ├────── ...
+├──── cron/
+├────── cron.go
+├────── ...
+├──── discovery/
+├────── discovery.go
+├────── ...
 ├──── endpoints/
 ├────── v1/
 ├──────── users/
@@ -41,6 +47,10 @@ Você não precisa alterar esse arquivo. A ideia é que eu possa atualizar ele c
 ├────────── ...
 ├──── prompts/
 ├────── article_translation.yaml
+├────── ...
+├──── rss/
+├────── discovery.go
+├────── ...
 ├── sqlc/
 ├──── db.go
 ├──── models.go
