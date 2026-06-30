@@ -267,12 +267,20 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 - [ ] Criar uma migração para a tabela `system`
     - Tabela de sistema:
-        - `app_status` (`true` ou `false`)
-        - `last_article_discovery_at` (`datetime` UTC)
+        - id (`UUID` v7)
+        - app_status (`true` ou `false`)
+        - last_article_discovery_at (`timestamp`)
+        - created_at (`timestamp`)
+        - modified_at (`timestamp` opcional)
     - Lembrete: a migração deve criar um novo registro nessa tabela durante a migração
     - Lembrete: essa tabela nunca aceita novos registros ou exclusões, apenas atualizações
     - Lembrete: todas as rotas devem levar em conta se `app_status` está ativo ou não
+- [ ] Criar uma rota para alterar o status do app
+    - Pode estar debaixo de `PUT base_url/v1/system/app-status`
     - Lembrete: no futuro essas rotas serão acessadas apenas pelos usuários administradores
+- [ ] Adicionar à rota `health`:
+    - A hora atual do servidor (em UTC)
+    - O status do servidor (`app_status` da tabela `system`)
 
 ## Versão 0.19.0.0
 
@@ -318,7 +326,7 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
 - Logger e observabilidade
 - Swagger
 - Associação de notícias (como uma notícia se liga à outra?)
-- Usuário administrador
+- Usuário administrador (lembrete: requisições do admin não são afetadas pelo `system.app_status` estando em `false`)
 - Opções de usuário administrador (desativar X, habilitar Y)
 - Endpoint para soft remove de usuário + testes de cascade (métodos já estão ok)
 - Compartilhamento de notícias

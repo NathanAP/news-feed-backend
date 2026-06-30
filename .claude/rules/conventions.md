@@ -89,6 +89,7 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 
 - Todos os dados e preferências públicas do usuário estão no `access_token`. Se um endpoint precisar de um dado ou uma preferência do usuário não mapeada no `access_token`, avise-nos para que possamos tomar as medidas necessárias, como invalidar tokens antigos ou renovar os tokens automaticamente.
 - Seguir os padrões de respostas tradicionais para RESTful com os códigos de status HTTP apropriados.
+- Nomenclatura para endpoints com nomes compostos deve-se utilizar sempre `-`. Por exemplo: `base_url/v1/my-fun-model/my-cool-endpoint`.
 - Middlewares devem estar na pasta `raiz/middlewares/` e seguir a convenção de nomeação de arquivos (Exemplo: `auth.go` para middleware de autenticação, `logging.go` para middleware de logging).
 - Endpoints devem estar em seu próprio arquivo, organizado dentro de uma pasta do modelo correspondente (Exemplo: `raiz/services/endpoints/v1/users/` para endpoints relacionados a usuários; arquivo `login.go` corresponde à rota de login do usuário).
 - Endpoints devem seguir o padrão `base_url/versao_da_api/modelo/acao` (Exemplo: `http://localhost:3000/v1/users/create`, `http://localhost:3000/v1/users/login`).
