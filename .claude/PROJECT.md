@@ -261,7 +261,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - A saída dessa etapa deve:
     - Estar em formato de texto (`string`) no formato HTML puro contendo:
         - Apenas elementos HTML básicos e atributos simples.
-        - Sem elementos `html`, `body`, `head`, `footer` e `a`.
+        - Sem elementos `html`, `body`, `head`, `footer`, `a` e `img`.
         - Sem atributo `class` ou `style`.
     - A personalização dessa etapa está planejada para o futuro.
 
