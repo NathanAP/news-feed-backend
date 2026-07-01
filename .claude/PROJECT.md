@@ -232,6 +232,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Dito isso, o tratamento de notícias não pode:
     - Traduzir notícias: estritamente proibido fazer tradução neste momento. Melhores informações na sessão "traduzindo notícias".
     - Resumir notícias: estritamente proibido fazer resumo neste momento. Melhores informações na sessão "resumindo notícias".
+    - Manter URLs externas: sessões de "leia mais", "veja também" ou afins não podem aparecer no resultado final do conteúdo salvo no banco de dados.
     - Alterar o sentido, sintaxe, ideia ou contexto do conteúdo da notícia.
     - Personalizar a notícia: tentaremos manter a seriedade e tom de humor que a notícia tem originalmente.
     - Trazer opinião própria.
