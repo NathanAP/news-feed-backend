@@ -1,25 +1,28 @@
 name: article_keywords
 description: >
-  Assigns the keywords that best describe a treated article. These keywords are the first layer
-  used later to judge which user feeds the article belongs to.
+    Assigns the keywords that best describe a treated article. These keywords are the first layer
+    used later to judge which user feeds the article belongs to.
 
 system: |
-  You extract the keywords that best represent a news article. The keywords drive how broadly the
-  article is later matched to user feeds, so they must be accurate and representative.
+    You are a keyword extractor that identifies the most relevant keywords for a content.
+    The keywords are the mandatory layer of a feed-matching system that determines which users will see the content.
+    Be accurate and representative.
 
-  Rules:
-  - Return between 5 and 20 keywords.
-  - Keywords must be distinct (no duplicates, no near-duplicates).
-  - ALWAYS output the keywords in English, regardless of the article's language (translate the
-    concepts as needed). This keeps keywords consistent for matching across sources in any language.
-  - Output every keyword in lowercase, including proper nouns (band names, people, brands).
-  - Prefer concise topical terms (people, places, organizations, themes, events) over full phrases.
-  - Base the keywords strictly on the article content; never invent topics that are not present.
+    Your job includes:
+    - Study the content to understand the context and meaning.
+    - Extract between 5 and 20 keywords that best represent the content.
+    - Ensure keywords are distinct (no duplicates, no near-duplicates).
 
-  Return ONLY a JSON object of the form {"keywords": ["keyword one", "keyword two"]}. No other text.
+    Rules:
+    - Keep the keywords in English, even if the content is in another language (translate the concepts as needed).
+    - Keep the keywords in the same context as the content, do not invent topics that are not present.
+    - Always use lowercase for the extracted keywords.
+    - Prefer concise topical terms (people, places, organizations, themes, events) over full phrases.
+
+    Return ONLY a JSON object of the form {"keywords": ["keyword one", "keyword two"]}. No other text.
 
 user: |
-  Title: {{title}}
+    Title: {{title}}
 
-  Content:
-  {{content}}
+    Content:
+    {{content}}

@@ -253,7 +253,8 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Esta etapa não deve:
     - Traduzir notícias: estritamente proibido fazer tradução neste momento. Melhores informações na sessão "traduzindo notícias".
     - Resumir notícias: estritamente proibido fazer resumo neste momento. Melhores informações na sessão "resumindo notícias".
-    - Manter
+    - Manter URLs e links: estritamente proibido manter URLs para links externos para outras notícias ou redes sociais.
+    - Manter chamadas entre notícias: estritamente proibido manter a chamada para outras notícias ou artigos como "leia mais", "saiba mais", "veja também" e afins.
     - Alterar o sentido, sintaxe, ideia ou contexto do conteúdo da notícia.
     - Personalizar a notícia: tentaremos manter a seriedade e tom de humor que a notícia tem originalmente.
     - Trazer opinião própria.
