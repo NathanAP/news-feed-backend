@@ -123,6 +123,11 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 # Convenções de programação com inteligência artificial
 
 - Os prompts utilizados devem ficar na pasta `raiz/services/prompts/` seguindo o padrão de pastas de `structure.md`.
+- Sempre utilizar as variáveis de ambiente para definir qual provedor e qual modelo de IA será utilizado.
+- Provedores e modelos LLM suportados atualmente (utilize essa lista para escrever sua lógica no código):
+    - Google: gemini-2.5-flash.
+- Provedores e modelos SLM suportados atualmente (utilize essa lista para escrever sua lógica no código):
+    - Ollama: qwen3:4b.
 - Prompts devem estar em inglês.
 - Você tem liberdade de escrever os prompts.
 - Os prompts devem ser escritos de maneira eficiente e clara.
