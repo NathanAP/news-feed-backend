@@ -107,9 +107,12 @@ func main() {
 	var treater ai.Treater = buildProvider(treatmentProvider, treatmentModel)
 	treater = ai.NewVerboseTreater(treater, fmt.Sprintf("%s/%s", treatmentProvider, treatmentModel), os.Getenv("TREATMENT_VERBOSE_MODE") == "true")
 
-	keywordsProvider, keywordsModel := os.Getenv("KEYWORDS_PROVIDER"), os.Getenv("KEYWORDS_MODEL")
-	var keyworder ai.Keyworder = buildProvider(keywordsProvider, keywordsModel)
-	keyworder = ai.NewVerboseKeyworder(keyworder, fmt.Sprintf("%s/%s", keywordsProvider, keywordsModel), os.Getenv("KEYWORDS_VERBOSE_MODE") == "true")
+	keyworders, keywordsDefaultMode := buildKeyworders()
+	defaultKeyworder := keyworders[keywordsDefaultMode]
+	if defaultKeyworder == nil {
+		log.Printf("KEYWORDS_MODE %q not recognized (use local, groq or gemini); keywords disabled by default", keywordsDefaultMode)
+		defaultKeyworder = ai.NewDisabledClient()
+	}
 
 	authMiddleware := middlewares.NewAuthMiddleware(jwtSecret, refreshTokenCtrl, runTx)
 
@@ -155,7 +158,7 @@ func main() {
 
 	articles := api.Group("/articles")
 	articles.Post("/create", append(authMiddleware, articleendpoints.CreateArticle(articleCtrl, runTx))...)
-	articles.Post("/treatment", append(authMiddleware, articleendpoints.TreatArticle(treater, keyworder))...)
+	articles.Post("/treatment", append(authMiddleware, articleendpoints.TreatArticle(treater, keyworders, keywordsDefaultMode))...)
 	articles.Put("/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(articleCtrl, afCtrl, runTx))...)
 	articles.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, runTx))...)
 	articles.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, runTx))...)
@@ -171,7 +174,7 @@ func main() {
 
 	if os.Getenv("RSS_FEED_CRON_ACTIVE") == "true" {
 		cronVerbose := os.Getenv("RSS_FEED_CRON_VERBOSE_MODE") == "true"
-		processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, treater, keyworder, cronVerbose)
+		processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, treater, defaultKeyworder, cronVerbose)
 		runner := cron.NewDiscoveryRunner(runTx, sourceCtrl, systemCtrl, processor, discoveryHTTPClient, cronVerbose)
 		scheduler, err := cron.NewScheduler(os.Getenv("RSS_FEED_CRON_SCHEDULE"), runner)
 		if err != nil {
@@ -187,6 +190,57 @@ func main() {
 	}
 
 	log.Fatal(app.Listen(":" + apiPort))
+}
+
+// Keyword-naming models are fixed to the ones declared in the stack (CLAUDE.md); the Groq model is
+// configurable because the stack does not pin a specific one.
+const (
+	localKeywordsModel  = "qwen3:4b"
+	geminiKeywordsModel = "gemini-2.5-flash"
+	defaultGroqBaseURL  = "https://api.groq.com/openai/v1"
+	defaultOllamaURL    = "http://localhost:11434"
+)
+
+// buildKeyworders pre-builds the keyword-naming backend for every mode (local | groq | gemini),
+// each wrapped with the verbose logger, and returns them keyed by mode plus the configured default
+// (KEYWORDS_MODE). Pre-building all modes lets the treatment endpoint switch backend per request
+// for benchmarking without a restart.
+func buildKeyworders() (map[string]ai.Keyworder, string) {
+	verbose := os.Getenv("KEYWORDS_VERBOSE_MODE") == "true"
+
+	raw := map[string]ai.Client{
+		"local":  buildLocalKeyworder(),
+		"groq":   buildGroqKeyworder(),
+		"gemini": buildProvider("google", geminiKeywordsModel),
+	}
+
+	keyworders := make(map[string]ai.Keyworder, len(raw))
+	for mode, client := range raw {
+		keyworders[mode] = ai.NewVerboseKeyworder(client, "keywords/"+mode, verbose)
+	}
+	return keyworders, os.Getenv("KEYWORDS_MODE")
+}
+
+func buildLocalKeyworder() ai.Client {
+	baseURL := os.Getenv("OLLAMA_BASE_URL")
+	if baseURL == "" {
+		baseURL = defaultOllamaURL
+	}
+	return openaicompat.NewClient(baseURL, localKeywordsModel, "")
+}
+
+func buildGroqKeyworder() ai.Client {
+	apiKey := os.Getenv("GROQ_API_KEY")
+	model := os.Getenv("GROQ_MODEL")
+	if apiKey == "" || model == "" {
+		log.Println("keywords 'groq' mode disabled: set GROQ_API_KEY and GROQ_MODEL")
+		return ai.NewDisabledClient()
+	}
+	baseURL := os.Getenv("GROQ_BASE_URL")
+	if baseURL == "" {
+		baseURL = defaultGroqBaseURL
+	}
+	return openaicompat.NewClient(baseURL, model, apiKey)
 }
 
 // buildProvider wires an AI provider for a task from its configured provider/model. Supported
@@ -215,9 +269,9 @@ func buildProvider(provider, model string) ai.Client {
 		}
 		baseURL := os.Getenv("OLLAMA_BASE_URL")
 		if baseURL == "" {
-			baseURL = "http://localhost:11434"
+			baseURL = defaultOllamaURL
 		}
-		return openaicompat.NewClient(baseURL, model)
+		return openaicompat.NewClient(baseURL, model, "")
 	default:
 		log.Printf("AI disabled: unknown provider %q (supported: google, ollama)", provider)
 		return ai.NewDisabledClient()

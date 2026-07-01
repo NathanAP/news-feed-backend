@@ -36,17 +36,20 @@ var thinkingPattern = regexp.MustCompile(`(?s)<think>.*?</think>`)
 type Client struct {
 	baseURL string
 	model   string
+	apiKey  string
 	http    *http.Client
 }
 
 var _ ai.Client = (*Client)(nil)
 
-// NewClient builds a client for the given base URL (e.g. http://localhost:11434 for Ollama) and
-// model (e.g. qwen3:4b).
-func NewClient(baseURL, model string) *Client {
+// NewClient builds a client for the given base URL (e.g. http://localhost:11434 for Ollama, or a
+// hosted provider like Groq) and model. apiKey is optional: local Ollama needs none; hosted
+// providers require it (sent as a Bearer token).
+func NewClient(baseURL, model, apiKey string) *Client {
 	return &Client{
 		baseURL: strings.TrimRight(baseURL, "/"),
 		model:   model,
+		apiKey:  apiKey,
 		http:    &http.Client{Timeout: requestTimeout},
 	}
 }
@@ -122,14 +125,19 @@ func (c *Client) chat(ctx context.Context, promptName string, vars map[string]st
 		return "", err
 	}
 
+	endpoint := c.chatCompletionsURL()
+
 	var content string
 	backoff := retry.WithMaxRetries(2, retry.NewExponential(500*time.Millisecond))
 	err = retry.Do(ctx, backoff, func(ctx context.Context) error {
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/v1/chat/completions", bytes.NewReader(payload))
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
 		if err != nil {
 			return err // not retryable
 		}
 		req.Header.Set("Content-Type", "application/json")
+		if c.apiKey != "" {
+			req.Header.Set("Authorization", "Bearer "+c.apiKey)
+		}
 
 		resp, err := c.http.Do(req)
 		if err != nil {
@@ -159,6 +167,16 @@ func (c *Client) chat(ctx context.Context, promptName string, vars map[string]st
 		return "", fmt.Errorf("openai-compatible generate (%s) failed: %w", promptName, err)
 	}
 	return content, nil
+}
+
+// chatCompletionsURL builds the endpoint, tolerating base URLs that already include the "/v1"
+// segment (e.g. Groq's https://api.groq.com/openai/v1) as well as those that do not (e.g. Ollama's
+// http://localhost:11434) — avoiding a duplicated "/v1/v1".
+func (c *Client) chatCompletionsURL() string {
+	if strings.HasSuffix(c.baseURL, "/v1") {
+		return c.baseURL + "/chat/completions"
+	}
+	return c.baseURL + "/v1/chat/completions"
 }
 
 func stripThinking(s string) string {

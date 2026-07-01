@@ -20,8 +20,9 @@ import (
 func treatmentApp(aiClient ai.Client) *fiber.App {
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
-	// The mock implements both capabilities; wire it as treater and keyworder.
-	app.Post("/v1/articles/treatment", append(authMiddleware, articleendpoints.TreatArticle(aiClient, aiClient))...)
+	// The mock implements both capabilities; wire it as treater and as every keyword mode.
+	keyworders := map[string]ai.Keyworder{"local": aiClient, "groq": aiClient, "gemini": aiClient}
+	app.Post("/v1/articles/treatment", append(authMiddleware, articleendpoints.TreatArticle(aiClient, keyworders, "local"))...)
 	return app
 }
 
@@ -50,6 +51,32 @@ func TestTreatArticle_Success(t *testing.T) {
 	require.NoError(t, readJSON(resp, &result))
 	assert.Equal(t, "treated: raw body", result["content"])
 	assert.Len(t, result["keywords"].([]any), 5)
+	assert.Equal(t, "local", result["keywords_mode"]) // default mode
+	_, hasTreatMs := result["treatment_ms"]
+	_, hasKwMs := result["keywords_ms"]
+	assert.True(t, hasTreatMs && hasKwMs)
+}
+
+func TestTreatArticle_ModeOverride(t *testing.T) {
+	requireNotProduction(t)
+
+	app := treatmentApp(&external.MockAIClient{})
+	body := `{"article":{"title":"Some News","content":"raw body"},"keywords_mode":"gemini"}`
+	resp := postTreatment(t, app, body, true)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var result map[string]any
+	require.NoError(t, readJSON(resp, &result))
+	assert.Equal(t, "gemini", result["keywords_mode"])
+}
+
+func TestTreatArticle_UnknownMode(t *testing.T) {
+	requireNotProduction(t)
+
+	app := treatmentApp(&external.MockAIClient{})
+	body := `{"article":{"title":"Some News","content":"raw body"},"keywords_mode":"bogus"}`
+	resp := postTreatment(t, app, body, true)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
 func TestTreatArticle_MissingTitle(t *testing.T) {

@@ -38,7 +38,7 @@ func TestKeywords_StripsThinkingAndParses(t *testing.T) {
 	srv := chatServer(t, "<think>let me pick terms</think>\n[\"alpha\",\"beta\",\"gamma\",\"delta\",\"epsilon\"]", http.StatusOK)
 	defer srv.Close()
 
-	client := openaicompat.NewClient(srv.URL, "qwen3:4b")
+	client := openaicompat.NewClient(srv.URL, "qwen3:4b", "")
 	kw, err := client.Keywords(context.Background(), "Title", "content")
 	require.NoError(t, err)
 	assert.Equal(t, []string{"alpha", "beta", "gamma", "delta", "epsilon"}, kw)
@@ -48,17 +48,48 @@ func TestTreat_StripsThinking(t *testing.T) {
 	srv := chatServer(t, "<think>reasoning here</think>\n# Treated body", http.StatusOK)
 	defer srv.Close()
 
-	client := openaicompat.NewClient(srv.URL, "qwen3:4b")
+	client := openaicompat.NewClient(srv.URL, "qwen3:4b", "")
 	treated, err := client.Treat(context.Background(), "Title", "content")
 	require.NoError(t, err)
 	assert.Equal(t, "# Treated body", treated)
+}
+
+func TestKeywords_SendsAuthHeaderWhenKeySet(t *testing.T) {
+	var gotAuth string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"[\"alpha\",\"beta\",\"gamma\",\"delta\",\"epsilon\"]"}}]}`))
+	}))
+	defer srv.Close()
+
+	client := openaicompat.NewClient(srv.URL, "some-model", "secret-key")
+	_, err := client.Keywords(context.Background(), "Title", "content")
+	require.NoError(t, err)
+	assert.Equal(t, "Bearer secret-key", gotAuth)
+}
+
+func TestKeywords_BaseURLWithV1DoesNotDouble(t *testing.T) {
+	var gotPath string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"[\"alpha\",\"beta\",\"gamma\",\"delta\",\"epsilon\"]"}}]}`))
+	}))
+	defer srv.Close()
+
+	// Base URL already ends with /v1 (like Groq): must not produce /v1/v1/chat/completions.
+	client := openaicompat.NewClient(srv.URL+"/v1", "some-model", "")
+	_, err := client.Keywords(context.Background(), "Title", "content")
+	require.NoError(t, err)
+	assert.Equal(t, "/v1/chat/completions", gotPath)
 }
 
 func TestKeywords_ServerError(t *testing.T) {
 	srv := chatServer(t, "", http.StatusInternalServerError)
 	defer srv.Close()
 
-	client := openaicompat.NewClient(srv.URL, "qwen3:4b")
+	client := openaicompat.NewClient(srv.URL, "qwen3:4b", "")
 	_, err := client.Keywords(context.Background(), "Title", "content")
 	assert.Error(t, err)
 }

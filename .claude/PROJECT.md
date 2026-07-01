@@ -254,16 +254,22 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Esta etapa não deve:
     - Traduzir notícias: estritamente proibido fazer tradução neste momento. Melhores informações na sessão "traduzindo notícias".
     - Resumir notícias: estritamente proibido fazer resumo neste momento. Melhores informações na sessão "resumindo notícias".
-    - Manter URLs externas: sessões de "leia mais", "veja também" ou afins não podem aparecer no resultado final do conteúdo salvo no banco de dados.
+    - Manter URLs externas: qualquer tipo de URL, sessões de "leia mais", "veja também" ou afins não podem aparecer no resultado final do conteúdo salvo no banco de dados.
     - Alterar o sentido, sintaxe, ideia ou contexto do conteúdo da notícia.
     - Personalizar a notícia: tentaremos manter a seriedade e tom de humor que a notícia tem originalmente.
     - Trazer opinião própria.
+- A saída dessa etapa deve:
+    - Estar em formato de texto (`string`) no formato HTML puro contendo:
+        - Apenas elementos HTML básicos.
+        - Sem elementos `html`, `body`, `head`, `footer` e `a`.
+        - Sem atributo `class` ou `style`.
+    - A personalização dessa etapa está planejada para o futuro.
 
 ### Nomeação de palavras-chave
 
 - Esta etapa opera em três modos:
     - `local`: utiliza SLM para realizar a execução.
-    - `grok`: utiliza serviços do Groq + SLM para realizar a execução.
+    - `groq`: utiliza serviços do Groq + SLM para realizar a execução.
     - `gemini`: utiliza LLM para realizar a execução.
 - Esta etapa opera de acordo com as seguintes variáveis de ambiente:
     - `KEYWORDS_MODE`: o modo atualmente utilizado durante esta etapa.

@@ -25,13 +25,19 @@ type RawArticleInput struct {
 
 type TreatArticleRequest struct {
 	Article RawArticleInput `json:"article"`
+	// KeywordsMode optionally overrides the keyword-naming mode (local | groq | gemini) for this
+	// dry-run only, so different backends can be benchmarked from Bruno without restarting.
+	KeywordsMode string `json:"keywords_mode"`
 }
 
 // ArticleTreatmentResponse is the result of treating a raw article: cleaned content plus the
-// assigned keywords.
+// assigned keywords, with the mode used and per-step timings for benchmarking.
 type ArticleTreatmentResponse struct {
-	Content  string   `json:"content"`
-	Keywords []string `json:"keywords"`
+	Content      string   `json:"content"`
+	Keywords     []string `json:"keywords"`
+	KeywordsMode string   `json:"keywords_mode"`
+	TreatmentMs  int64    `json:"treatment_ms"`
+	KeywordsMs   int64    `json:"keywords_ms"`
 }
 
 // UpdateArticleRequest intentionally omits source_id: the article's source is immutable.

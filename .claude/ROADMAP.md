@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.21.1.0
+0.21.2.0
 
 ## Versão 0.1.0.0
 
@@ -338,6 +338,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 
+- Aumentar o verbose mode (+++++++++++++++++++++ logs)
 - TlDraw do banco de dados
 - Trocar para Postgres
 - Multi feed
@@ -355,6 +356,8 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
 - Logger e observabilidade
 - Swagger
 - Associação de notícias (como uma notícia se liga à outra?)
+- Aceitar URLs de embedding contidas na notícia para embeddar na nossa própria
+- Melhorar o tratamento para também atribuir classes e elementos HTML mais personalizados
 - Usuário administrador (lembrete: requisições do admin não são afetadas pelo `system.app_status` estando em `false`)
 - Opções de usuário administrador (desativar X, habilitar Y)
 - Endpoint para soft remove de usuário + testes de cascade (métodos já estão ok)

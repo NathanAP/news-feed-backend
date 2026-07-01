@@ -47,7 +47,7 @@
 ## Articles (`/v1/articles`) — auth (criação/edição/remoção = admin-futuro; hoje abertas)
 - `POST /articles/create` — `{ title, content, url_original, keywords[5..20], source_id }` →
   201 / 400 (inclui `source_id` ausente ou fonte inativa) / 409 (url_original duplicada) / 500.
-- `POST /articles/treatment` — **dry-run** do tratamento por IA. Body `{ article: { title, content, ... } }`. Roda as 2 chamadas (tratar conteúdo → keywords sobre o tratado) e retorna `{ content, keywords }`. **Não persiste**, mas **chama a IA de verdade** (consome quota). → 200 / 400 / 500. Aberta (admin-futuro).
+- `POST /articles/treatment` — **dry-run** do tratamento por IA. Body `{ article: { title, content, ... }, keywords_mode? }`. Roda tratamento (LLM) → keywords, e retorna `{ content, keywords, keywords_mode, treatment_ms, keywords_ms }`. **Não persiste**, mas **chama a IA de verdade** (consome quota). O `keywords_mode` opcional (`local`|`groq`|`gemini`) troca o backend das keywords só nesta chamada (benchmark sem reiniciar; 400 se o modo não existe). → 200 / 400 / 500. Aberta (admin-futuro).
 - `PUT /articles/:id/read` — marca como lida nos feeds do usuário → **200** (em ≥1 feed, ou já
   lida) / **204** (não está em nenhum feed do usuário) / 404 (notícia inexistente). Idempotente.
 - `GET /articles/:id` → 200 / 404. Resposta enriquecida com `is_read`: `null` (não está em

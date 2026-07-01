@@ -32,9 +32,10 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
   `Processor`; `TreatmentProcessor` deduplica por `url_original`, trata via IA e persiste.
 - `services/cron/` — scheduler (`robfig/cron/v3`) + `DiscoveryRunner` que varre as sources ativas.
 - `services/ai/` — costura de IA **por capacidade**: `Treater` (tratar) e `Keyworder` (keywords),
-  com `ParseKeywords` compartilhada. Impls: `gemini/` (LLM) e `openaicompat/` (SLM local via Ollama
-  ou qualquer endpoint OpenAI-compatible). Provider **por tarefa** via env (`TREATMENT_*` LLM /
-  `KEYWORDS_*` SLM). `services/prompts/` — `.yaml` embarcados (`go:embed`).
+  com `ParseKeywords` compartilhada. Impls: `gemini/` (LLM) e `openaicompat/` (Ollama local, Groq,
+  ou qualquer endpoint OpenAI-compatible; com API key opcional). Tratamento via `TREATMENT_*`;
+  keywords via `KEYWORDS_MODE` (`local`/`groq`/`gemini`), com os três backends pré-montados no boot
+  e trocáveis por chamada no `POST /articles/treatment`. `services/prompts/` — `.yaml` (`go:embed`).
 - `middlewares/` — `auth.go` (parse JWT + valida sessão); `app_status.go` (guard de manutenção
   global: 503 quando `system.app_status=0`, exceto `/health` e o toggle).
 - `tests/` — `unit/`, `integration/api/`, `end-to-end/api/`, `fixtures/`, `mocks/`, `utils/`.
