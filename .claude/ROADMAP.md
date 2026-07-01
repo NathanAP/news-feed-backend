@@ -314,16 +314,22 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.21.0.0
 
+- [ ] Alterar o processo de atribuição de keywords da etapa de tratamento para uma SLM ao invés de LLM
+    - Dúvida: seria melhor sempre usar Docker aqui? aí vamos ter que adiantar a estruturação dele
+    - Dúvida: podemos mockar todos os testes que envolvem SLM?
+
+## Versão 0.22.0.0
+
 - [ ] Julgamento de notícias aos feeds
 - [ ] Implementar julgamento de notícias por palavras-chave
 - [ ] Implementar julgamento de notícias por IA
 
-## Versão 0.22.0.0
+## Versão 0.23.0.0
 
 - [ ] Resumo personalizado
 - [ ] Tradução personalizada
 
-## Versão 0.23.0.0
+## Versão 0.24.0.0
 
 - [ ] Deploy
     - [ ] Docker funcionando
@@ -334,6 +340,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 
 - TlDraw do banco de dados
+- Trocar para Postgres
 - Multi feed
 - Editar informações básicas do usuário
 - Cascade de tabelas

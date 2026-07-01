@@ -67,7 +67,9 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 0. Uma nova notícia descoberta entra em etapa de tratamento.
 1. Uma primeira chamada para a inteligência artificial faz a notícia ser revisada, corrigida e melhorada conforme as convenções da aplicação.
+    - É feita através de uma LLM configurada nas variáveis de ambiente `TREATMENT_PROVIDER` e `TREATMENT_MODEL`.
 2. Uma segunda chamada para a inteligência artificial faz a notícia receber palavras-chave correspondente ao seu conteúdo.
+    - É feita através de uma SLM configurada na variável de ambiente `KEYWORDS_PROVIDER` e `KEYWORDS_MODEL`.
 3. A notícia é salva no banco de dados.
 4. A notícia segue para a etapa de julgamento.
 
@@ -243,6 +245,17 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
         - `article`: um `json` contendo os dados de uma notícia, obtidos diretamente através da descoberta de notícias.
     - Esse endpoint responde pelos dados do tratamento de notícias.
 
+## Julgando se uma notícia pertence ao feed do usuário
+
+- Quando uma notícia é descoberta um processo de julgamento é acionado para saber a qual feed aquela notícia será associada.
+- O julgamento funciona através de duas camadas que define se os registros estão relacionados ou não:
+    - A primeira camada é a mais simples envolvendo uma comparação de palavras-chave da notícia descoberta com o feed existente.
+    - A segunda camada é a garantia através da IA que define um `score` entre 0 e 100, com `threshold` presente na variável de ambiente `JUDGE_SCORE_THRESHOLD`, e define quanto aquela notícia pertence ao feed.
+    - Quando forem julgados como associados, um novo registro na tabela associativa (junction table) entre feed e notícias é criado.
+- O julgamento de notícias nunca é retroativo.
+- O julgamento de notícias só pode considerar feeds que estão ativos.
+- Em termos de código esse método precisa ser independente para poder ser chamado fora da CRON caso necessário.
+
 ## Traduzindo notícias
 
 - A tradução de notícias é uma opção dada ao usuário em suas preferências.
@@ -271,17 +284,6 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Alterar sentido, sintaxe, ideia ou contexto do conteúdo da notícia.
     - Trazer opinião própria.
 - Notícias que passaram pelo processo de tradução devem ser resumidos no mesmo idioma.
-
-## Julgando se uma notícia pertence ao feed do usuário
-
-- Quando uma notícia é descoberta um processo de julgamento é acionado para saber a qual feed aquela notícia será associada.
-- O julgamento funciona através de duas camadas que define se os registros estão relacionados ou não:
-    - A primeira camada é a mais simples envolvendo uma comparação de palavras-chave da notícia descoberta com o feed existente.
-    - A segunda camada é a garantia através da IA que define um `score` entre 0 e 100, com `threshold` presente na variável de ambiente `JUDGE_SCORE_THRESHOLD`, e define quanto aquela notícia pertence ao feed.
-    - Quando forem julgados como associados, um novo registro na tabela associativa (junction table) entre feed e notícias é criado.
-- O julgamento de notícias nunca é retroativo.
-- O julgamento de notícias só pode considerar feeds que estão ativos.
-- Em termos de código esse método precisa ser independente para poder ser chamado fora da CRON caso necessário.
 
 ## Administradores
 
