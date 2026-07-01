@@ -38,7 +38,7 @@ usado no fluxo de refresh.
 `id`, `status`, `url`, `url_rss`, timestamps. Índices únicos parciais em `url` e `url_rss`.
 
 ### articles (globais)
-`id`, `status`, `title`, `content` (markdown), `url_original`, `keywords` (JSON array TEXT),
+`id`, `status`, `title`, `content` (HTML básico, sanitizado por bluemonday), `url_original`, `keywords` (JSON array TEXT),
 `source_id` (**NOT NULL**, FK sources, **imutável**), timestamps. Índice único parcial em
 `url_original`. Keywords: 5–20 itens, geradas **em inglês** (canônico, pra matching entre fontes
 de qualquer idioma no julgamento).

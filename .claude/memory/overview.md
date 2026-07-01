@@ -31,6 +31,8 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
 - `services/discovery/` — descoberta de **notícias** no RSS de uma source (gofeed + retry). Seam
   `Processor`; `TreatmentProcessor` deduplica por `url_original`, trata via IA e persiste.
 - `services/cron/` — scheduler (`robfig/cron/v3`) + `DiscoveryRunner` que varre as sources ativas.
+- `services/sanitize/` — sanitiza a saída do tratamento pra HTML básico (bluemonday, política
+  customizada: só tags básicas, sem `a`/`img`/`class`/`style`/URL). Decorator no `Treater`.
 - `services/ai/` — costura de IA **por capacidade**: `Treater` (tratar) e `Keyworder` (keywords),
   com `ParseKeywords` compartilhada. Impls: `gemini/` (LLM) e `openaicompat/` (Ollama local, Groq,
   ou qualquer endpoint OpenAI-compatible; com API key opcional). Tratamento via `TREATMENT_*`;

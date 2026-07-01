@@ -262,10 +262,10 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
         - Evitar ao máximo os atributos `class` e `style` neste momento.
         - A personalização dessa etapa está planejada para o futuro.
 
-### Sanatização do conteúdo
+### Sanitização do conteúdo
 
 - Esta etapa utiliza a biblioteca `bluemonday` para forçar a whitelist de sanitização obtida na etapa anterior.
-- Utilizar a política `UGCPolicy` do `bluemonday`.
+- Usa uma política customizada: permite apenas as tags básicas de formatação, sem atributos, sem links, sem imagens.
 
 ### Nomeação de palavras-chave
 

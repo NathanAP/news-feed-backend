@@ -33,6 +33,7 @@ import (
 	sourceendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/sources"
 	systemendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/system"
 	userendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/users"
+	"github.com/nathanap/news-feed-backend/services/sanitize"
 )
 
 //go:embed migrations/*.sql
@@ -105,6 +106,7 @@ func main() {
 
 	treatmentProvider, treatmentModel := os.Getenv("TREATMENT_PROVIDER"), os.Getenv("TREATMENT_MODEL")
 	var treater ai.Treater = buildProvider(treatmentProvider, treatmentModel)
+	treater = sanitize.NewTreater(treater) // enforce the basic-HTML whitelist on the model output
 	treater = ai.NewVerboseTreater(treater, fmt.Sprintf("%s/%s", treatmentProvider, treatmentModel), os.Getenv("TREATMENT_VERBOSE_MODE") == "true")
 
 	keyworders, keywordsDefaultMode := buildKeyworders()
