@@ -102,8 +102,14 @@ func main() {
 	afCtrl := controllers.NewArticleFeedController()
 	feedCtrl := controllers.NewFeedController()
 	systemCtrl := controllers.NewSystemController()
-	treater := buildProvider(os.Getenv("TREATMENT_PROVIDER"), os.Getenv("TREATMENT_MODEL"))
-	keyworder := buildProvider(os.Getenv("KEYWORDS_PROVIDER"), os.Getenv("KEYWORDS_MODEL"))
+
+	treatmentProvider, treatmentModel := os.Getenv("TREATMENT_PROVIDER"), os.Getenv("TREATMENT_MODEL")
+	var treater ai.Treater = buildProvider(treatmentProvider, treatmentModel)
+	treater = ai.NewVerboseTreater(treater, fmt.Sprintf("%s/%s", treatmentProvider, treatmentModel), os.Getenv("TREATMENT_VERBOSE_MODE") == "true")
+
+	keywordsProvider, keywordsModel := os.Getenv("KEYWORDS_PROVIDER"), os.Getenv("KEYWORDS_MODEL")
+	var keyworder ai.Keyworder = buildProvider(keywordsProvider, keywordsModel)
+	keyworder = ai.NewVerboseKeyworder(keyworder, fmt.Sprintf("%s/%s", keywordsProvider, keywordsModel), os.Getenv("KEYWORDS_VERBOSE_MODE") == "true")
 
 	authMiddleware := middlewares.NewAuthMiddleware(jwtSecret, refreshTokenCtrl, runTx)
 

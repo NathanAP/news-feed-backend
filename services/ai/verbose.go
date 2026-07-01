@@ -1,0 +1,68 @@
+package ai
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/nathanap/news-feed-backend/logger"
+)
+
+// NewVerboseTreater wraps a Treater so each call logs a START/END marker with elapsed time. Gated
+// by its own flag (TREATMENT_VERBOSE_MODE) so treatment can be traced independently of keywords.
+// When disabled it returns the inner treater unchanged.
+func NewVerboseTreater(inner Treater, label string, enabled bool) Treater {
+	if !enabled {
+		return inner
+	}
+	return verboseTreater{inner: inner, label: label}
+}
+
+type verboseTreater struct {
+	inner Treater
+	label string
+}
+
+func (v verboseTreater) Treat(ctx context.Context, title, content string) (string, error) {
+	logger.Print(fmt.Sprintf("@@@ TREATMENT START - %s @@@", v.label), logger.ColorCyan)
+	start := time.Now()
+
+	out, err := v.inner.Treat(ctx, title, content)
+
+	elapsed := time.Since(start).Round(time.Millisecond)
+	if err != nil {
+		logger.Print(fmt.Sprintf("@@@ TREATMENT FAILED - %s - %s: %v @@@", v.label, elapsed, err), logger.ColorRed)
+	} else {
+		logger.Print(fmt.Sprintf("@@@ TREATMENT END - %s - %s (%d chars) @@@", v.label, elapsed, len(out)), logger.ColorGreen)
+	}
+	return out, err
+}
+
+// NewVerboseKeyworder wraps a Keyworder so each call logs a START/END marker with elapsed time.
+// Gated by its own flag (KEYWORDS_VERBOSE_MODE). When disabled it returns the inner keyworder.
+func NewVerboseKeyworder(inner Keyworder, label string, enabled bool) Keyworder {
+	if !enabled {
+		return inner
+	}
+	return verboseKeyworder{inner: inner, label: label}
+}
+
+type verboseKeyworder struct {
+	inner Keyworder
+	label string
+}
+
+func (v verboseKeyworder) Keywords(ctx context.Context, title, content string) ([]string, error) {
+	logger.Print(fmt.Sprintf("@@@ KEYWORDS START - %s @@@", v.label), logger.ColorCyan)
+	start := time.Now()
+
+	out, err := v.inner.Keywords(ctx, title, content)
+
+	elapsed := time.Since(start).Round(time.Millisecond)
+	if err != nil {
+		logger.Print(fmt.Sprintf("@@@ KEYWORDS FAILED - %s - %s: %v @@@", v.label, elapsed, err), logger.ColorRed)
+	} else {
+		logger.Print(fmt.Sprintf("@@@ KEYWORDS END - %s - %s (%d keywords) @@@", v.label, elapsed, len(out)), logger.ColorGreen)
+	}
+	return out, err
+}

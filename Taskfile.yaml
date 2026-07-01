@@ -17,12 +17,20 @@ tasks:
     # ── Setup ──────────────────────────────────────────────────────────────────
 
     setup:
-        desc: Install required Go tools (sqlc, task)
+        desc: Install dev tools, deps and pull the keywords SLM (needs Ollama installed)
         cmds:
             - go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
             - go install github.com/go-task/task/v3/cmd/task@latest
             - go mod download
             - pip install sqlite-web
+            - task: ollama-pull
+
+    ollama-pull:
+        desc: Pull the keywords SLM model (requires Ollama - https://ollama.com/download)
+        aliases: [op]
+        cmds:
+            - cmd: echo "Pulling the keywords SLM into Ollama (requires Ollama installed - https://ollama.com/download)"
+            - ollama pull qwen3:4b
 
     # ── Build ──────────────────────────────────────────────────────────────────
 
