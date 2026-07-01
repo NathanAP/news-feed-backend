@@ -226,14 +226,9 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 - O tratamento de notícias ocorre em duas etapas principais:
     - Tratamento principal: traz dinamismo, organização e possíveis correções ao conteúdo da notícia.
+    - Sanatização do conteúdo: utiliza a biblioteca `bluemonday` para filtrar e sanatizar trechos indesejados no resultado do tratamento principal.
     - Nomeação de palavras-chave: elenca palavras-chave para a notícia.
     - Gravação no banco de dados: forma um registro de notícia no banco de dados.
-- O tratamento de notícias tem como objetivo:
-    - Trazer mais dinamismo ao conteúdo.
-    - Organizar conteúdo confuso ou mal escrito.
-    - Corrigir erros de ortografia.
-    - Nomear palavras-chave para a notícia.
-    - Salvar a notícia no banco de dados.
 - Os modelos de SLM e LLM disponibilizados durante todas as etapas devem estar na stack em `CLAUDE.md`.
 - Em termos de código, o método completo precisa ser independente para poder ser chamado fora da CRON caso necessário.
 - Um endpoint de teste para esse processo pode ser encontrado em `POST base_url/v1/articles/treatment`.
@@ -251,19 +246,26 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - `TREATMENT_PROVIDER`: o provedor do modelo para ser usado durante esta etapa.
     - `TREATMENT_MODEL`: o modelo em si para ser usado durante esta etapa.
     - `TREATMENT_VERBOSE_MODE`: `boolean` que decide se os logs são exibidos no terminal ou não durante esta etapa.
+- Esta etapa tem como objetivo:
+    - Trazer mais dinamismo ao conteúdo.
+    - Organizar conteúdo confuso ou mal escrito.
+    - Corrigir erros de ortografia.
 - Esta etapa não deve:
     - Traduzir notícias: estritamente proibido fazer tradução neste momento. Melhores informações na sessão "traduzindo notícias".
     - Resumir notícias: estritamente proibido fazer resumo neste momento. Melhores informações na sessão "resumindo notícias".
-    - Manter URLs externas: qualquer tipo de URL, sessões de "leia mais", "veja também" ou afins não podem aparecer no resultado final do conteúdo salvo no banco de dados.
+    - Manter
     - Alterar o sentido, sintaxe, ideia ou contexto do conteúdo da notícia.
     - Personalizar a notícia: tentaremos manter a seriedade e tom de humor que a notícia tem originalmente.
     - Trazer opinião própria.
-- A saída dessa etapa deve:
-    - Estar em formato de texto (`string`) no formato HTML puro contendo:
-        - Apenas elementos HTML básicos e atributos simples.
-        - Sem elementos `html`, `body`, `head`, `footer`, `a` e `img`.
-        - Sem atributo `class` ou `style`.
-    - A personalização dessa etapa está planejada para o futuro.
+- A resposta da inteligência artificial nesta etapa deve:
+    - Estar em formato de texto (`string`) no formato HTML puro contendo apenas elementos HTML básicos e atributos simples.
+        - Evitar ao máximo os atributos `class` e `style` neste momento.
+        - A personalização dessa etapa está planejada para o futuro.
+
+### Sanatização do conteúdo
+
+- Esta etapa utiliza a biblioteca `bluemonday` para forçar a whitelist de sanitização obtida na etapa anterior.
+- Utilizar a política `UGCPolicy` do `bluemonday`.
 
 ### Nomeação de palavras-chave
 

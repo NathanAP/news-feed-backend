@@ -87,6 +87,7 @@ Você tem liberdade para acessar qualquer arquivo da pasta `.claude`.
 - `Ollama qwen3:4b` - modelo SLM padrão
 - `Groq` - serviço online para SLM
 - `Docker + docker-compose` - orquestração
+- `bluemonday` - biblioteca de sanatização de conteúdo HTML
 - `testify` - biblioteca para testes
 - `robfig/cron/v3` - biblioteca em Go para criar CRONs nativamente
 - `Bruno` - app externo para teste e organização da coleção de requisições
