@@ -261,13 +261,11 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 ### Nomeação de palavras-chave
 
 - Esta etapa opera em três modos:
-    - `local`: utiliza o modelo escolhido localmente para realizar a execução.
-    - `small`: utiliza serviços de SLMs para realizar a execução.
-    - `large`: utiliza serviços de LLMs para realizar a execução.
+    - `local`: utiliza SLM para realizar a execução.
+    - `grok`: utiliza serviços do Groq + SLM para realizar a execução.
+    - `gemini`: utiliza LLM para realizar a execução.
 - Esta etapa opera de acordo com as seguintes variáveis de ambiente:
     - `KEYWORDS_MODE`: o modo atualmente utilizado durante esta etapa.
-    - `KEYWORDS_PROVIDER`: o provedor do modelo para ser usado durante esta etapa.
-    - `KEYWORDS_MODEL`: o modelo em si para ser usado durante esta etapa.
     - `KEYWORDS_VERBOSE_MODE`: `boolean` que decide se os logs são exibidos no terminal ou não durante esta etapa.
 - As palavras-chave nomeadas devem estar em inglês para facilitar o entendimento de quais notícias estão relacionadas.
 - As palavras-chave devem ser armazenadas em letras minúsculas.
