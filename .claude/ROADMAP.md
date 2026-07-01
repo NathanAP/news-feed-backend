@@ -315,8 +315,6 @@ Os níveis de tabulação indicam detalhes do assunto.
 ## Versão 0.21.0.0
 
 - [ ] Alterar o processo de atribuição de keywords da etapa de tratamento para uma SLM ao invés de LLM
-    - Dúvida: seria melhor sempre usar Docker aqui? aí vamos ter que adiantar a estruturação dele
-    - Dúvida: podemos mockar todos os testes que envolvem SLM?
 
 ## Versão 0.22.0.0
 
