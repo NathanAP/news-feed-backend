@@ -83,8 +83,9 @@ Você tem liberdade para acessar qualquer arquivo da pasta `.claude`.
 - `sqlc` - operações SQL
 - `jwt` - autenticação Bearer
 - `gofeed` - parsing de RSS feeds
-- `Google Gemini 2.5 Flash` - LLM padrão
-- `Ollama qwen3:4b` - SLM padrão
+- `Google Gemini 2.5 Flash` - modelo LLM padrão
+- `Ollama qwen3:4b` - modelo SLM padrão
+- `Groq` - serviço online para SLM
 - `Docker + docker-compose` - orquestração
 - `testify` - biblioteca para testes
 - `robfig/cron/v3` - biblioteca em Go para criar CRONs nativamente

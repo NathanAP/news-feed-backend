@@ -128,6 +128,8 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
     - Google: gemini-2.5-flash.
 - Provedores e modelos SLM suportados atualmente (utilize essa lista para escrever sua lógica no código):
     - Ollama: qwen3:4b.
+- Serviços online de SLM suportados atualmente (utilize essa lista para escrever sua lógica no código):
+    - Groq.
 - A prioridade para modelos SLM é rodar eles localmente, mas caso o processo seja pesado, você tem a liberdade de me alertar para pensarmos juntos sobre a situação.
 - Prompts devem estar em inglês.
 - Você tem liberdade de escrever os prompts.

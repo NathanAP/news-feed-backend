@@ -203,7 +203,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 ## Descobrindo uma notícia
 
-- A descoberta de notícias ocorre de acordo com duas variáveis de ambiente:
+- A descoberta de notícias opera de acordo com as seguintes variáveis de ambiente:
     - `RSS_FEED_CRON_ACTIVE`: deve estar em `true` para ser considerado ativo.
     - `RSS_FEED_CRON_SCHEDULE`: o intervalo na qual a CRON irá rodar.
     - `RSS_FEED_CRON_VERBOSE_MODE`: apesar de não ser importante para rodar a CRON, essa variável de ambiente mostra junto as logs a saída de cada chamada da CRON quando estiver marcada como `true`.
@@ -224,23 +224,18 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 ## Tratamento de notícias
 
+- O tratamento de notícias ocorre em duas etapas principais:
+    - Tratamento principal: traz dinamismo, organização e possíveis correções ao conteúdo da notícia.
+    - Nomeação de palavras-chave: elenca palavras-chave para a notícia.
+    - Gravação no banco de dados: forma um registro de notícia no banco de dados.
 - O tratamento de notícias tem como objetivo:
     - Trazer mais dinamismo ao conteúdo.
     - Organizar conteúdo confuso ou mal escrito.
-    - Corrigir erros de escrita.
+    - Corrigir erros de ortografia.
     - Nomear palavras-chave para a notícia.
     - Salvar a notícia no banco de dados.
-- Dito isso, o tratamento de notícias não pode:
-    - Traduzir notícias: estritamente proibido fazer tradução neste momento. Melhores informações na sessão "traduzindo notícias".
-    - Resumir notícias: estritamente proibido fazer resumo neste momento. Melhores informações na sessão "resumindo notícias".
-    - Manter URLs externas: sessões de "leia mais", "veja também" ou afins não podem aparecer no resultado final do conteúdo salvo no banco de dados.
-    - Alterar o sentido, sintaxe, ideia ou contexto do conteúdo da notícia.
-    - Personalizar a notícia: tentaremos manter a seriedade e tom de humor que a notícia tem originalmente.
-    - Trazer opinião própria.
-- As palavras-chave nomeadas devem estar em inglês para facilitar o entendimento de quais notícias estão relacionadas.
-- As palavras-chave devem ser armazenadas em letras minúsculas.
-- Depois de tratada, a notícia é finalmente salva no banco de dados e pode passar então para o julgamento.
-- Em termos de código esse método precisa ser independente para poder ser chamado fora da CRON caso necessário.
+- Os modelos de SLM e LLM disponibilizados durante todas as etapas devem estar na stack em `CLAUDE.md`.
+- Em termos de código, o método completo precisa ser independente para poder ser chamado fora da CRON caso necessário.
 - Um endpoint de teste para esse processo pode ser encontrado em `POST base_url/v1/articles/treatment`.
     - Deve simular os exatos mesmos processos que rodaria na CRON.
     - Esse endpoint deve ser exclusivo para administradores.
@@ -248,6 +243,38 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - O body deste endpoint deve aceitar:
         - `article`: um `json` contendo os dados de uma notícia, obtidos diretamente através da descoberta de notícias.
     - Esse endpoint responde pelos dados do tratamento de notícias.
+
+### Tratamento principal
+
+- A etapa de tratamento principal opera de acordo com as seguintes variáveis de ambiente:
+    - `TREATMENT_PROVIDER`: o provedor do modelo para ser usado durante esta etapa.
+    - `TREATMENT_MODEL`: o modelo em si para ser usado durante esta etapa.
+    - `TREATMENT_VERBOSE_MODE`: `boolean` que decide se os logs são exibidos no terminal ou não durante esta etapa.
+- Esta etapa não deve:
+    - Traduzir notícias: estritamente proibido fazer tradução neste momento. Melhores informações na sessão "traduzindo notícias".
+    - Resumir notícias: estritamente proibido fazer resumo neste momento. Melhores informações na sessão "resumindo notícias".
+    - Manter URLs externas: sessões de "leia mais", "veja também" ou afins não podem aparecer no resultado final do conteúdo salvo no banco de dados.
+    - Alterar o sentido, sintaxe, ideia ou contexto do conteúdo da notícia.
+    - Personalizar a notícia: tentaremos manter a seriedade e tom de humor que a notícia tem originalmente.
+    - Trazer opinião própria.
+
+### Nomeação de palavras-chave
+
+- Esta etapa opera em três modos:
+    - `local`: utiliza o modelo escolhido localmente para realizar a execução.
+    - `small`: utiliza serviços de SLMs para realizar a execução.
+    - `large`: utiliza serviços de LLMs para realizar a execução.
+- Esta etapa opera de acordo com as seguintes variáveis de ambiente:
+    - `KEYWORDS_MODE`: o modo atualmente utilizado durante esta etapa.
+    - `KEYWORDS_PROVIDER`: o provedor do modelo para ser usado durante esta etapa.
+    - `KEYWORDS_MODEL`: o modelo em si para ser usado durante esta etapa.
+    - `KEYWORDS_VERBOSE_MODE`: `boolean` que decide se os logs são exibidos no terminal ou não durante esta etapa.
+- As palavras-chave nomeadas devem estar em inglês para facilitar o entendimento de quais notícias estão relacionadas.
+- As palavras-chave devem ser armazenadas em letras minúsculas.
+
+### Gravação no banco de dados
+
+- Depois de tratada, a notícia é finalmente salva no banco de dados e pode passar então para o julgamento.
 
 ## Julgando se uma notícia pertence ao feed do usuário
 
