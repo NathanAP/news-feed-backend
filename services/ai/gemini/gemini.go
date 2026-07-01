@@ -5,7 +5,6 @@ package gemini
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -13,7 +12,6 @@ import (
 	"github.com/sethvargo/go-retry"
 	"google.golang.org/genai"
 
-	"github.com/nathanap/news-feed-backend/schemas"
 	"github.com/nathanap/news-feed-backend/services/ai"
 	"github.com/nathanap/news-feed-backend/services/prompts"
 )
@@ -64,7 +62,7 @@ func (c *Client) Keywords(ctx context.Context, title, content string) ([]string,
 	if err != nil {
 		return nil, err
 	}
-	return parseKeywords(out)
+	return ai.ParseKeywords(out)
 }
 
 func (c *Client) generate(ctx context.Context, promptName string, vars map[string]string) (string, error) {
@@ -95,45 +93,4 @@ func (c *Client) generate(ctx context.Context, promptName string, vars map[strin
 		return "", fmt.Errorf("gemini generate (%s) failed: %w", promptName, err)
 	}
 	return text, nil
-}
-
-// parseKeywords extracts the JSON array from the model output, deduplicates it, and enforces the
-// 5-20 keyword rule. A code fence (```json ... ```) is tolerated.
-func parseKeywords(raw string) ([]string, error) {
-	var decoded []string
-	if err := json.Unmarshal([]byte(stripCodeFence(strings.TrimSpace(raw))), &decoded); err != nil {
-		return nil, fmt.Errorf("%w: %v", ai.ErrInvalidKeywords, err)
-	}
-
-	seen := make(map[string]struct{}, len(decoded))
-	keywords := make([]string, 0, len(decoded))
-	for _, k := range decoded {
-		k = strings.TrimSpace(k)
-		if k == "" {
-			continue
-		}
-		key := strings.ToLower(k)
-		if _, ok := seen[key]; ok {
-			continue
-		}
-		seen[key] = struct{}{}
-		keywords = append(keywords, k)
-	}
-
-	if len(keywords) < schemas.ArticleKeywordsMin || len(keywords) > schemas.ArticleKeywordsMax {
-		return nil, fmt.Errorf("%w: got %d, want %d-%d", ai.ErrInvalidKeywords, len(keywords), schemas.ArticleKeywordsMin, schemas.ArticleKeywordsMax)
-	}
-	return keywords, nil
-}
-
-func stripCodeFence(s string) string {
-	if !strings.HasPrefix(s, "```") {
-		return s
-	}
-	s = strings.TrimPrefix(s, "```")
-	s = strings.TrimPrefix(s, "json")
-	if i := strings.LastIndex(s, "```"); i >= 0 {
-		s = s[:i]
-	}
-	return strings.TrimSpace(s)
 }

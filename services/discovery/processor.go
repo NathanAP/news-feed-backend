@@ -19,20 +19,23 @@ import (
 type TreatmentProcessor struct {
 	runTx       controllers.TransactionRunner
 	articleCtrl controllers.ArticleControllerInterface
-	ai          ai.Client
+	treater     ai.Treater
+	keyworder   ai.Keyworder
 	verbose     bool
 }
 
 func NewTreatmentProcessor(
 	runTx controllers.TransactionRunner,
 	articleCtrl controllers.ArticleControllerInterface,
-	aiClient ai.Client,
+	treater ai.Treater,
+	keyworder ai.Keyworder,
 	verbose bool,
 ) *TreatmentProcessor {
 	return &TreatmentProcessor{
 		runTx:       runTx,
 		articleCtrl: articleCtrl,
-		ai:          aiClient,
+		treater:     treater,
+		keyworder:   keyworder,
 		verbose:     verbose,
 	}
 }
@@ -51,13 +54,13 @@ func (p *TreatmentProcessor) Process(ctx context.Context, articles []DiscoveredA
 			continue
 		}
 
-		treated, err := p.ai.Treat(ctx, article.Title, article.Content)
+		treated, err := p.treater.Treat(ctx, article.Title, article.Content)
 		if err != nil {
 			p.log(fmt.Sprintf("    treat failed for %s: %v", article.URLOriginal, err), logger.ColorRed)
 			continue
 		}
 
-		keywords, err := p.ai.Keywords(ctx, article.Title, treated)
+		keywords, err := p.keyworder.Keywords(ctx, article.Title, treated)
 		if err != nil {
 			p.log(fmt.Sprintf("    keywords failed for %s: %v", article.URLOriginal, err), logger.ColorRed)
 			continue

@@ -67,7 +67,8 @@
 ## Descoberta automática (CRON, sem rota)
 - CRON interna (`services/cron`, `robfig/cron/v3`) varre as sources ativas em `RSS_FEED_CRON_SCHEDULE`,
   ativa por `RSS_FEED_CRON_ACTIVE`. Lê o RSS de cada source (gofeed), **deduplica por `url_original`**,
-  **trata** as novas com o Gemini (limpa conteúdo + nomeia keywords) e **persiste** o `article`; ao
+  **trata** as novas (LLM limpa o conteúdo + SLM nomeia keywords — provider por tarefa via env) e
+  **persiste** o `article`; ao
   final grava `system.last_article_discovery_at` (informativo). Falha de IA → não persiste, re-tenta
   na próxima run. Pula a run quando `app_status` está off. Logs gated por `RSS_FEED_CRON_VERBOSE_MODE`.
 

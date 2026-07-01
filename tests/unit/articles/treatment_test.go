@@ -20,7 +20,8 @@ import (
 func treatmentApp(aiClient ai.Client) *fiber.App {
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
-	app.Post("/v1/articles/treatment", append(authMiddleware, articleendpoints.TreatArticle(aiClient))...)
+	// The mock implements both capabilities; wire it as treater and keyworder.
+	app.Post("/v1/articles/treatment", append(authMiddleware, articleendpoints.TreatArticle(aiClient, aiClient))...)
 	return app
 }
 

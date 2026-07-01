@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.20.0.0
+0.21.0.0
 
 ## Versão 0.1.0.0
 
@@ -314,7 +314,8 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.21.0.0
 
-- [ ] Alterar o processo de atribuição de keywords da etapa de tratamento para uma SLM ao invés de LLM
+- [x] Alterar o processo de atribuição de keywords da etapa de tratamento para uma SLM ao invés de LLM
+    - Provider por tarefa via env (`TREATMENT_*` LLM / `KEYWORDS_*` SLM); Ollama local (`OLLAMA_BASE_URL`), sem Docker por ora; testes via mock.
 
 ## Versão 0.22.0.0
 

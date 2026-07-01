@@ -22,6 +22,7 @@ import (
 	"github.com/nathanap/news-feed-backend/middlewares"
 	"github.com/nathanap/news-feed-backend/services/ai"
 	"github.com/nathanap/news-feed-backend/services/ai/gemini"
+	"github.com/nathanap/news-feed-backend/services/ai/openaicompat"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	"github.com/nathanap/news-feed-backend/services/cron"
 	"github.com/nathanap/news-feed-backend/services/discovery"
@@ -101,7 +102,8 @@ func main() {
 	afCtrl := controllers.NewArticleFeedController()
 	feedCtrl := controllers.NewFeedController()
 	systemCtrl := controllers.NewSystemController()
-	aiClient := buildAIClient()
+	treater := buildProvider(os.Getenv("TREATMENT_PROVIDER"), os.Getenv("TREATMENT_MODEL"))
+	keyworder := buildProvider(os.Getenv("KEYWORDS_PROVIDER"), os.Getenv("KEYWORDS_MODEL"))
 
 	authMiddleware := middlewares.NewAuthMiddleware(jwtSecret, refreshTokenCtrl, runTx)
 
@@ -147,7 +149,7 @@ func main() {
 
 	articles := api.Group("/articles")
 	articles.Post("/create", append(authMiddleware, articleendpoints.CreateArticle(articleCtrl, runTx))...)
-	articles.Post("/treatment", append(authMiddleware, articleendpoints.TreatArticle(aiClient))...)
+	articles.Post("/treatment", append(authMiddleware, articleendpoints.TreatArticle(treater, keyworder))...)
 	articles.Put("/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(articleCtrl, afCtrl, runTx))...)
 	articles.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, runTx))...)
 	articles.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, runTx))...)
@@ -163,7 +165,7 @@ func main() {
 
 	if os.Getenv("RSS_FEED_CRON_ACTIVE") == "true" {
 		cronVerbose := os.Getenv("RSS_FEED_CRON_VERBOSE_MODE") == "true"
-		processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, aiClient, cronVerbose)
+		processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, treater, keyworder, cronVerbose)
 		runner := cron.NewDiscoveryRunner(runTx, sourceCtrl, systemCtrl, processor, discoveryHTTPClient, cronVerbose)
 		scheduler, err := cron.NewScheduler(os.Getenv("RSS_FEED_CRON_SCHEDULE"), runner)
 		if err != nil {
@@ -181,23 +183,39 @@ func main() {
 	log.Fatal(app.Listen(":" + apiPort))
 }
 
-// buildAIClient wires the configured AI provider. When GOOGLE_API_KEY/PRIMARY_AI_MODEL are not
-// set (e.g. local dev without credentials) it returns a disabled client so the app still boots and
-// serves non-AI features; AI-dependent paths then fail clearly instead of crashing at startup.
-func buildAIClient() ai.Client {
-	apiKey := os.Getenv("GOOGLE_API_KEY")
-	model := os.Getenv("PRIMARY_AI_MODEL")
-	if apiKey == "" || model == "" {
-		log.Println("AI disabled: set GOOGLE_API_KEY and PRIMARY_AI_MODEL to enable treatment")
+// buildProvider wires an AI provider for a task from its configured provider/model. Supported
+// providers come from conventions.md ("google" = Gemini LLM, "ollama" = local SLM via an
+// OpenAI-compatible endpoint). When a provider is missing or misconfigured it returns a disabled
+// client so the app still boots and serves non-AI features; AI-dependent paths then fail clearly
+// instead of crashing at startup.
+func buildProvider(provider, model string) ai.Client {
+	switch provider {
+	case "google":
+		apiKey := os.Getenv("GOOGLE_API_KEY")
+		if apiKey == "" || model == "" {
+			log.Println("AI (google) disabled: set GOOGLE_API_KEY and the task model")
+			return ai.NewDisabledClient()
+		}
+		client, err := gemini.NewClient(context.Background(), apiKey, model)
+		if err != nil {
+			log.Printf("Failed to initialize Gemini client, AI disabled: %v", err)
+			return ai.NewDisabledClient()
+		}
+		return client
+	case "ollama":
+		if model == "" {
+			log.Println("AI (ollama) disabled: set the task model")
+			return ai.NewDisabledClient()
+		}
+		baseURL := os.Getenv("OLLAMA_BASE_URL")
+		if baseURL == "" {
+			baseURL = "http://localhost:11434"
+		}
+		return openaicompat.NewClient(baseURL, model)
+	default:
+		log.Printf("AI disabled: unknown provider %q (supported: google, ollama)", provider)
 		return ai.NewDisabledClient()
 	}
-
-	client, err := gemini.NewClient(context.Background(), apiKey, model)
-	if err != nil {
-		log.Printf("Failed to initialize Gemini client, AI disabled: %v", err)
-		return ai.NewDisabledClient()
-	}
-	return client
 }
 
 func runMigrations(database *sql.DB) error {

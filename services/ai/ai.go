@@ -1,6 +1,7 @@
 // Package ai is the provider-agnostic seam for every AI call in the application. The rest of the
-// codebase depends only on the Client interface — never on a concrete provider. Swapping Gemini
-// for LangChain/Claude later means adding another implementation of Client and rewiring it in
+// codebase depends only on these interfaces — never on a concrete provider. Each capability is its
+// own interface so different tasks can use different providers (e.g. treatment on an LLM, keywords
+// on a local SLM). Swapping/adding a provider means adding an implementation and rewiring in
 // main.go; nothing else changes.
 package ai
 
@@ -16,21 +17,28 @@ var (
 	// the 5-20 distinct-items rule.
 	ErrInvalidKeywords = errors.New("keywords output is invalid")
 	// ErrDisabled is returned by the disabled client when no provider is configured.
-	ErrDisabled = errors.New("ai client is disabled: PRIMARY_AI_MODEL/GOOGLE_API_KEY not configured")
+	ErrDisabled = errors.New("ai client is disabled: provider/model not configured")
 )
 
-// Client is the seam for all AI interactions. Methods speak the domain (treat, keywords), never
-// the provider's vocabulary.
-type Client interface {
-	// Treat returns the cleaned-up Markdown body of an article — form only, never substance.
+// Treater cleans up an article's content (form only, never substance).
+type Treater interface {
 	Treat(ctx context.Context, title, content string) (string, error)
-	// Keywords returns 5-20 distinct keywords describing the (already treated) article.
+}
+
+// Keyworder assigns 5-20 distinct keywords to an (already treated) article.
+type Keyworder interface {
 	Keywords(ctx context.Context, title, content string) ([]string, error)
 }
 
+// Client is a provider that can do both — convenient for providers (Gemini, Ollama) that
+// implement every capability. Wiring picks a Treater and a Keyworder independently.
+type Client interface {
+	Treater
+	Keyworder
+}
+
 // NewDisabledClient returns a Client that fails every call with ErrDisabled. It lets the app boot
-// and serve non-AI features when no provider is configured (e.g. local dev without an API key),
-// instead of crashing at startup.
+// and serve non-AI features when a provider is not configured, instead of crashing at startup.
 func NewDisabledClient() Client {
 	return disabledClient{}
 }
