@@ -142,6 +142,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Os feeds são registros que pode ser criado livremente por qualquer usuário e ele só pode ser visualizado pelo usuário que o criou.
 - Os feeds devem possuir pelo menos 5 palavras-chave com limite de 20.
     - Palavras-chave não podem estar repetidas.
+    - Palavras-chave devem ser armazenadas em letras minúsculas.
     - O campo de palavras-chave é uma lista de `string`(no formato `JSON array (TEXT)`).
     - Quanto mais palavras-chave um feed tem, mais amplo vai ser o recebimento de notícias durante o julgamento.
 - Um usuário pode ter até 5 feeds ativos por vez.
@@ -236,6 +237,8 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Alterar o sentido, sintaxe, ideia ou contexto do conteúdo da notícia.
     - Personalizar a notícia: tentaremos manter a seriedade e tom de humor que a notícia tem originalmente.
     - Trazer opinião própria.
+- As palavras-chave nomeadas devem estar em inglês para facilitar o entendimento de quais notícias estão relacionadas.
+- As palavras-chave devem ser armazenadas em letras minúsculas.
 - Depois de tratada, a notícia é finalmente salva no banco de dados e pode passar então para o julgamento.
 - Em termos de código esse método precisa ser independente para poder ser chamado fora da CRON caso necessário.
 - Um endpoint de teste para esse processo pode ser encontrado em `POST base_url/v1/articles/treatment`.

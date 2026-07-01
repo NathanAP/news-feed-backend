@@ -23,15 +23,14 @@ func ParseKeywords(raw string) ([]string, error) {
 	seen := make(map[string]struct{}, len(decoded))
 	keywords := make([]string, 0, len(decoded))
 	for _, k := range decoded {
-		k = strings.TrimSpace(k)
+		k = strings.ToLower(strings.TrimSpace(k)) // stored lowercase (PROJECT.md keyword rule)
 		if k == "" {
 			continue
 		}
-		key := strings.ToLower(k)
-		if _, ok := seen[key]; ok {
+		if _, ok := seen[k]; ok {
 			continue
 		}
-		seen[key] = struct{}{}
+		seen[k] = struct{}{}
 		keywords = append(keywords, k)
 	}
 

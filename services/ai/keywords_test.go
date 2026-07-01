@@ -27,10 +27,10 @@ func TestParseKeywords_StripsCodeFence(t *testing.T) {
 	assert.Len(t, out, 5)
 }
 
-func TestParseKeywords_DeduplicatesCaseInsensitive(t *testing.T) {
+func TestParseKeywords_LowercasesAndDeduplicates(t *testing.T) {
 	out, err := ParseKeywords(`["Rock","rock","metal","Metal","music","concert","tour","band"]`)
 	require.NoError(t, err)
-	assert.Equal(t, []string{"Rock", "metal", "music", "concert", "tour", "band"}, out)
+	assert.Equal(t, []string{"rock", "metal", "music", "concert", "tour", "band"}, out)
 }
 
 func TestParseKeywords_TooFew(t *testing.T) {

@@ -40,7 +40,8 @@ usado no fluxo de refresh.
 ### articles (globais)
 `id`, `status`, `title`, `content` (markdown), `url_original`, `keywords` (JSON array TEXT),
 `source_id` (**NOT NULL**, FK sources, **imutável**), timestamps. Índice único parcial em
-`url_original`. Keywords: 5–20 itens.
+`url_original`. Keywords: 5–20 itens, geradas **em inglês** (canônico, pra matching entre fontes
+de qualquer idioma no julgamento).
 
 ### feeds (por usuário)
 `id`, `status`, `name`, `keywords` (JSON array TEXT, 5–20), `user_id` (FK users), timestamps.

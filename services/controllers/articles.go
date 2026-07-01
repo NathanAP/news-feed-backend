@@ -129,12 +129,15 @@ func (c *ArticleController) SoftDelete(ctx context.Context, q db.Querier, id str
 	return nil
 }
 
-// encodeKeywords serializes the keyword slice into the JSON array TEXT stored in the DB.
+// encodeKeywords serializes the keyword slice into the JSON array TEXT stored in the DB. It is the
+// single storage choke point for both articles and feeds, so it normalizes every keyword to
+// trimmed lowercase (PROJECT.md: "palavras-chave devem ser armazenadas em letras minúsculas").
 func encodeKeywords(keywords []string) (string, error) {
-	if keywords == nil {
-		keywords = []string{}
+	normalized := make([]string, 0, len(keywords))
+	for _, k := range keywords {
+		normalized = append(normalized, strings.ToLower(strings.TrimSpace(k)))
 	}
-	data, err := json.Marshal(keywords)
+	data, err := json.Marshal(normalized)
 	if err != nil {
 		return "", fmt.Errorf("failed to encode keywords: %w", err)
 	}

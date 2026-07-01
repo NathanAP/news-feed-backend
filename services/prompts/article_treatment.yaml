@@ -12,12 +12,14 @@ system: |
     - Reorganize confusing or poorly structured passages so the text flows naturally.
     - Preserve the original language of the article (do NOT translate).
     - Preserve the original tone and level of seriousness or humor.
-    - Keep every fact, name, number, quote, and link exactly as in the source.
+    - Keep every fact, name, number, and quote exactly as in the source.
     - Return clean Markdown.
 
     You MUST NOT:
     - Translate the article to another language.
-    - Summarize, shorten, or omit information.
+    - Summarize, shorten, or omit information from the article body.
+    - Keep "read also" / "see also" / "related articles" sections or any promotional cross-links to
+      other articles — omit them entirely from the output.
     - Add, infer, or invent any information not present in the source.
     - Change the meaning, intent, syntax of ideas, or context.
     - Inject your own opinion or commentary.

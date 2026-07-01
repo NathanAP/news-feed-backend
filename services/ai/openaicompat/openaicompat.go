@@ -52,7 +52,7 @@ func NewClient(baseURL, model string) *Client {
 }
 
 func (c *Client) Treat(ctx context.Context, title, content string) (string, error) {
-	out, err := c.chat(ctx, treatmentPromptName, map[string]string{"title": title, "content": content})
+	out, err := c.chat(ctx, treatmentPromptName, map[string]string{"title": title, "content": content}, false)
 	if err != nil {
 		return "", err
 	}
@@ -64,7 +64,9 @@ func (c *Client) Treat(ctx context.Context, title, content string) (string, erro
 }
 
 func (c *Client) Keywords(ctx context.Context, title, content string) ([]string, error) {
-	out, err := c.chat(ctx, keywordsPromptName, map[string]string{"title": title, "content": content})
+	// jsonMode forces a JSON object, which both prevents the invalid-JSON failures and (via
+	// grammar-constrained decoding) stops the model from emitting a reasoning block.
+	out, err := c.chat(ctx, keywordsPromptName, map[string]string{"title": title, "content": content}, true)
 	if err != nil {
 		return nil, err
 	}
@@ -76,10 +78,15 @@ type chatMessage struct {
 	Content string `json:"content"`
 }
 
+type responseFormat struct {
+	Type string `json:"type"`
+}
+
 type chatRequest struct {
-	Model    string        `json:"model"`
-	Messages []chatMessage `json:"messages"`
-	Stream   bool          `json:"stream"`
+	Model          string          `json:"model"`
+	Messages       []chatMessage   `json:"messages"`
+	Stream         bool            `json:"stream"`
+	ResponseFormat *responseFormat `json:"response_format,omitempty"`
 }
 
 type chatResponse struct {
@@ -88,20 +95,29 @@ type chatResponse struct {
 	} `json:"choices"`
 }
 
-func (c *Client) chat(ctx context.Context, promptName string, vars map[string]string) (string, error) {
+func (c *Client) chat(ctx context.Context, promptName string, vars map[string]string, jsonMode bool) (string, error) {
 	prompt, err := prompts.Load(promptName)
 	if err != nil {
 		return "", err
 	}
 
-	payload, err := json.Marshal(chatRequest{
+	// "/no_think" is Qwen3's soft switch to skip the reasoning block — a big speedup on CPU for
+	// non-reasoning tasks. It is harmless for models that do not support it.
+	system := prompts.Render(prompt.System, vars) + "\n\n/no_think"
+
+	req := chatRequest{
 		Model: c.model,
 		Messages: []chatMessage{
-			{Role: "system", Content: prompts.Render(prompt.System, vars)},
+			{Role: "system", Content: system},
 			{Role: "user", Content: prompts.Render(prompt.User, vars)},
 		},
 		Stream: false,
-	})
+	}
+	if jsonMode {
+		req.ResponseFormat = &responseFormat{Type: "json_object"}
+	}
+
+	payload, err := json.Marshal(req)
 	if err != nil {
 		return "", err
 	}
