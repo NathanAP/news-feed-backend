@@ -22,7 +22,7 @@ func treatmentApp(aiClient ai.Client) *fiber.App {
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
 	// The mock implements both capabilities; wire it as treater and as every keyword mode.
 	keyworders := map[string]ai.Keyworder{"local": aiClient, "groq": aiClient, "gemini": aiClient}
-	app.Post("/v1/articles/treatment", append(authMiddleware, articleendpoints.TreatArticle(aiClient, keyworders, "local"))...)
+	app.Post("/v1/articles/treatment", append(authMiddleware, articleendpoints.TreatArticle(aiClient, keyworders, "local", &jwtmock.MockLanguageDetector{}))...)
 	return app
 }
 

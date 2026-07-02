@@ -17,9 +17,10 @@ import (
 )
 
 const (
-	treatmentPromptName = "article_treatment"
-	keywordsPromptName  = "article_keywords"
-	judgementPromptName = "article_feed_judgement"
+	treatmentPromptName   = "article_treatment"
+	keywordsPromptName    = "article_keywords"
+	judgementPromptName   = "article_feed_judgement"
+	translationPromptName = "article_translation"
 
 	requestTimeout = 60 * time.Second
 )
@@ -78,6 +79,21 @@ func (c *Client) Judge(ctx context.Context, feedKeywords []string, title string,
 		return 0, err
 	}
 	return ai.ParseScore(out)
+}
+
+// Translate runs the translation prompt and returns the translated title, content and keywords.
+func (c *Client) Translate(ctx context.Context, targetLanguage, personality, title, content string, keywords []string) (ai.Translation, error) {
+	out, err := c.generate(ctx, translationPromptName, map[string]string{
+		"target_language": targetLanguage,
+		"personality":     personality,
+		"title":           title,
+		"keywords":        strings.Join(keywords, ", "),
+		"content":         content,
+	})
+	if err != nil {
+		return ai.Translation{}, err
+	}
+	return ai.ParseTranslation(out)
 }
 
 func (c *Client) generate(ctx context.Context, promptName string, vars map[string]string) (string, error) {

@@ -99,7 +99,7 @@ func seedSource(t *testing.T, queries db.Querier) string {
 
 func createArticle(t *testing.T, app *fiber.App, token, urlOriginal, sourceID string) string {
 	t.Helper()
-	body := `{"title":"T","content":"# C","url_original":"` + urlOriginal + `","keywords":["a","b","c","d","e"],"source_id":"` + sourceID + `"}`
+	body := `{"title":"T","content":"# C","url_original":"` + urlOriginal + `","keywords":["a","b","c","d","e"],"source_id":"` + sourceID + `","language_original":"pt"}`
 	req, _ := http.NewRequest(http.MethodPost, "/v1/articles/create", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -120,7 +120,7 @@ func TestIntegration_CreateArticle_Success(t *testing.T) {
 	token := seedUser(t, queries)
 	sourceID := seedSource(t, queries)
 
-	body := `{"title":"Hello","content":"# Hello","url_original":"https://e.com/hello","keywords":["a","b","c","d","e"],"source_id":"` + sourceID + `"}`
+	body := `{"title":"Hello","content":"# Hello","url_original":"https://e.com/hello","keywords":["a","b","c","d","e"],"source_id":"` + sourceID + `","language_original":"pt"}`
 	req, _ := http.NewRequest(http.MethodPost, "/v1/articles/create", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -146,7 +146,7 @@ func TestIntegration_CreateArticle_DuplicateURL(t *testing.T) {
 
 	createArticle(t, app, token, "https://e.com/dup", sourceID)
 
-	body := `{"title":"T","content":"# C","url_original":"https://e.com/dup","keywords":["a","b","c","d","e"],"source_id":"` + sourceID + `"}`
+	body := `{"title":"T","content":"# C","url_original":"https://e.com/dup","keywords":["a","b","c","d","e"],"source_id":"` + sourceID + `","language_original":"pt"}`
 	req, _ := http.NewRequest(http.MethodPost, "/v1/articles/create", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -162,7 +162,7 @@ func TestIntegration_CreateArticle_KeywordsPersistedAndReturned(t *testing.T) {
 	token := seedUser(t, queries)
 	sourceID := seedSource(t, queries)
 
-	body := `{"title":"T","content":"# C","url_original":"https://e.com/kw","keywords":["metallica","rock","metal","music","concert"],"source_id":"` + sourceID + `"}`
+	body := `{"title":"T","content":"# C","url_original":"https://e.com/kw","keywords":["metallica","rock","metal","music","concert"],"source_id":"` + sourceID + `","language_original":"pt"}`
 	req, _ := http.NewRequest(http.MethodPost, "/v1/articles/create", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -264,7 +264,7 @@ func TestIntegration_UpdateArticle_Success(t *testing.T) {
 
 	id := createArticle(t, app, token, "https://e.com/upd", sourceID)
 
-	body := `{"title":"Updated","content":"# New","url_original":"https://e.com/upd","keywords":["x","y","z","w","v"]}`
+	body := `{"title":"Updated","content":"# New","url_original":"https://e.com/upd","keywords":["x","y","z","w","v"],"language_original":"pt"}`
 	req, _ := http.NewRequest(http.MethodPut, "/v1/articles/"+id, strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -284,7 +284,7 @@ func TestIntegration_UpdateArticle_NotFound(t *testing.T) {
 	app, queries := setupIntegrationApp(t)
 	token := seedUser(t, queries)
 
-	body := `{"title":"T","content":"# C","url_original":"https://e.com/x","keywords":["a","b","c","d","e"]}`
+	body := `{"title":"T","content":"# C","url_original":"https://e.com/x","keywords":["a","b","c","d","e"],"language_original":"pt"}`
 	req, _ := http.NewRequest(http.MethodPut, "/v1/articles/non-existent", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -333,7 +333,7 @@ func TestIntegration_CreateArticle_AfterSoftDelete(t *testing.T) {
 	require.Equal(t, http.StatusNoContent, delResp.StatusCode)
 
 	// Re-create with same url_original — partial unique index must allow it
-	body := `{"title":"T","content":"# C","url_original":"https://e.com/reused","keywords":["a","b","c","d","e"],"source_id":"` + sourceID + `"}`
+	body := `{"title":"T","content":"# C","url_original":"https://e.com/reused","keywords":["a","b","c","d","e"],"source_id":"` + sourceID + `","language_original":"pt"}`
 	req, _ := http.NewRequest(http.MethodPost, "/v1/articles/create", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -351,7 +351,7 @@ func TestIntegration_CreateArticle_SourceNotFound(t *testing.T) {
 	token := seedUser(t, queries)
 	// No source seeded — the referenced source does not exist.
 
-	body := `{"title":"T","content":"# C","url_original":"https://e.com/ns","keywords":["a","b","c","d","e"],"source_id":"01900000-0000-7000-8000-000000000099"}`
+	body := `{"title":"T","content":"# C","url_original":"https://e.com/ns","keywords":["a","b","c","d","e"],"source_id":"01900000-0000-7000-8000-000000000099","language_original":"pt"}`
 	req, _ := http.NewRequest(http.MethodPost, "/v1/articles/create", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -370,7 +370,7 @@ func TestIntegration_CreateArticle_SourceInactive(t *testing.T) {
 	// Soft-delete the source: it must no longer be assignable to a new article.
 	require.NoError(t, queries.SoftDeleteSource(t.Context(), sourceID))
 
-	body := `{"title":"T","content":"# C","url_original":"https://e.com/inactive","keywords":["a","b","c","d","e"],"source_id":"` + sourceID + `"}`
+	body := `{"title":"T","content":"# C","url_original":"https://e.com/inactive","keywords":["a","b","c","d","e"],"source_id":"` + sourceID + `","language_original":"pt"}`
 	req, _ := http.NewRequest(http.MethodPost, "/v1/articles/create", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -389,7 +389,7 @@ func TestIntegration_UpdateArticle_SourceIDImmutable(t *testing.T) {
 	id := createArticle(t, app, token, "https://e.com/imm", sourceID)
 
 	// Update payload carries no source_id; the original must be preserved.
-	body := `{"title":"Changed","content":"# Changed","url_original":"https://e.com/imm","keywords":["a","b","c","d","e"]}`
+	body := `{"title":"Changed","content":"# Changed","url_original":"https://e.com/imm","keywords":["a","b","c","d","e"],"language_original":"pt"}`
 	req, _ := http.NewRequest(http.MethodPut, "/v1/articles/"+id, strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)

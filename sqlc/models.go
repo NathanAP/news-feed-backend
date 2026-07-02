@@ -56,16 +56,17 @@ type Source struct {
 }
 
 type Article struct {
-	ID          string       `json:"id"`
-	Status      int64        `json:"status"`
-	Title       string       `json:"title"`
-	Content     string       `json:"content"`
-	UrlOriginal string       `json:"url_original"`
-	Keywords    string       `json:"keywords"`
-	SourceID    string       `json:"source_id"`
-	CreatedAt   time.Time    `json:"created_at"`
-	ModifiedAt  sql.NullTime `json:"modified_at"`
-	RemovedAt   sql.NullTime `json:"removed_at"`
+	ID               string         `json:"id"`
+	Status           int64          `json:"status"`
+	Title            string         `json:"title"`
+	Content          string         `json:"content"`
+	UrlOriginal      string         `json:"url_original"`
+	Keywords         string         `json:"keywords"`
+	SourceID         string         `json:"source_id"`
+	LanguageOriginal sql.NullString `json:"language_original"`
+	CreatedAt        time.Time      `json:"created_at"`
+	ModifiedAt       sql.NullTime   `json:"modified_at"`
+	RemovedAt        sql.NullTime   `json:"removed_at"`
 }
 
 type Feed struct {

@@ -9,6 +9,7 @@ import (
 	"github.com/nathanap/news-feed-backend/services/ai"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	"github.com/nathanap/news-feed-backend/services/judgment"
+	"github.com/nathanap/news-feed-backend/services/langdetect"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
@@ -25,6 +26,7 @@ type TreatmentProcessor struct {
 	articleCtrl controllers.ArticleControllerInterface
 	feedCtrl    controllers.FeedControllerInterface
 	afCtrl      controllers.ArticleFeedControllerInterface
+	detector    langdetect.Detector
 	treater     ai.Treater
 	keyworder   ai.Keyworder
 	evaluator   *judgment.Evaluator
@@ -36,6 +38,7 @@ func NewTreatmentProcessor(
 	articleCtrl controllers.ArticleControllerInterface,
 	feedCtrl controllers.FeedControllerInterface,
 	afCtrl controllers.ArticleFeedControllerInterface,
+	detector langdetect.Detector,
 	treater ai.Treater,
 	keyworder ai.Keyworder,
 	evaluator *judgment.Evaluator,
@@ -46,6 +49,7 @@ func NewTreatmentProcessor(
 		articleCtrl: articleCtrl,
 		feedCtrl:    feedCtrl,
 		afCtrl:      afCtrl,
+		detector:    detector,
 		treater:     treater,
 		keyworder:   keyworder,
 		evaluator:   evaluator,
@@ -79,7 +83,12 @@ func (p *TreatmentProcessor) Process(ctx context.Context, articles []DiscoveredA
 			continue
 		}
 
-		saved, err := p.persist(ctx, article, treated, keywords)
+		// Detect the original language from the raw (untreated) text. This is a lingua-go call, not
+		// AI: deterministic and offline. A failed detection is not fatal — the article is stored with
+		// a null language_original (it just cannot be translated later).
+		languageOriginal := p.detectLanguage(article.Title, article.Content)
+
+		saved, err := p.persist(ctx, article, treated, keywords, languageOriginal)
 		if err != nil {
 			if errors.Is(err, controllers.ErrArticleAlreadyExists) {
 				continue // created concurrently between the dedup check and the insert
@@ -153,11 +162,21 @@ func (p *TreatmentProcessor) alreadyExists(ctx context.Context, urlOriginal stri
 	return exists, err
 }
 
-func (p *TreatmentProcessor) persist(ctx context.Context, article DiscoveredArticle, content string, keywords []string) (db.Article, error) {
+// detectLanguage runs lingua-go over the raw title+content and returns the ISO code, or nil when
+// detection is not reliable (persisted as a null language_original).
+func (p *TreatmentProcessor) detectLanguage(title, content string) *string {
+	code, ok := p.detector.Detect(title, content)
+	if !ok {
+		return nil
+	}
+	return &code
+}
+
+func (p *TreatmentProcessor) persist(ctx context.Context, article DiscoveredArticle, content string, keywords []string, languageOriginal *string) (db.Article, error) {
 	var saved db.Article
 	err := p.runTx(ctx, func(q db.Querier) error {
 		var e error
-		saved, e = p.articleCtrl.Create(ctx, q, article.Title, content, article.URLOriginal, article.SourceID, keywords)
+		saved, e = p.articleCtrl.Create(ctx, q, article.Title, content, article.URLOriginal, article.SourceID, keywords, languageOriginal)
 		return e
 	})
 	return saved, err

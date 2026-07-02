@@ -19,9 +19,20 @@ var (
 	// ErrInvalidScore is returned when the model's judgement output cannot be parsed into an
 	// integer score in the 0-100 range.
 	ErrInvalidScore = errors.New("judgement score output is invalid")
+	// ErrInvalidTranslation is returned when the model's translation output cannot be parsed or is
+	// missing the title/content.
+	ErrInvalidTranslation = errors.New("translation output is invalid")
 	// ErrDisabled is returned by the disabled client when no provider is configured.
 	ErrDisabled = errors.New("ai client is disabled: provider/model not configured")
 )
+
+// Translation is the result of translating an article: its title, content (HTML preserved) and
+// keywords rendered in the target language, for display only (never persisted).
+type Translation struct {
+	Title    string   `json:"title"`
+	Content  string   `json:"content"`
+	Keywords []string `json:"keywords"`
+}
 
 // Treater cleans up an article's content (form only, never substance).
 type Treater interface {
@@ -40,12 +51,20 @@ type Judger interface {
 	Judge(ctx context.Context, feedKeywords []string, title string, articleKeywords []string, content string) (int, error)
 }
 
+// Translator translates an article's title, content and keywords into the target language (an
+// English language name, e.g. "Spanish"), adapting the tone to the given personality. It must
+// preserve the content's HTML structure and never summarize or persist. Used on demand, LLM-only.
+type Translator interface {
+	Translate(ctx context.Context, targetLanguage, personality, title, content string, keywords []string) (Translation, error)
+}
+
 // Client is a provider that can do all capabilities — convenient for providers (Gemini, Ollama)
-// that implement every one. Wiring picks a Treater, a Keyworder and a Judger independently.
+// that implement every one. Wiring picks each capability independently.
 type Client interface {
 	Treater
 	Keyworder
 	Judger
+	Translator
 }
 
 // NewDisabledClient returns a Client that fails every call with ErrDisabled. It lets the app boot
@@ -66,4 +85,8 @@ func (disabledClient) Keywords(context.Context, string, string) ([]string, error
 
 func (disabledClient) Judge(context.Context, []string, string, []string, string) (int, error) {
 	return 0, ErrDisabled
+}
+
+func (disabledClient) Translate(context.Context, string, string, string, string, []string) (Translation, error) {
+	return Translation{}, ErrDisabled
 }

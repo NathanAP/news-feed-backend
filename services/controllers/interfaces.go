@@ -55,11 +55,11 @@ type SourceControllerInterface interface {
 }
 
 type ArticleControllerInterface interface {
-	Create(ctx context.Context, q db.Querier, title, content, urlOriginal, sourceID string, keywords []string) (db.Article, error)
+	Create(ctx context.Context, q db.Querier, title, content, urlOriginal, sourceID string, keywords []string, languageOriginal *string) (db.Article, error)
 	FindByID(ctx context.Context, q db.Querier, id string) (db.Article, error)
 	FindByURLOriginal(ctx context.Context, q db.Querier, urlOriginal string) (db.Article, error)
 	List(ctx context.Context, q db.Querier) ([]db.Article, error)
-	Update(ctx context.Context, q db.Querier, id, title, content, urlOriginal string, keywords []string) (db.Article, error)
+	Update(ctx context.Context, q db.Querier, id, title, content, urlOriginal string, keywords []string, languageOriginal *string) (db.Article, error)
 	SoftDelete(ctx context.Context, q db.Querier, id string) error
 }
 

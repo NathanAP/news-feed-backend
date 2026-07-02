@@ -99,7 +99,7 @@ type mockArticleCtrl struct {
 	findByURLOriginalFn func(ctx context.Context, q db.Querier, urlOriginal string) (db.Article, error)
 }
 
-func (m *mockArticleCtrl) Create(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string) (db.Article, error) {
+func (m *mockArticleCtrl) Create(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string, _ *string) (db.Article, error) {
 	return db.Article{}, nil
 }
 func (m *mockArticleCtrl) FindByID(_ context.Context, _ db.Querier, _ string) (db.Article, error) {
@@ -114,7 +114,7 @@ func (m *mockArticleCtrl) FindByURLOriginal(ctx context.Context, q db.Querier, u
 func (m *mockArticleCtrl) List(_ context.Context, _ db.Querier) ([]db.Article, error) {
 	return []db.Article{}, nil
 }
-func (m *mockArticleCtrl) Update(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string) (db.Article, error) {
+func (m *mockArticleCtrl) Update(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string, _ *string) (db.Article, error) {
 	return db.Article{}, nil
 }
 func (m *mockArticleCtrl) SoftDelete(_ context.Context, _ db.Querier, _ string) error {

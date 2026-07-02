@@ -1,0 +1,38 @@
+meta {
+  name: Translate Article
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/v1/articles/:id/translate/:language
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:path {
+  id: {{articleId}}
+  language: en
+}
+
+docs {
+  Tradução personalizada de uma notícia, sob demanda e apenas para exibição (read-only, não grava
+  nada). Traduz título, conteúdo (preservando o HTML) e keywords para o idioma do path `:language`,
+  adaptando o tom à personalidade (`ai_personality`) do usuário lida do JWT. A saída é re-sanitizada
+  pelo mesmo bluemonday do tratamento.
+
+  `:language` deve ser um idioma suportado ("pt" | "en" | "es" | "fr" | "de" | "it"). O client é
+  responsável por cachear o resultado (Redis virá no futuro).
+
+  Requer que o usuário esteja apto (preferência `translate_content` = true), senão 403. Chama a IA de
+  verdade (consome quota; LLM apenas — `TRANSLATION_*`). Respostas:
+  - 200 `{ title, content, keywords, language, language_original }`.
+  - 403 se `translate_content` estiver desligado.
+  - 400 se o idioma-alvo for inválido, igual ao `language_original`, ou se o `language_original` da
+    notícia for desconhecido (null).
+  - 404 se a notícia não existir; 500 em falha da IA.
+}

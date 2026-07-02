@@ -29,11 +29,15 @@ func CreateArticle(ctrl controllers.ArticleControllerInterface, runTx controller
 		if req.SourceID == "" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "source_id is required"})
 		}
+		if msg := validateLanguageOriginal(req.LanguageOriginal); msg != "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": msg})
+		}
 
+		languageOriginal := req.LanguageOriginal
 		var article db.Article
 		err := runTx(c.Context(), func(q db.Querier) error {
 			var err error
-			article, err = ctrl.Create(c.Context(), q, req.Title, req.Content, req.URLOriginal, req.SourceID, req.Keywords)
+			article, err = ctrl.Create(c.Context(), q, req.Title, req.Content, req.URLOriginal, req.SourceID, req.Keywords, &languageOriginal)
 			return err
 		})
 		if err != nil {
@@ -84,6 +88,19 @@ func validateArticleInput(title, content, urlOriginal string, keywords []string)
 	return ""
 }
 
+// validateLanguageOriginal enforces that language_original is present and one of the supported
+// language codes. Unlike the CRON (which detects it via lingua-go and may store null), the manual
+// create/update endpoints require it. Returns an empty string when valid.
+func validateLanguageOriginal(language string) string {
+	if language == "" {
+		return "language_original is required"
+	}
+	if !schemas.Language(language).IsValid() {
+		return "language_original must be a supported language code"
+	}
+	return ""
+}
+
 func isNotFoundError(err error) bool {
 	return errors.Is(err, controllers.ErrArticleNotFound)
 }
@@ -111,6 +128,10 @@ func toArticleResponse(a db.Article) (schemas.ArticleResponse, error) {
 		Keywords:    keywords,
 		SourceID:    a.SourceID,
 		CreatedAt:   a.CreatedAt,
+	}
+	if a.LanguageOriginal.Valid {
+		l := a.LanguageOriginal.String
+		resp.LanguageOriginal = &l
 	}
 	if a.ModifiedAt.Valid {
 		t := a.ModifiedAt.Time

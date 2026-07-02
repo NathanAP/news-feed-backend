@@ -39,9 +39,11 @@ usado no fluxo de refresh.
 
 ### articles (globais)
 `id`, `status`, `title`, `content` (HTML básico, sanitizado por bluemonday), `url_original`, `keywords` (JSON array TEXT),
-`source_id` (**NOT NULL**, FK sources, **imutável**), timestamps. Índice único parcial em
-`url_original`. Keywords: 5–20 itens, geradas **em inglês** (canônico, pra matching entre fontes
-de qualquer idioma no julgamento).
+`source_id` (**NOT NULL**, FK sources, **imutável**), `language_original` (**nullable**, código do enum
+de idiomas), timestamps. Índice único parcial em `url_original`. Keywords: 5–20 itens, geradas **em
+inglês** (canônico, pra matching entre fontes de qualquer idioma no julgamento). `language_original`
+é o idioma detectado pelo `lingua-go` no tratamento (null quando a detecção falha); na criação/edição
+manual é obrigatório no payload. Usado pela tradução para saber a origem.
 
 ### feeds (por usuário)
 `id`, `status`, `name`, `keywords` (JSON array TEXT, 5–20), `user_id` (FK users), timestamps.

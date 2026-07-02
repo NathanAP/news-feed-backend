@@ -20,7 +20,8 @@ body:json {
     "content": "# Metallica anuncia nova turnê\n\nA banda confirmou as datas...",
     "url_original": "https://www.wikimetal.com.br/noticia/metallica-turne",
     "keywords": ["metallica", "rock", "metal", "turnê", "show"],
-    "source_id": "{{sourceId}}"
+    "source_id": "{{sourceId}}",
+    "language_original": "pt"
   }
 }
 
@@ -31,6 +32,8 @@ docs {
   - url_original: URL da notícia original (http ou https, único entre os ativos)
   - keywords: lista de 5 a 20 palavras-chave (nenhuma vazia)
   - source_id: id de uma fonte de notícias existente e ativa
+  - language_original: idioma original da notícia ("pt" | "en" | "es" | "fr" | "de" | "it").
+    Na CRON isso é detectado pelo lingua-go; na criação manual é obrigatório (400 se faltar/invável).
 
   Retorna 409 se a url_original já existir entre os registros ativos.
   Retorna 400 se source_id faltar ou apontar para uma fonte inexistente/inativa.

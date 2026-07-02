@@ -24,7 +24,7 @@ func NewArticleController() *ArticleController {
 	return &ArticleController{}
 }
 
-func (c *ArticleController) Create(ctx context.Context, q db.Querier, title, content, urlOriginal, sourceID string, keywords []string) (db.Article, error) {
+func (c *ArticleController) Create(ctx context.Context, q db.Querier, title, content, urlOriginal, sourceID string, keywords []string, languageOriginal *string) (db.Article, error) {
 	// The article must reference an existing, active source. FindSourceByID already filters
 	// status = 1 AND removed_at IS NULL, so a soft-deleted source resolves to not-found.
 	if _, err := q.FindSourceByID(ctx, sourceID); err != nil {
@@ -45,12 +45,13 @@ func (c *ArticleController) Create(ctx context.Context, q db.Querier, title, con
 	}
 
 	article, err := q.CreateArticle(ctx, db.CreateArticleParams{
-		ID:          id.String(),
-		Title:       title,
-		Content:     content,
-		UrlOriginal: urlOriginal,
-		Keywords:    encodedKeywords,
-		SourceID:    sourceID,
+		ID:               id.String(),
+		Title:            title,
+		Content:          content,
+		UrlOriginal:      urlOriginal,
+		Keywords:         encodedKeywords,
+		SourceID:         sourceID,
+		LanguageOriginal: nullString(languageOriginal),
 	})
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
@@ -97,18 +98,19 @@ func (c *ArticleController) List(ctx context.Context, q db.Querier) ([]db.Articl
 	return articles, nil
 }
 
-func (c *ArticleController) Update(ctx context.Context, q db.Querier, id, title, content, urlOriginal string, keywords []string) (db.Article, error) {
+func (c *ArticleController) Update(ctx context.Context, q db.Querier, id, title, content, urlOriginal string, keywords []string, languageOriginal *string) (db.Article, error) {
 	encodedKeywords, err := encodeKeywords(keywords)
 	if err != nil {
 		return db.Article{}, err
 	}
 
 	article, err := q.UpdateArticle(ctx, db.UpdateArticleParams{
-		ID:          id,
-		Title:       title,
-		Content:     content,
-		UrlOriginal: urlOriginal,
-		Keywords:    encodedKeywords,
+		ID:               id,
+		Title:            title,
+		Content:          content,
+		UrlOriginal:      urlOriginal,
+		Keywords:         encodedKeywords,
+		LanguageOriginal: nullString(languageOriginal),
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -127,6 +129,15 @@ func (c *ArticleController) SoftDelete(ctx context.Context, q db.Querier, id str
 		return fmt.Errorf("failed to delete article: %w", err)
 	}
 	return nil
+}
+
+// nullString maps an optional string to sql.NullString: nil (or empty) becomes NULL. Used for
+// language_original, which is null when detection fails.
+func nullString(s *string) sql.NullString {
+	if s == nil || *s == "" {
+		return sql.NullString{}
+	}
+	return sql.NullString{String: *s, Valid: true}
 }
 
 // encodeKeywords serializes the keyword slice into the JSON array TEXT stored in the DB. It is the

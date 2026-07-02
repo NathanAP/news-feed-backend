@@ -96,3 +96,32 @@ func (v verboseJudger) Judge(ctx context.Context, feedKeywords []string, title s
 	}
 	return score, err
 }
+
+// NewVerboseTranslator wraps a Translator so each call logs a START/END marker with elapsed time.
+// Gated by its own flag (TRANSLATION_VERBOSE_MODE). When disabled it returns the inner translator.
+func NewVerboseTranslator(inner Translator, label string, enabled bool) Translator {
+	if !enabled {
+		return inner
+	}
+	return verboseTranslator{inner: inner, label: label}
+}
+
+type verboseTranslator struct {
+	inner Translator
+	label string
+}
+
+func (v verboseTranslator) Translate(ctx context.Context, targetLanguage, personality, title, content string, keywords []string) (Translation, error) {
+	logger.Print(fmt.Sprintf("@@@ TRANSLATION START - %s -> %s @@@", v.label, targetLanguage), logger.ColorCyan)
+	start := time.Now()
+
+	out, err := v.inner.Translate(ctx, targetLanguage, personality, title, content, keywords)
+
+	elapsed := time.Since(start).Round(time.Millisecond)
+	if err != nil {
+		logger.Print(fmt.Sprintf("@@@ TRANSLATION FAILED - %s - %s: %v @@@", v.label, elapsed, err), logger.ColorRed)
+	} else {
+		logger.Print(fmt.Sprintf("@@@ TRANSLATION END - %s - %s (%d chars) @@@", v.label, elapsed, len(out.Content)), logger.ColorGreen)
+	}
+	return out, err
+}

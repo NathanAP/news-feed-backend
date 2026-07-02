@@ -130,7 +130,7 @@ func TestE2E_Articles_FullCRUDFlow(t *testing.T) {
 	sourceID := createSourceViaAPI(t, app, token, "https://e2e-source.com", "https://e2e-source.com/rss.xml")
 
 	// Create
-	createBody := `{"title":"E2E Article","content":"# E2E\n\nContent.","url_original":"https://e2e.com/a","keywords":["metallica","rock","metal","music","concert"],"source_id":"` + sourceID + `"}`
+	createBody := `{"title":"E2E Article","content":"# E2E\n\nContent.","url_original":"https://e2e.com/a","keywords":["metallica","rock","metal","music","concert"],"source_id":"` + sourceID + `","language_original":"pt"}`
 	createReq, _ := http.NewRequest(http.MethodPost, "/v1/articles/create", strings.NewReader(createBody))
 	createReq.Header.Set("Content-Type", "application/json")
 	createReq.Header.Set("Authorization", "Bearer "+token)
@@ -162,7 +162,7 @@ func TestE2E_Articles_FullCRUDFlow(t *testing.T) {
 	assert.Len(t, listed, 1)
 
 	// Update
-	updateBody := `{"title":"E2E Updated","content":"# Updated","url_original":"https://e2e.com/a","keywords":["a","b","c","d","e"]}`
+	updateBody := `{"title":"E2E Updated","content":"# Updated","url_original":"https://e2e.com/a","keywords":["a","b","c","d","e"],"language_original":"pt"}`
 	updateReq, _ := http.NewRequest(http.MethodPut, "/v1/articles/"+id, strings.NewReader(updateBody))
 	updateReq.Header.Set("Content-Type", "application/json")
 	updateReq.Header.Set("Authorization", "Bearer "+token)

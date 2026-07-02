@@ -1,6 +1,6 @@
 -- name: CreateArticle :one
-INSERT INTO articles (id, title, content, url_original, keywords, source_id)
-VALUES (?, ?, ?, ?, ?, ?)
+INSERT INTO articles (id, title, content, url_original, keywords, source_id, language_original)
+VALUES (?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: FindArticleByID :one
@@ -20,7 +20,7 @@ ORDER BY created_at DESC;
 
 -- name: UpdateArticle :one
 UPDATE articles
-SET title = ?, content = ?, url_original = ?, keywords = ?, modified_at = CURRENT_TIMESTAMP
+SET title = ?, content = ?, url_original = ?, keywords = ?, language_original = ?, modified_at = CURRENT_TIMESTAMP
 WHERE id = ? AND status = 1 AND removed_at IS NULL
 RETURNING *;
 

@@ -15,6 +15,7 @@ import (
 	db "github.com/nathanap/news-feed-backend/sqlc"
 	"github.com/nathanap/news-feed-backend/tests/fixtures"
 	"github.com/nathanap/news-feed-backend/tests/mocks/external"
+	servicemocks "github.com/nathanap/news-feed-backend/tests/mocks/services"
 	testutils "github.com/nathanap/news-feed-backend/tests/utils"
 	_ "modernc.org/sqlite"
 )
@@ -43,7 +44,8 @@ func setup(t *testing.T, aiClient ai.Client) (controllers.TransactionRunner, db.
 	feedCtrl := controllers.NewFeedController()
 	afCtrl := controllers.NewArticleFeedController()
 	evaluator := judgment.NewEvaluator(aiClient, 70)
-	processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, aiClient, aiClient, evaluator, false)
+	detector := &servicemocks.MockLanguageDetector{}
+	processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, detector, aiClient, aiClient, evaluator, false)
 	return runTx, queries, processor
 }
 
@@ -86,6 +88,36 @@ func TestIntegration_Processor_PersistsTreatedArticle(t *testing.T) {
 	assert.Equal(t, "treated: raw content", articles[0].Content) // from the mock's Treat
 	assert.Equal(t, `["alpha","beta","gamma","delta","epsilon"]`, articles[0].Keywords)
 	assert.Equal(t, "https://src.com/a1", articles[0].UrlOriginal)
+	require.True(t, articles[0].LanguageOriginal.Valid, "detected language must be persisted")
+	assert.Equal(t, "pt", articles[0].LanguageOriginal.String) // from the mock detector
+}
+
+func TestIntegration_Processor_NullLanguageOnDetectionFailure(t *testing.T) {
+	requireNotProduction(t)
+
+	// Detector reports failure → language_original must be stored as null, without breaking persistence.
+	failingDetector := &servicemocks.MockLanguageDetector{
+		DetectFn: func(_, _ string) (string, bool) { return "", false },
+	}
+	database := testutils.SetupTestDB(t)
+	queries := db.New(database)
+	runTx := controllers.NewTransactionRunner(database)
+	_, err := queries.CreateSource(t.Context(), db.CreateSourceParams{ID: sourceID, Url: "https://src.com", UrlRss: "https://src.com/rss"})
+	require.NoError(t, err)
+
+	aiClient := &external.MockAIClient{}
+	evaluator := judgment.NewEvaluator(aiClient, 70)
+	processor := discovery.NewTreatmentProcessor(
+		runTx, controllers.NewArticleController(), controllers.NewFeedController(),
+		controllers.NewArticleFeedController(), failingDetector, aiClient, aiClient, evaluator, false,
+	)
+
+	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{item("https://src.com/nolang")}))
+
+	articles, err := queries.ListArticles(t.Context())
+	require.NoError(t, err)
+	require.Len(t, articles, 1)
+	assert.False(t, articles[0].LanguageOriginal.Valid, "a failed detection must persist a null language_original")
 }
 
 func TestIntegration_Processor_SkipsExistingURL(t *testing.T) {

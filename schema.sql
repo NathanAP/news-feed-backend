@@ -66,6 +66,7 @@ CREATE TABLE articles (
     url_original TEXT NOT NULL,
     keywords TEXT NOT NULL DEFAULT '[]',
     source_id TEXT NOT NULL REFERENCES sources(id),
+    language_original TEXT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at DATETIME,
     removed_at DATETIME,

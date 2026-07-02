@@ -110,7 +110,7 @@ func TestCreateArticle_Conflict(t *testing.T) {
 	requireNotProduction(t)
 
 	ctrl := &mockArticleCtrl{
-		createFn: func(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string) (db.Article, error) {
+		createFn: func(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string, _ *string) (db.Article, error) {
 			return db.Article{}, controllers.ErrArticleAlreadyExists
 		},
 	}
@@ -123,7 +123,7 @@ func TestCreateArticle_DBError(t *testing.T) {
 	requireNotProduction(t)
 
 	ctrl := &mockArticleCtrl{
-		createFn: func(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string) (db.Article, error) {
+		createFn: func(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string, _ *string) (db.Article, error) {
 			return db.Article{}, assert.AnError
 		},
 	}
@@ -145,7 +145,7 @@ func TestCreateArticle_SourceInvalid(t *testing.T) {
 	requireNotProduction(t)
 
 	ctrl := &mockArticleCtrl{
-		createFn: func(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string) (db.Article, error) {
+		createFn: func(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string, _ *string) (db.Article, error) {
 			return db.Article{}, controllers.ErrArticleSourceInvalid
 		},
 	}
@@ -164,6 +164,24 @@ func TestCreateArticle_ResponseIncludesSourceID(t *testing.T) {
 	var result map[string]any
 	require.NoError(t, readJSON(resp, &result))
 	assert.NotEmpty(t, result["source_id"])
+}
+
+func TestCreateArticle_MissingLanguageOriginal(t *testing.T) {
+	requireNotProduction(t)
+
+	app := defaultApp()
+	body := `{"title":"T","content":"C","url_original":"https://e.com/a","keywords":["a","b","c","d","e"],"source_id":"01900000-0000-7000-8000-000000000010"}`
+	resp := postCreate(t, app, body, true)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+func TestCreateArticle_InvalidLanguageOriginal(t *testing.T) {
+	requireNotProduction(t)
+
+	app := defaultApp()
+	body := `{"title":"T","content":"C","url_original":"https://e.com/a","keywords":["a","b","c","d","e"],"source_id":"01900000-0000-7000-8000-000000000010","language_original":"xx"}`
+	resp := postCreate(t, app, body, true)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
 func TestCreateArticle_InvalidBody(t *testing.T) {

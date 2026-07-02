@@ -11,6 +11,7 @@ import (
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/schemas"
 	"github.com/nathanap/news-feed-backend/services/ai"
+	"github.com/nathanap/news-feed-backend/services/langdetect"
 )
 
 // TreatArticle is a dry-run of the treatment step: it takes raw article data (as produced by
@@ -19,7 +20,7 @@ import (
 // call via the body's `keywords_mode` (local | groq | gemini) so backends can be benchmarked from
 // Bruno without restarting. It does NOT persist anything, but calls the AI providers for real
 // (consumes quota). Open for now (admin-future).
-func TreatArticle(treater ai.Treater, keyworders map[string]ai.Keyworder, defaultMode string) fiber.Handler {
+func TreatArticle(treater ai.Treater, keyworders map[string]ai.Keyworder, defaultMode string, detector langdetect.Detector) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
@@ -34,6 +35,10 @@ func TreatArticle(treater ai.Treater, keyworders map[string]ai.Keyworder, defaul
 		if strings.TrimSpace(req.Article.Content) == "" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "article.content is required"})
 		}
+
+		// Language detection mirrors the CRON step: lingua-go over the raw content, empty when
+		// detection is not reliable. Not AI, so it does not consume quota.
+		languageOriginal, _ := detector.Detect(req.Article.Title, req.Article.Content)
 
 		mode := defaultMode
 		if req.KeywordsMode != "" {
@@ -63,11 +68,12 @@ func TreatArticle(treater ai.Treater, keyworders map[string]ai.Keyworder, defaul
 		}
 
 		return c.JSON(schemas.ArticleTreatmentResponse{
-			Content:      treated,
-			Keywords:     keywords,
-			KeywordsMode: mode,
-			TreatmentMs:  treatmentMs,
-			KeywordsMs:   keywordsMs,
+			Content:          treated,
+			Keywords:         keywords,
+			KeywordsMode:     mode,
+			LanguageOriginal: languageOriginal,
+			TreatmentMs:      treatmentMs,
+			KeywordsMs:       keywordsMs,
 		})
 	}
 }

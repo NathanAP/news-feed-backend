@@ -22,9 +22,10 @@ import (
 )
 
 const (
-	treatmentPromptName = "article_treatment"
-	keywordsPromptName  = "article_keywords"
-	judgementPromptName = "article_feed_judgement"
+	treatmentPromptName   = "article_treatment"
+	keywordsPromptName    = "article_keywords"
+	judgementPromptName   = "article_feed_judgement"
+	translationPromptName = "article_translation"
 
 	requestTimeout = 120 * time.Second // local SLMs on CPU can be slow
 )
@@ -89,6 +90,21 @@ func (c *Client) Judge(ctx context.Context, feedKeywords []string, title string,
 		return 0, err
 	}
 	return ai.ParseScore(stripThinking(out))
+}
+
+func (c *Client) Translate(ctx context.Context, targetLanguage, personality, title, content string, keywords []string) (ai.Translation, error) {
+	// jsonMode forces the {title, content, keywords} object.
+	out, err := c.chat(ctx, translationPromptName, map[string]string{
+		"target_language": targetLanguage,
+		"personality":     personality,
+		"title":           title,
+		"keywords":        strings.Join(keywords, ", "),
+		"content":         content,
+	}, true)
+	if err != nil {
+		return ai.Translation{}, err
+	}
+	return ai.ParseTranslation(stripThinking(out))
 }
 
 type chatMessage struct {

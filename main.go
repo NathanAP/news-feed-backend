@@ -34,6 +34,7 @@ import (
 	systemendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/system"
 	userendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/users"
 	"github.com/nathanap/news-feed-backend/services/judgment"
+	"github.com/nathanap/news-feed-backend/services/langdetect"
 	"github.com/nathanap/news-feed-backend/services/sanitize"
 )
 
@@ -126,6 +127,14 @@ func main() {
 	}
 	evaluator := judgment.NewEvaluator(defaultJudger, judgementThreshold)
 
+	// Language detection (lingua-go) is used by the treatment step; not AI, so no provider/mode.
+	detector := langdetect.New()
+
+	// Translation is LLM-only (quality-sensitive user-facing text): a single provider via TRANSLATION_*.
+	translationProvider, translationModel := os.Getenv("TRANSLATION_PROVIDER"), os.Getenv("TRANSLATION_MODEL")
+	var translator ai.Translator = buildProvider(translationProvider, translationModel)
+	translator = ai.NewVerboseTranslator(translator, fmt.Sprintf("%s/%s", translationProvider, translationModel), os.Getenv("TRANSLATION_VERBOSE_MODE") == "true")
+
 	authMiddleware := middlewares.NewAuthMiddleware(jwtSecret, refreshTokenCtrl, runTx)
 
 	app := fiber.New(fiber.Config{
@@ -170,8 +179,9 @@ func main() {
 
 	articles := api.Group("/articles")
 	articles.Post("/create", append(authMiddleware, articleendpoints.CreateArticle(articleCtrl, runTx))...)
-	articles.Post("/treatment", append(authMiddleware, articleendpoints.TreatArticle(treater, keyworders, keywordsDefaultMode))...)
+	articles.Post("/treatment", append(authMiddleware, articleendpoints.TreatArticle(treater, keyworders, keywordsDefaultMode, detector))...)
 	articles.Post("/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, judgementDefaultMode, judgementThreshold, runTx))...)
+	articles.Get("/:id/translate/:language", append(authMiddleware, articleendpoints.TranslateArticle(articleCtrl, translator, runTx))...)
 	articles.Put("/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(articleCtrl, afCtrl, runTx))...)
 	articles.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, runTx))...)
 	articles.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, runTx))...)
@@ -187,7 +197,7 @@ func main() {
 
 	if os.Getenv("RSS_FEED_CRON_ACTIVE") == "true" {
 		cronVerbose := os.Getenv("RSS_FEED_CRON_VERBOSE_MODE") == "true"
-		processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, treater, defaultKeyworder, evaluator, cronVerbose)
+		processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, detector, treater, defaultKeyworder, evaluator, cronVerbose)
 		runner := cron.NewDiscoveryRunner(runTx, sourceCtrl, systemCtrl, processor, discoveryHTTPClient, cronVerbose)
 		scheduler, err := cron.NewScheduler(os.Getenv("RSS_FEED_CRON_SCHEDULE"), runner)
 		if err != nil {

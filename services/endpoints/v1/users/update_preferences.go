@@ -35,7 +35,7 @@ func UpdatePreferences(prefCtrl controllers.UserPreferencesControllerInterface, 
 		}
 		if !req.Language.IsValid() {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "invalid language, accepted values: pt, en, es, fr, de, it, ja, zh",
+				"error": "invalid language, accepted values: pt, en, es, fr, de, it",
 			})
 		}
 		if !req.AIPersonality.IsValid() {

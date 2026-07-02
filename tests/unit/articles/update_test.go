@@ -34,7 +34,7 @@ func TestUpdateArticle_Success(t *testing.T) {
 
 	article := fixtures.NewTestArticle()
 	ctrl := &mockArticleCtrl{
-		updateFn: func(_ context.Context, _ db.Querier, id, title, content, urlOriginal string, keywords []string) (db.Article, error) {
+		updateFn: func(_ context.Context, _ db.Querier, id, title, content, urlOriginal string, keywords []string, languageOriginal *string) (db.Article, error) {
 			a := article
 			a.Title = title
 			return a, nil
@@ -42,7 +42,7 @@ func TestUpdateArticle_Success(t *testing.T) {
 	}
 	app := buildApp(ctrl, &mockArticleFeedCtrl{})
 
-	body := `{"title":"Updated","content":"C","url_original":"https://e.com/u","keywords":["a","b","c","d","e"]}`
+	body := `{"title":"Updated","content":"C","url_original":"https://e.com/u","keywords":["a","b","c","d","e"],"language_original":"pt"}`
 	resp := putArticle(t, app, article.ID, body, true)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -55,13 +55,13 @@ func TestUpdateArticle_NotFound(t *testing.T) {
 	requireNotProduction(t)
 
 	ctrl := &mockArticleCtrl{
-		updateFn: func(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string) (db.Article, error) {
+		updateFn: func(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string, _ *string) (db.Article, error) {
 			return db.Article{}, controllers.ErrArticleNotFound
 		},
 	}
 	app := buildApp(ctrl, &mockArticleFeedCtrl{})
 
-	body := `{"title":"T","content":"C","url_original":"https://e.com/u","keywords":["a","b","c","d","e"]}`
+	body := `{"title":"T","content":"C","url_original":"https://e.com/u","keywords":["a","b","c","d","e"],"language_original":"pt"}`
 	resp := putArticle(t, app, "missing", body, true)
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
@@ -70,13 +70,13 @@ func TestUpdateArticle_Conflict(t *testing.T) {
 	requireNotProduction(t)
 
 	ctrl := &mockArticleCtrl{
-		updateFn: func(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string) (db.Article, error) {
+		updateFn: func(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string, _ *string) (db.Article, error) {
 			return db.Article{}, controllers.ErrArticleAlreadyExists
 		},
 	}
 	app := buildApp(ctrl, &mockArticleFeedCtrl{})
 
-	body := `{"title":"T","content":"C","url_original":"https://e.com/dup","keywords":["a","b","c","d","e"]}`
+	body := `{"title":"T","content":"C","url_original":"https://e.com/dup","keywords":["a","b","c","d","e"],"language_original":"pt"}`
 	resp := putArticle(t, app, "some-id", body, true)
 	assert.Equal(t, http.StatusConflict, resp.StatusCode)
 }

@@ -7,21 +7,23 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const createArticle = `-- name: CreateArticle :one
-INSERT INTO articles (id, title, content, url_original, keywords, source_id)
-VALUES (?, ?, ?, ?, ?, ?)
-RETURNING id, status, title, content, url_original, keywords, source_id, created_at, modified_at, removed_at
+INSERT INTO articles (id, title, content, url_original, keywords, source_id, language_original)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+RETURNING id, status, title, content, url_original, keywords, source_id, language_original, created_at, modified_at, removed_at
 `
 
 type CreateArticleParams struct {
-	ID          string `json:"id"`
-	Title       string `json:"title"`
-	Content     string `json:"content"`
-	UrlOriginal string `json:"url_original"`
-	Keywords    string `json:"keywords"`
-	SourceID    string `json:"source_id"`
+	ID               string         `json:"id"`
+	Title            string         `json:"title"`
+	Content          string         `json:"content"`
+	UrlOriginal      string         `json:"url_original"`
+	Keywords         string         `json:"keywords"`
+	SourceID         string         `json:"source_id"`
+	LanguageOriginal sql.NullString `json:"language_original"`
 }
 
 func (q *Queries) CreateArticle(ctx context.Context, arg CreateArticleParams) (Article, error) {
@@ -32,6 +34,7 @@ func (q *Queries) CreateArticle(ctx context.Context, arg CreateArticleParams) (A
 		arg.UrlOriginal,
 		arg.Keywords,
 		arg.SourceID,
+		arg.LanguageOriginal,
 	)
 	var i Article
 	err := row.Scan(
@@ -42,6 +45,7 @@ func (q *Queries) CreateArticle(ctx context.Context, arg CreateArticleParams) (A
 		&i.UrlOriginal,
 		&i.Keywords,
 		&i.SourceID,
+		&i.LanguageOriginal,
 		&i.CreatedAt,
 		&i.ModifiedAt,
 		&i.RemovedAt,
@@ -50,7 +54,7 @@ func (q *Queries) CreateArticle(ctx context.Context, arg CreateArticleParams) (A
 }
 
 const findArticleByID = `-- name: FindArticleByID :one
-SELECT id, status, title, content, url_original, keywords, source_id, created_at, modified_at, removed_at FROM articles
+SELECT id, status, title, content, url_original, keywords, source_id, language_original, created_at, modified_at, removed_at FROM articles
 WHERE id = ? AND status = 1 AND removed_at IS NULL
 LIMIT 1
 `
@@ -66,6 +70,7 @@ func (q *Queries) FindArticleByID(ctx context.Context, id string) (Article, erro
 		&i.UrlOriginal,
 		&i.Keywords,
 		&i.SourceID,
+		&i.LanguageOriginal,
 		&i.CreatedAt,
 		&i.ModifiedAt,
 		&i.RemovedAt,
@@ -74,7 +79,7 @@ func (q *Queries) FindArticleByID(ctx context.Context, id string) (Article, erro
 }
 
 const findArticleByURLOriginal = `-- name: FindArticleByURLOriginal :one
-SELECT id, status, title, content, url_original, keywords, source_id, created_at, modified_at, removed_at FROM articles
+SELECT id, status, title, content, url_original, keywords, source_id, language_original, created_at, modified_at, removed_at FROM articles
 WHERE url_original = ? AND status = 1 AND removed_at IS NULL
 LIMIT 1
 `
@@ -90,6 +95,7 @@ func (q *Queries) FindArticleByURLOriginal(ctx context.Context, urlOriginal stri
 		&i.UrlOriginal,
 		&i.Keywords,
 		&i.SourceID,
+		&i.LanguageOriginal,
 		&i.CreatedAt,
 		&i.ModifiedAt,
 		&i.RemovedAt,
@@ -98,7 +104,7 @@ func (q *Queries) FindArticleByURLOriginal(ctx context.Context, urlOriginal stri
 }
 
 const listArticles = `-- name: ListArticles :many
-SELECT id, status, title, content, url_original, keywords, source_id, created_at, modified_at, removed_at FROM articles
+SELECT id, status, title, content, url_original, keywords, source_id, language_original, created_at, modified_at, removed_at FROM articles
 WHERE status = 1 AND removed_at IS NULL
 ORDER BY created_at DESC
 `
@@ -121,6 +127,7 @@ func (q *Queries) ListArticles(ctx context.Context) ([]Article, error) {
 			&i.UrlOriginal,
 			&i.Keywords,
 			&i.SourceID,
+			&i.LanguageOriginal,
 			&i.CreatedAt,
 			&i.ModifiedAt,
 			&i.RemovedAt,
@@ -140,17 +147,18 @@ func (q *Queries) ListArticles(ctx context.Context) ([]Article, error) {
 
 const updateArticle = `-- name: UpdateArticle :one
 UPDATE articles
-SET title = ?, content = ?, url_original = ?, keywords = ?, modified_at = CURRENT_TIMESTAMP
+SET title = ?, content = ?, url_original = ?, keywords = ?, language_original = ?, modified_at = CURRENT_TIMESTAMP
 WHERE id = ? AND status = 1 AND removed_at IS NULL
-RETURNING id, status, title, content, url_original, keywords, source_id, created_at, modified_at, removed_at
+RETURNING id, status, title, content, url_original, keywords, source_id, language_original, created_at, modified_at, removed_at
 `
 
 type UpdateArticleParams struct {
-	Title       string `json:"title"`
-	Content     string `json:"content"`
-	UrlOriginal string `json:"url_original"`
-	Keywords    string `json:"keywords"`
-	ID          string `json:"id"`
+	Title            string         `json:"title"`
+	Content          string         `json:"content"`
+	UrlOriginal      string         `json:"url_original"`
+	Keywords         string         `json:"keywords"`
+	LanguageOriginal sql.NullString `json:"language_original"`
+	ID               string         `json:"id"`
 }
 
 func (q *Queries) UpdateArticle(ctx context.Context, arg UpdateArticleParams) (Article, error) {
@@ -159,6 +167,7 @@ func (q *Queries) UpdateArticle(ctx context.Context, arg UpdateArticleParams) (A
 		arg.Content,
 		arg.UrlOriginal,
 		arg.Keywords,
+		arg.LanguageOriginal,
 		arg.ID,
 	)
 	var i Article
@@ -170,6 +179,7 @@ func (q *Queries) UpdateArticle(ctx context.Context, arg UpdateArticleParams) (A
 		&i.UrlOriginal,
 		&i.Keywords,
 		&i.SourceID,
+		&i.LanguageOriginal,
 		&i.CreatedAt,
 		&i.ModifiedAt,
 		&i.RemovedAt,

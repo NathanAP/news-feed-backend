@@ -29,11 +29,15 @@ func UpdateArticle(ctrl controllers.ArticleControllerInterface, runTx controller
 		if msg := validateArticleInput(req.Title, req.Content, req.URLOriginal, req.Keywords); msg != "" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": msg})
 		}
+		if msg := validateLanguageOriginal(req.LanguageOriginal); msg != "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": msg})
+		}
 
+		languageOriginal := req.LanguageOriginal
 		var article db.Article
 		err := runTx(c.Context(), func(q db.Querier) error {
 			var err error
-			article, err = ctrl.Update(c.Context(), q, id, req.Title, req.Content, req.URLOriginal, req.Keywords)
+			article, err = ctrl.Update(c.Context(), q, id, req.Title, req.Content, req.URLOriginal, req.Keywords, &languageOriginal)
 			return err
 		})
 		if err != nil {

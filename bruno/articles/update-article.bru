@@ -23,11 +23,13 @@ body:json {
     "title": "Metallica anuncia nova turnê mundial (atualizado)",
     "content": "# Metallica anuncia nova turnê\n\nConteúdo atualizado...",
     "url_original": "https://www.wikimetal.com.br/noticia/metallica-turne",
-    "keywords": ["metallica", "rock", "metal", "turnê", "show"]
+    "keywords": ["metallica", "rock", "metal", "turnê", "show"],
+    "language_original": "pt"
   }
 }
 
 docs {
-  Todos os campos são obrigatórios (mesmas regras do create).
+  Todos os campos são obrigatórios (mesmas regras do create), incluindo language_original
+  ("pt" | "en" | "es" | "fr" | "de" | "it"). O source_id continua imutável (não faz parte do body).
   Retorna 409 em conflito de url_original e 404 se a notícia não existir.
 }

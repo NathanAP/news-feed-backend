@@ -11,28 +11,6 @@ func (t Theme) IsValid() bool {
 	return t == ThemeLight || t == ThemeDark
 }
 
-type Language string
-
-const (
-	LanguagePT Language = "pt"
-	LanguageEN Language = "en"
-	LanguageES Language = "es"
-	LanguageFR Language = "fr"
-	LanguageDE Language = "de"
-	LanguageIT Language = "it"
-	LanguageJA Language = "ja"
-	LanguageZH Language = "zh"
-)
-
-func (l Language) IsValid() bool {
-	switch l {
-	case LanguagePT, LanguageEN, LanguageES, LanguageFR,
-		LanguageDE, LanguageIT, LanguageJA, LanguageZH:
-		return true
-	}
-	return false
-}
-
 type AIPersonality string
 
 const (

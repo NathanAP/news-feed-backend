@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.22.0.0
+0.23.0.0
 
 ## Versão 0.1.0.0
 
@@ -336,19 +336,22 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.23.0.0
 
-- [ ] Garantir que o `enum` de idiomas (atualmente apenas utilizado nas preferências de usuário) seja globalmente visível para a aplicação sempre usar a mesma fonte
-- [ ] Criar uma migração que identifica qual é o idioma original da notícia
+- [x] Garantir que o `enum` de idiomas (atualmente apenas utilizado nas preferências de usuário) seja globalmente visível para a aplicação sempre usar a mesma fonte
+    - Movido para `schemas/language.go` como fonte única, usado por preferências, artigos e tradução
+- [x] Criar uma migração que identifica qual é o idioma original da notícia
     - Adicionar o campo `language_original` à tabela de notícias
     - Tipo `enum` utilizando o mesmo enum alterado no passo anterior
     - Não precisa fazer backfill, eu excluo meu banco antes de começar a usar novamente
     - Utilizar o `lingua-go` para detectar o idioma
-- [ ] Adicionar ao tratamento de notícias o passo que detecta o idioma da notícia sendo tratada
-- [ ] Criar métodos para fazer traduções personalizadas
-- [ ] Criar rota para chamada das traduções personalizadas
-    - Pode estar debaixo de `GET /v1/articles/{id}/translate/{language}`
-- [ ] Alterar a rota de criação a alteração de notícias para aceitar também o idioma da notícia
+- [x] Adicionar ao tratamento de notícias o passo que detecta o idioma da notícia sendo tratada
+    - Detecção via `services/langdetect` (lingua-go), no conteúdo cru; `null` quando não confiável
+- [x] Criar métodos para fazer traduções personalizadas
+    - Capacidade `ai.Translator` (LLM apenas via `TRANSLATION_*`) + prompt `article_translation`
+- [x] Criar rota para chamada das traduções personalizadas
+    - `GET /v1/articles/{id}/translate/{language}` — read-only, re-sanitiza a saída, gate por `translate_content` (403)
+- [x] Alterar a rota de criação a alteração de notícias para aceitar também o idioma da notícia
     - É obrigatório e deve estar na lista de idiomas disponíveis
-- [ ] Remover idioma japonês e chinês da lista de idiomas disponíveis
+- [x] Remover idioma japonês e chinês da lista de idiomas disponíveis
     - No CLAUDE.md eu coloquei que o português é de Portugal ou Brasil, confirma pra mim que isso é seguro ser feito por favor
 
 ## Versão 0.24.0.0
