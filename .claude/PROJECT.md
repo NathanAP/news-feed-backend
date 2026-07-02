@@ -166,7 +166,10 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - As notícias só podem ser criadas, editadas ou excluídas por usuário administradores.
     - Essa regra existe apenas para casos extremos de uma notícia que saiu do controle.
 - As notícias possuem um campo `language_original` que serve para detectar quando uma tradução pode ou não ser feita no client.
+    - O valor deste campo deve ser o mesmo `enum` de idiomas usado globalmente na aplicação.
     - Utiliza-se a biblioteca `lingua-go` para fazer a detecção durante o tratamento de notícias.
+        - Isso faz com que o campo precise ser tratado como opcional no banco de dados para quando há falha na detecção do idioma.
+        - Entretanto, os endpoints de criação e alteração de notícias devem obrigar o valor a ser passado.
 - Quando descobertas, as notícias passam por um julgamento através de uma inteligência artificial para definir palavras-chave às quais ela pertence. As palavras-chave definidas servirão como base para saber em quais feeds ela aparecerá ou não.
     - Esse processo deve ser disparado automaticamente após cada criação de notícias.
 - As notícias devem possuir pelo menos 5 palavras-chave com limite de 20.
@@ -343,11 +346,13 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - O cache neste projeto via `Redis` será implementado futuramente.
 - A tradução de notícias também leva em conta a personalidade escolhida pelas preferências do usuário na opção `ai_personality`.
 - A tradução de notícias deve:
-    - Traduzir o título, conteúdo e keywords da notícia.
+    - Traduzir o título, conteúdo e keywords da notícia para serem mostrados ao usuário.
+    - Atuar sempre em read-only.
     - Preservar a estrutura HTML presente no conteúdo da notícia.
     - Manter o contexto do conteúdo.
     - Personalizar a tradução da notícia de acordo com a preferência escolhida em `ai_personality`.
 - Dito isso, a tradução não pode:
+    - Fazer operações no banco de dados: estritamente proibido fazer qualquer alteração no banco de dados neste momento.
     - Resumir notícias: estritamente proibido fazer resumo neste momento.
     - Alterar sentido, sintaxe, ideia ou contexto do conteúdo da notícia.
     - Trazer opinião própria.
