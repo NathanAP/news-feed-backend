@@ -330,6 +330,7 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Pode estar debaixo de `POST /v1/articles/judgment`
     - Vamos adicionar o usuário administrador depois, então essa rota por enquanto pode ficar aberta
     - Lembrete: essa rota é dry-run
+    - Dúvida: vale a pena gravar o `score` do julgamento junto da tabela de `articles_feeds`? parece que não né?
 
 ## Versão 0.23.0.0
 

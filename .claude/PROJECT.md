@@ -307,9 +307,9 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Deve permitir a troca de modo na etapa de nomeação de palavras-chave através de uma chave chamada `judgment_mode` no body, aceitando os valores disponibilizados na descrição da etapa.
     - Esse endpoint deve ser exclusivo para administradores.
     - Esse endpoint é considerada uma dry-run, ou seja, ela não cria ou altera nenhum registro do banco de dados.
-    - O body deste endpoint deve aceitar:
-        - `article`: um `json` contendo os dados de uma notícia, obtidos diretamente através da descoberta de notícias.
-    - Esse endpoint responde pelos dados do julgamento de notícias.
+    - O body deste endpoint deve aceitar um `json` contendo os dados necessários para se fazer a simulação de um julgamento.
+        - Evite a necessidade de passar um `id` de notícias válido, assim poderemos fazer simulações mais rapidamente.
+    - Esse endpoint responde os dados do julgamento de notícias antes da gravação no banco de dados, ou seja, até a penúltima etapa.
 
 ### Comparação de palavras chave
 
