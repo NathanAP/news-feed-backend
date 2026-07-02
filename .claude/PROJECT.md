@@ -356,6 +356,8 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Resumir notícias: estritamente proibido fazer resumo neste momento.
     - Alterar sentido, sintaxe, ideia ou contexto do conteúdo da notícia.
     - Trazer opinião própria.
+- Ao final da chamada da tradução uma nova sanatização deve ser realizada no conteúdo do resultado final para garantir que não haja elementos HTML indesejados aplicados ao resultado final.
+    - O método pode ser o exato mesmo utilizado no tratamento de notícias.
 - O endpoint `GET /v1/articles/{id}/translate/{language_to_translate}` é o responsável pela tradução de notícias:
     - O `id` é referente à notícia ser procurada no banco de dados para ser traduzida.
     - A `language_to_translate` é referente à qual idioma o conteúdo será traduzido. Deve estar na lista do `enum` de idiomas disponíveis nas prefêrencias do usuário.
