@@ -317,11 +317,19 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [x] Alterar o processo de atribuição de keywords da etapa de tratamento para uma SLM ao invés de LLM
     - Provider por tarefa via env (`TREATMENT_*` LLM / `KEYWORDS_*` SLM); Ollama local (`OLLAMA_BASE_URL`), sem Docker por ora; testes via mock.
 
+## Versão 0.21.3.0
+
+- [x] Melhorias da etapa de tratamento
+    - Mais detalhes no arquivo de `versions`
+
 ## Versão 0.22.0.0
 
 - [ ] Julgamento de notícias aos feeds
-- [ ] Implementar julgamento de notícias por palavras-chave
-- [ ] Implementar julgamento de notícias por IA
+- [ ] Criar uma rota de teste para julgamento de notícias a partir dos dados crus de uma notícia, simulando a exata execução da CRON através do Bruno
+    - Detalhes presentes em `PROJECT.md`
+    - Pode estar debaixo de `POST /v1/articles/judgment`
+    - Vamos adicionar o usuário administrador depois, então essa rota por enquanto pode ficar aberta
+    - Lembrete: essa rota é dry-run
 
 ## Versão 0.23.0.0
 
@@ -333,6 +341,14 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [ ] Deploy
     - [ ] Docker funcionando
     - [ ] docker-compose orquestrando corretamente
+
+## Versão 0.25.0.0
+
+- [ ] Tornar o processo de descoberta, tratamento e julgamento de notícias pode ocorrer em paralelo ao invés de sequencial
+    - Acredito que tenhamos que explorar o conceito de workers na API também
+    - E se a CRON ao invés de executar o código internamente direto subisse um container (ou dois ou três ou quantos precisar) que executasse os códigos de descoberta, tratamento e julgamento e caísse logo depois? Vale a pena ou mais fácil investir em mais instâncias de goroutines?
+- [ ] Atualização de pacotes e dependências
+- [ ] Revisão
 
 ## Futuro
 

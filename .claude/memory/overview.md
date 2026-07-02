@@ -54,10 +54,12 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
 | Feed × Notícia | `articles_feeds` | Junction com `is_read` |
 | Sistema | `system` | Singleton; `app_status` (chave de manutenção global) + `last_article_discovery_at` |
 
-Descoberta via CRON (0.19) + **tratamento por IA e persistência** (0.20): a CRON descobre,
-deduplica por `url_original`, trata com o Gemini (limpa conteúdo + nomeia keywords) e grava o
-`article`. Ainda **não** implementado: **julgamento** notícia→feed (`articles_feeds`, 0.21),
-tradução/resumo por IA, deploy, usuário administrador, exclusão de usuário.
+Descoberta via CRON (0.19) + **tratamento por IA e persistência** (0.20/0.21): a CRON descobre,
+deduplica por `url_original`, trata o conteúdo com uma **LLM** (`TREATMENT_*`, sanitizado pra HTML
+básico), nomeia keywords com uma **SLM/LLM** por modo (`KEYWORDS_MODE` = local/groq/gemini, em
+inglês minúsculo) e grava o `article`. Ainda **não** implementado: **julgamento** notícia→feed
+(`articles_feeds`, **0.22**), tradução/resumo por IA, deploy, usuário administrador, exclusão de
+usuário.
 
 ## Transações (regra central)
 

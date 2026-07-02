@@ -59,8 +59,8 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 5. Notícias passam pelo tratamento de notícias para terem seu conteúdo tratado.
 6. Notícias são salvas no banco de dados.
 7. Cada notícia passa pelo processo de julgamento para saber a quais feeds ela pertence.
-    - Primeira camada de palavras-chave.
-    - Segunda camada de inteligência artificial e `score`.
+    - Primeira etapa de palavras-chave.
+    - Segunda etapa de inteligência artificial e `score`.
 8. Notícia e feed se relacionam através de um novo registro em `article_feeds`.
 
 ## Fluxo de tratamento
@@ -220,7 +220,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Esse endpoint deve aceitar os seguintes parâmetros:
         - `id`: uma fonte de notícias válida.
         - `last_article_discovery_at` (query opcional): uma data para fazer o teste sem depender da espera de uma notícia nova naquela fonte de notícias.
-    - Esse endpoint responde pelos dados dos artigos descobertos.
+    - Esse endpoint responde dados dos artigos descobertos.
 
 ## Tratamento de notícias
 
@@ -280,20 +280,47 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - As palavras-chave nomeadas devem estar em inglês para facilitar o entendimento de quais notícias estão relacionadas.
 - As palavras-chave devem ser armazenadas em letras minúsculas.
 
-### Gravação no banco de dados
+### Gravação da notícia no banco de dados
 
 - Depois de tratada, a notícia é finalmente salva no banco de dados e pode passar então para o julgamento.
+- Cada registro criado é mantido para a etapa de julgamento.
 
 ## Julgando se uma notícia pertence ao feed do usuário
 
 - Quando uma notícia é descoberta um processo de julgamento é acionado para saber a qual feed aquela notícia será associada.
-- O julgamento funciona através de duas camadas que define se os registros estão relacionados ou não:
-    - A primeira camada é a mais simples envolvendo uma comparação de palavras-chave da notícia descoberta com o feed existente.
-    - A segunda camada é a garantia através da IA que define um `score` entre 0 e 100, com `threshold` presente na variável de ambiente `JUDGE_SCORE_THRESHOLD`, e define quanto aquela notícia pertence ao feed.
-    - Quando forem julgados como associados, um novo registro na tabela associativa (junction table) entre feed e notícias é criado.
-- O julgamento de notícias nunca é retroativo.
+- Esta etapa opera em três modos:
+    - `local`: utiliza SLM para realizar a execução da etapa de julgamento.
+    - `groq`: utiliza serviços do Groq + SLM para realizar a execução da etapa de julgamento.
+    - `gemini`: utiliza LLM para realizar a execução da etapa de julgamento.
+- Esta etapa opera de acordo com as seguintes variáveis de ambiente:
+    - `JUDGMENT_MODE`: o modo atualmente utilizado durante esta etapa.
+    - `JUDGMENT_VERBOSE_MODE`: `boolean` que decide se os logs são exibidos no terminal ou não durante esta etapa.
+- O julgamento funciona através de duas etapas:
+    - Comparação de palavras chave: utiliza filtros básicos no banco de dados para encontrar os principais feeds candidatos.
+    - Julgamento: julga se a notícia pertence aos candidatos selecionados.
+    - Gravação no banco de dados: forma um registro da associção entre feed e notícia no banco de dados.
+- O julgamento de notícias nunca é feito de forma retroativa.
 - O julgamento de notícias só pode considerar feeds que estão ativos.
-- Em termos de código esse método precisa ser independente para poder ser chamado fora da CRON caso necessário.
+- Um endpoint de teste para esse processo pode ser encontrado em `GET base_url/v1/articles/judgement`.
+    - Deve simular os exatos mesmos processos que rodaria na CRON.
+    - Deve permitir a troca de modo na etapa de nomeação de palavras-chave através de uma chave chamada `judgment_mode` no body, aceitando os valores disponibilizados na descrição da etapa.
+    - Esse endpoint deve ser exclusivo para administradores.
+    - Esse endpoint é considerada uma dry-run, ou seja, ela não cria ou altera nenhum registro do banco de dados.
+    - O body deste endpoint deve aceitar:
+        - `article`: um `json` contendo os dados de uma notícia, obtidos diretamente através da descoberta de notícias.
+    - Esse endpoint responde pelos dados do julgamento de notícias.
+
+### Comparação de palavras chave
+
+- A primeira etapa é a mais simples: ela realiza uma filtragem de quais feeds são os melhores candidatos a seguirem adiante através de uma comparação de palavras-chave da notícia.
+
+### Julgamento
+
+- A segunda etapa é feita atráves uma IA que define um `score` entre 0 e 100, julgando o quanto a notícia pertence a cada feed candidato. Um `threshold` é definido na variável de ambiente `JUDGMENT_THRESHOLD` e comparado ao valor de `score` para definição do resultado.
+
+### Gravação da associação no banco de dados
+
+- Na última etapa, um novo registro na tabela associativa (junction table) entre feed e notícias é criado.
 
 ## Traduzindo notícias
 
