@@ -6,17 +6,15 @@ import (
 	"strings"
 )
 
-// ParseTranslation extracts the translated title, content and keywords from a model's raw output.
-// It is shared across providers so every AI implementation validates the shape the same way. It
-// tolerates a ```json ... ``` code fence and requires a non-empty title and content. Keywords are
-// optional (an article could, in theory, arrive without any) and are trimmed.
+// ParseTranslation extracts the translated title and content from a model's raw output. It is
+// shared across providers so every AI implementation validates the shape the same way. It tolerates
+// a ```json ... ``` code fence and requires a non-empty title and content.
 func ParseTranslation(raw string) (Translation, error) {
 	cleaned := stripCodeFence(strings.TrimSpace(raw))
 
 	var out struct {
-		Title    string   `json:"title"`
-		Content  string   `json:"content"`
-		Keywords []string `json:"keywords"`
+		Title   string `json:"title"`
+		Content string `json:"content"`
 	}
 	if err := json.Unmarshal([]byte(cleaned), &out); err != nil {
 		return Translation{}, fmt.Errorf("%w: %v", ErrInvalidTranslation, err)
@@ -28,12 +26,5 @@ func ParseTranslation(raw string) (Translation, error) {
 		return Translation{}, fmt.Errorf("%w: title and content are required", ErrInvalidTranslation)
 	}
 
-	keywords := make([]string, 0, len(out.Keywords))
-	for _, k := range out.Keywords {
-		if k = strings.TrimSpace(k); k != "" {
-			keywords = append(keywords, k)
-		}
-	}
-
-	return Translation{Title: out.Title, Content: out.Content, Keywords: keywords}, nil
+	return Translation{Title: out.Title, Content: out.Content}, nil
 }

@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.23.0.0
+0.23.1.0
 
 ## Versão 0.1.0.0
 
@@ -352,11 +352,11 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [x] Alterar a rota de criação a alteração de notícias para aceitar também o idioma da notícia
     - É obrigatório e deve estar na lista de idiomas disponíveis
 - [x] Remover idioma japonês e chinês da lista de idiomas disponíveis
-    - No CLAUDE.md eu coloquei que o português é de Portugal ou Brasil, confirma pra mim que isso é seguro ser feito por favor
 
 ## Versão 0.23.1.0
 
-- [ ] Remover a tradução das keywords da notícia
+- [x] Remover a tradução das keywords da notícia
+    - Keywords são canônicas em inglês; traduzi-las geraria termos fora de sincronia. Removido de `ai.Translator`, do prompt e da resposta do endpoint.
 
 ## Versão 0.24.0.0
 

@@ -92,13 +92,12 @@ func (c *Client) Judge(ctx context.Context, feedKeywords []string, title string,
 	return ai.ParseScore(stripThinking(out))
 }
 
-func (c *Client) Translate(ctx context.Context, targetLanguage, personality, title, content string, keywords []string) (ai.Translation, error) {
-	// jsonMode forces the {title, content, keywords} object.
+func (c *Client) Translate(ctx context.Context, targetLanguage, personality, title, content string) (ai.Translation, error) {
+	// jsonMode forces the {title, content} object.
 	out, err := c.chat(ctx, translationPromptName, map[string]string{
 		"target_language": targetLanguage,
 		"personality":     personality,
 		"title":           title,
-		"keywords":        strings.Join(keywords, ", "),
 		"content":         content,
 	}, true)
 	if err != nil {

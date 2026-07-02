@@ -130,7 +130,7 @@ func TestTranslateArticle_AIFailure(t *testing.T) {
 	requireNotProduction(t)
 
 	failing := &external.MockAIClient{
-		TranslateFn: func(_ context.Context, _, _, _, _ string, _ []string) (ai.Translation, error) {
+		TranslateFn: func(_ context.Context, _, _, _, _ string) (ai.Translation, error) {
 			return ai.Translation{}, ai.ErrInvalidTranslation
 		},
 	}

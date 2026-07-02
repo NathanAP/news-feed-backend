@@ -26,12 +26,13 @@ var (
 	ErrDisabled = errors.New("ai client is disabled: provider/model not configured")
 )
 
-// Translation is the result of translating an article: its title, content (HTML preserved) and
-// keywords rendered in the target language, for display only (never persisted).
+// Translation is the result of translating an article: its title and content (HTML preserved)
+// rendered in the target language, for display only (never persisted). Keywords are NOT translated —
+// they are stored canonically in English and translating them for display would only produce terms
+// out of sync with the stored ones.
 type Translation struct {
-	Title    string   `json:"title"`
-	Content  string   `json:"content"`
-	Keywords []string `json:"keywords"`
+	Title   string `json:"title"`
+	Content string `json:"content"`
 }
 
 // Treater cleans up an article's content (form only, never substance).
@@ -51,11 +52,11 @@ type Judger interface {
 	Judge(ctx context.Context, feedKeywords []string, title string, articleKeywords []string, content string) (int, error)
 }
 
-// Translator translates an article's title, content and keywords into the target language (an
-// English language name, e.g. "Spanish"), adapting the tone to the given personality. It must
-// preserve the content's HTML structure and never summarize or persist. Used on demand, LLM-only.
+// Translator translates an article's title and content into the target language (an English
+// language name, e.g. "Spanish"), adapting the tone to the given personality. It must preserve the
+// content's HTML structure and never summarize or persist. Used on demand, LLM-only.
 type Translator interface {
-	Translate(ctx context.Context, targetLanguage, personality, title, content string, keywords []string) (Translation, error)
+	Translate(ctx context.Context, targetLanguage, personality, title, content string) (Translation, error)
 }
 
 // Client is a provider that can do all capabilities — convenient for providers (Gemini, Ollama)
@@ -87,6 +88,6 @@ func (disabledClient) Judge(context.Context, []string, string, []string, string)
 	return 0, ErrDisabled
 }
 
-func (disabledClient) Translate(context.Context, string, string, string, string, []string) (Translation, error) {
+func (disabledClient) Translate(context.Context, string, string, string, string) (Translation, error) {
 	return Translation{}, ErrDisabled
 }

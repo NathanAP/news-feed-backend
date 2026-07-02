@@ -13,7 +13,7 @@ type MockAIClient struct {
 	TreatFn     func(ctx context.Context, title, content string) (string, error)
 	KeywordsFn  func(ctx context.Context, title, content string) ([]string, error)
 	JudgeFn     func(ctx context.Context, feedKeywords []string, title string, articleKeywords []string, content string) (int, error)
-	TranslateFn func(ctx context.Context, targetLanguage, personality, title, content string, keywords []string) (ai.Translation, error)
+	TranslateFn func(ctx context.Context, targetLanguage, personality, title, content string) (ai.Translation, error)
 }
 
 func (m *MockAIClient) Treat(ctx context.Context, title, content string) (string, error) {
@@ -37,14 +37,13 @@ func (m *MockAIClient) Judge(ctx context.Context, feedKeywords []string, title s
 	return 90, nil
 }
 
-func (m *MockAIClient) Translate(ctx context.Context, targetLanguage, personality, title, content string, keywords []string) (ai.Translation, error) {
+func (m *MockAIClient) Translate(ctx context.Context, targetLanguage, personality, title, content string) (ai.Translation, error) {
 	if m.TranslateFn != nil {
-		return m.TranslateFn(ctx, targetLanguage, personality, title, content, keywords)
+		return m.TranslateFn(ctx, targetLanguage, personality, title, content)
 	}
 	return ai.Translation{
-		Title:    "translated: " + title,
-		Content:  "translated: " + content,
-		Keywords: keywords,
+		Title:   "translated: " + title,
+		Content: "translated: " + content,
 	}, nil
 }
 

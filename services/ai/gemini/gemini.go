@@ -81,13 +81,12 @@ func (c *Client) Judge(ctx context.Context, feedKeywords []string, title string,
 	return ai.ParseScore(out)
 }
 
-// Translate runs the translation prompt and returns the translated title, content and keywords.
-func (c *Client) Translate(ctx context.Context, targetLanguage, personality, title, content string, keywords []string) (ai.Translation, error) {
+// Translate runs the translation prompt and returns the translated title and content.
+func (c *Client) Translate(ctx context.Context, targetLanguage, personality, title, content string) (ai.Translation, error) {
 	out, err := c.generate(ctx, translationPromptName, map[string]string{
 		"target_language": targetLanguage,
 		"personality":     personality,
 		"title":           title,
-		"keywords":        strings.Join(keywords, ", "),
 		"content":         content,
 	})
 	if err != nil {

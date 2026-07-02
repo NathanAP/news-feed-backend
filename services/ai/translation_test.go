@@ -8,25 +8,18 @@ import (
 )
 
 func TestParseTranslation_Object(t *testing.T) {
-	out, err := ParseTranslation(`{"title":"Título","content":"<p>Corpo</p>","keywords":["rock","metal"]}`)
+	out, err := ParseTranslation(`{"title":"Título","content":"<p>Corpo</p>"}`)
 	require.NoError(t, err)
 	assert.Equal(t, "Título", out.Title)
 	assert.Equal(t, "<p>Corpo</p>", out.Content)
-	assert.Equal(t, []string{"rock", "metal"}, out.Keywords)
 }
 
 func TestParseTranslation_StripsCodeFence(t *testing.T) {
-	raw := "```json\n{\"title\":\"T\",\"content\":\"<p>C</p>\",\"keywords\":[]}\n```"
+	raw := "```json\n{\"title\":\"T\",\"content\":\"<p>C</p>\"}\n```"
 	out, err := ParseTranslation(raw)
 	require.NoError(t, err)
 	assert.Equal(t, "T", out.Title)
-	assert.Empty(t, out.Keywords)
-}
-
-func TestParseTranslation_TrimsEmptyKeywords(t *testing.T) {
-	out, err := ParseTranslation(`{"title":"T","content":"C","keywords":["rock","  ","metal",""]}`)
-	require.NoError(t, err)
-	assert.Equal(t, []string{"rock", "metal"}, out.Keywords)
+	assert.Equal(t, "<p>C</p>", out.Content)
 }
 
 func TestParseTranslation_MissingTitle(t *testing.T) {

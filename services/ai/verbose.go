@@ -111,11 +111,11 @@ type verboseTranslator struct {
 	label string
 }
 
-func (v verboseTranslator) Translate(ctx context.Context, targetLanguage, personality, title, content string, keywords []string) (Translation, error) {
+func (v verboseTranslator) Translate(ctx context.Context, targetLanguage, personality, title, content string) (Translation, error) {
 	logger.Print(fmt.Sprintf("@@@ TRANSLATION START - %s -> %s @@@", v.label, targetLanguage), logger.ColorCyan)
 	start := time.Now()
 
-	out, err := v.inner.Translate(ctx, targetLanguage, personality, title, content, keywords)
+	out, err := v.inner.Translate(ctx, targetLanguage, personality, title, content)
 
 	elapsed := time.Since(start).Round(time.Millisecond)
 	if err != nil {

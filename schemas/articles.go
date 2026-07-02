@@ -107,14 +107,13 @@ type ArticleResponse struct {
 	IsRead *bool `json:"is_read"`
 }
 
-// ArticleTranslationResponse is the result of the translation endpoint: the title, content and
-// keywords translated into the target language for display. Nothing is persisted (read-only).
-// LanguageOriginal echoes the article's original language so the client can offer an
-// original↔translated toggle.
+// ArticleTranslationResponse is the result of the translation endpoint: the title and content
+// translated into the target language for display. Keywords are not translated (stored canonically
+// in English). Nothing is persisted (read-only). LanguageOriginal echoes the article's original
+// language so the client can offer an original↔translated toggle.
 type ArticleTranslationResponse struct {
-	Title            string   `json:"title"`
-	Content          string   `json:"content"`
-	Keywords         []string `json:"keywords"`
-	Language         string   `json:"language"`
-	LanguageOriginal string   `json:"language_original"`
+	Title            string `json:"title"`
+	Content          string `json:"content"`
+	Language         string `json:"language"`
+	LanguageOriginal string `json:"language_original"`
 }

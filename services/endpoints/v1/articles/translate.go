@@ -61,18 +61,12 @@ func TranslateArticle(articleCtrl controllers.ArticleControllerInterface, transl
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "target language matches the article's original language"})
 		}
 
-		keywords, err := controllers.DecodeKeywords(article.Keywords)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to read article keywords"})
-		}
-
 		translation, err := translator.Translate(
 			c.Context(),
 			schemas.Language(target).DisplayName(),
 			string(claims.AIPersonality),
 			article.Title,
 			article.Content,
-			keywords,
 		)
 		if err != nil {
 			logger.Log("translation failed: "+err.Error(), logger.ColorRed)
@@ -82,7 +76,6 @@ func TranslateArticle(articleCtrl controllers.ArticleControllerInterface, transl
 		return c.JSON(schemas.ArticleTranslationResponse{
 			Title:            translation.Title,
 			Content:          sanitize.Sanitize(translation.Content), // enforce the HTML whitelist on model output
-			Keywords:         translation.Keywords,
 			Language:         target,
 			LanguageOriginal: article.LanguageOriginal.String,
 		})
