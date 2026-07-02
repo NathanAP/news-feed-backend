@@ -14,7 +14,7 @@ func NewArticleFeedController() *ArticleFeedController {
 	return &ArticleFeedController{}
 }
 
-// Create inserts a new articles_feeds record. This is used by the judgment process (0.17)
+// Create inserts a new articles_feeds record. This is used by the judgement process (0.17)
 // and by test fixtures. The caller is responsible for the transaction boundary.
 func (c *ArticleFeedController) Create(ctx context.Context, q db.Querier, articleID, feedID string) (db.ArticleFeed, error) {
 	id, err := uuid.NewV7()

@@ -1,6 +1,6 @@
-name: article_feed_judgment
+name: article_feed_judgement
 description: >
-    Second judgment layer: decides how strongly a discovered article belongs to a given user feed,
+    Second judgement layer: decides how strongly a discovered article belongs to a given user feed,
     returning a 0-100 score compared against JUDGEMENT_THRESHOLD. Runs after the keyword layer.
 
 system: |

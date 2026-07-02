@@ -1,7 +1,7 @@
 name: article_treatment
 description: >
     Cleans up a freshly discovered news article so it reads clearly, without changing its meaning,
-    tone, language, or facts. Used right after discovery, before keyword tagging and judgment.
+    tone, language, or facts. Used right after discovery, before keyword tagging and judgement.
 
 system: |
     You are an editor that improves readability of articles.

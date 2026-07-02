@@ -327,7 +327,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [ ] Julgamento de notícias aos feeds
 - [ ] Criar uma rota de teste para julgamento de notícias a partir dos dados crus de uma notícia, simulando a exata execução da CRON através do Bruno
     - Detalhes presentes em `PROJECT.md`
-    - Pode estar debaixo de `POST /v1/articles/judgment`
+    - Pode estar debaixo de `POST /v1/articles/judgement`
     - Vamos adicionar o usuário administrador depois, então essa rota por enquanto pode ficar aberta
     - Lembrete: essa rota é dry-run
     - Dúvida: vale a pena gravar o `score` do julgamento junto da tabela de `articles_feeds`? parece que não né?
