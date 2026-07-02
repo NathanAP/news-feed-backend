@@ -295,13 +295,14 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Esta etapa opera de acordo com as seguintes variáveis de ambiente:
     - `JUDGMENT_MODE`: o modo atualmente utilizado durante esta etapa.
     - `JUDGMENT_VERBOSE_MODE`: `boolean` que decide se os logs são exibidos no terminal ou não durante esta etapa.
+    - `JUDGMENT_THRESHOLD`: `threshold` de julgamento para considerar notícias pertencentes a um feed.
 - O julgamento funciona através de duas etapas:
     - Comparação de palavras chave: utiliza filtros básicos no banco de dados para encontrar os principais feeds candidatos.
     - Julgamento: julga se a notícia pertence aos candidatos selecionados.
     - Gravação no banco de dados: forma um registro da associção entre feed e notícia no banco de dados.
 - O julgamento de notícias nunca é feito de forma retroativa.
 - O julgamento de notícias só pode considerar feeds que estão ativos.
-- Um endpoint de teste para esse processo pode ser encontrado em `GET base_url/v1/articles/judgement`.
+- Um endpoint de teste para esse processo pode ser encontrado em `POST base_url/v1/articles/judgement`.
     - Deve simular os exatos mesmos processos que rodaria na CRON.
     - Deve permitir a troca de modo na etapa de nomeação de palavras-chave através de uma chave chamada `judgment_mode` no body, aceitando os valores disponibilizados na descrição da etapa.
     - Esse endpoint deve ser exclusivo para administradores.
@@ -316,7 +317,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 ### Julgamento
 
-- A segunda etapa é feita atráves uma IA que define um `score` entre 0 e 100, julgando o quanto a notícia pertence a cada feed candidato. Um `threshold` é definido na variável de ambiente `JUDGMENT_THRESHOLD` e comparado ao valor de `score` para definição do resultado.
+- A segunda etapa é feita atráves uma IA que define um `score` entre 0 e 100, julgando o quanto a notícia pertence a cada feed candidato. Um `threshold` é definido na variável de ambiente `JUDGEMENT_THRESHOLD` e comparado ao valor de `score` para definição do resultado.
 
 ### Gravação da associação no banco de dados
 

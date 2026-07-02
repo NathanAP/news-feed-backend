@@ -1,7 +1,7 @@
 name: article_feed_judgment
 description: >
     Second judgment layer: decides how strongly a discovered article belongs to a given user feed,
-    returning a 0-100 score compared against JUDGE_SCORE_THRESHOLD. Runs after the keyword layer.
+    returning a 0-100 score compared against JUDGEMENT_THRESHOLD. Runs after the keyword layer.
 
 system: |
     You decide how relevant a news article is to a user's feed. The feed is defined by a set of
