@@ -326,7 +326,10 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 ### Comparação de palavras chave
 
 - A primeira etapa é a mais simples: ela realiza uma filtragem de quais feeds são os melhores candidatos a seguirem adiante através de uma comparação de palavras-chave da notícia.
-- Essa filtragem é feita inteiramente em SQL. As palavras-chave (tanto da notícia quanto dos feeds) são armazenadas como arrays JSON de strings minúsculas, então usamos `json_each` para expandir ambos os lados em linhas e um `JOIN` por igualdade exata de palavra-chave. Um feed é candidato quando tem pelo menos uma palavra-chave em comum com a notícia. A query considera apenas feeds ativos (`status = 1 AND removed_at IS NULL`) de qualquer usuário e usa `DISTINCT` para não duplicar um feed que casou em várias palavras-chave (query `FindCandidateFeedsByKeywords`).
+- Essa filtragem é feita inteiramente em SQL.
+    - As palavras-chave (tanto da notícia quanto dos feeds) são armazenadas como arrays JSON de strings minúsculas, então usamos `json_each` para expandir ambos os lados em linhas e um `JOIN` por igualdade exata de palavra-chave.
+    - Um feed é candidato quando tem pelo menos uma palavra-chave em comum com a notícia.
+    - A query usa `DISTINCT` para não duplicar um feed que casou em várias palavras-chave (query `FindCandidateFeedsByKeywords`).
 
 ### Julgamento
 
@@ -346,7 +349,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - O cache neste projeto via `Redis` será implementado futuramente.
 - A tradução de notícias também leva em conta a personalidade escolhida pelas preferências do usuário na opção `ai_personality`.
 - A tradução de notícias deve:
-    - Traduzir o título, conteúdo e keywords da notícia para serem mostrados ao usuário.
+    - Traduzir o título e conteúdo da notícia para serem mostrados ao usuário.
     - Atuar sempre em read-only.
     - Preservar a estrutura HTML presente no conteúdo da notícia.
     - Manter o contexto do conteúdo.

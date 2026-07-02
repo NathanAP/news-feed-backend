@@ -354,18 +354,27 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [x] Remover idioma japonês e chinês da lista de idiomas disponíveis
     - No CLAUDE.md eu coloquei que o português é de Portugal ou Brasil, confirma pra mim que isso é seguro ser feito por favor
 
+## Versão 0.23.1.0
+
+- [ ] Remover a tradução das keywords da notícia
+
 ## Versão 0.24.0.0
 
-- [ ] Adicionar um comando para criar registros de `articles` e `articles_feeds` sem precisar depender da CRON em desenvolvimento
-    - Utilizar arquivos na pasta `raiz/example`
-        - Eu deixei os arquivos em `.json`, mas se quiser transformar eles em algo mais "importáveis" fique a vontade
-    - Depende do `task local-start` ou `task docker-start` estar de pé
+- [ ] Adicionar um comando para criar registros de `sources`, `articles` e `articles_feeds` sem precisar depender da CRON em desenvolvimento
+    - Dúvida: eu acho que a melhor forma aqui é ter um executor de SQL?
+    - Dúvida: depende do `task local-start` ou `task docker-start` estar de pé?
     - Se quiser fazer via execução de script localmente e docker + execução de script no docker, não tem problema
+    - Vamos documentar depois esse comando
+    - Utilizar arquivos na pasta `raiz/examples`
+        - Eu deixei os arquivos em `.json`, mas se quiser transformar eles em algo mais "importáveis" fique a vontade
+        - Ligue todos os feeds ao primeiro usuário não-administrador encontrado
+        - Ligue todas as noticas a todos os feeds, independente do julgamento entre keywords
     - Julgamentos podem sempre ser considerados como passados, independente do feed possuir keywords condizente com o tema da notícia ou não
+    - Não precisa ser UUID7
     - A chamada múltipla desse comando deve continuar adicionando registros ao banco, mesmo que as notícias já estejam lá
         - Pra evitar o problema da `url_original` duplicada, precisamos que o script executado crie uma url aleatória inexistente para cada notícia
         - Pode fazer um random numérico mesmo, tipo `https://www.article-{numero_aleatorio}.com.br`
-    - O que acha do comando se chamar `create-default`
+    - O que acha do comando se chamar `create-default-data`?
 
 ## Versão 0.25.0.0
 
