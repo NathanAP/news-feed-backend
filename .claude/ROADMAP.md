@@ -343,6 +343,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 - [ ] Adicionar um comando para criar registros de `articles` e `articles_feeds` sem precisar depender da CRON em desenvolvimento
     - Utilizar arquivos na pasta `raiz/example`
+        - Eu deixei os arquivos em `.json`, mas se quiser transformar eles em algo mais "importáveis" fique a vontade
     - Depende do `task local-start` ou `task docker-start` estar de pé
     - Se quiser fazer via execução de script localmente e docker + execução de script no docker, não tem problema
     - Julgamentos podem sempre ser considerados como passados, independente do feed possuir keywords condizente com o tema da notícia ou não
