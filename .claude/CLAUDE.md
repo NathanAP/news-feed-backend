@@ -99,7 +99,7 @@ Você tem liberdade para acessar qualquer arquivo da pasta `.claude`.
 - UUIDs devem estar na versão 7.
 - Modelos LLMs e SLMs devem ser os exatos indicados na stack.
 - O `lingua-go` deve ser configurado para disponibilizar os seguintes idiomas:
-    - Português (Brasil e Portugal)
+    - Português
     - Inglês
     - Espanhol
     - Francês
