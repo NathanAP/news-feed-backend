@@ -16,8 +16,8 @@ auth:bearer {
 
 body:json {
   {
-    "name": "Metallica",
-    "keywords": ["metallica", "rock", "metal", "show", "turnê"]
+    "name": "Kamelot",
+    "keywords": ["kamelot", "rock", "metal", "show", "turnê"]
   }
 }
 
@@ -25,7 +25,7 @@ docs {
   Campos obrigatórios:
   - name: nome do feed (não-vazio, até 120 caracteres; nomes duplicados são permitidos)
   - keywords: lista de 5 a 20 palavras-chave (nenhuma vazia)
-
+  
   O feed pertence ao usuário do token (user_id vem do JWT).
   Retorna 409 se o usuário já tiver 5 feeds ativos.
 }

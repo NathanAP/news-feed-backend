@@ -16,10 +16,26 @@ auth:bearer {
 
 body:json {
   {
-    "title": "Metallica anuncia nova turnê mundial",
-    "content": "# Metallica anuncia nova turnê\n\nA banda confirmou as datas...",
-    "url_original": "https://www.wikimetal.com.br/noticia/metallica-turne",
-    "keywords": ["metallica", "rock", "metal", "turnê", "show"],
+    "title": "Kamelot lança clipe de “Ashen World” com vencedora do Miss Mundo Chile 2025",
+    "content": "<p>O <strong>Kamelot</strong> divulgou o videoclipe de “Ashen World”, primeiro single do álbum <em>Dark Asylum</em>, com lançamento previsto para o dia 28 de agosto pela <strong>Napalm Records</strong>. A faixa conta com a participação especial de <strong>Ignacia Fernández</strong>, vocalista da banda <strong>Decessus</strong> e vencedora do concurso <strong>Miss Mundo Chile 2025</strong>.</p>\n<p>O guitarrista <strong>Thomas Youngblood</strong> afirmou que a música representa o momento em que esperança e escuridão se encontram, além de servir como porta de entrada para o universo criado em <em>Dark Asylum</em>. Em nota à imprensa, Youngblood declarou:</p>\n<blockquote>\n<p>“Ashen World” captura aquele momento de estar na encruzilhada entre a escuridão e a esperança, onde a jornada adiante começa. É o Kamelot clássico em sua essência, ao mesmo tempo que abre novas portas para o mundo de <em>Dark Asylum</em>.</p>\n</blockquote>\n<p>Adicionando outra camada de atmosfera, a vocalista <strong>Ignacia Fernández</strong>, atual Miss Mundo Chile 2025, faz uma participação vocal etérea que se entrelaça lindamente com o clima sombrio da canção. “Ashen World” narra a história de um mundo que mergulha na escuridão sem jamais perder de vista a esperança, a resiliência e a redenção.</p>",
+    "url_original": "https://www.wikimetal.com.br/kamelot-lanca-ashen-world-cvencedora-miss-mundo-chile-2025/",
+    "keywords": [
+      "kamelot",
+      "ashen world",
+      "dark asylum",
+      "ignacia fernández",
+      "miss mundo chile 2025",
+      "thomas youngblood",
+      "napalm records",
+      "decessus",
+      "music video",
+      "single",
+      "album",
+      "hope",
+      "darkness",
+      "resilience",
+      "redemption"
+    ],
     "source_id": "{{sourceId}}",
     "language_original": "pt"
   }
@@ -34,7 +50,7 @@ docs {
   - source_id: id de uma fonte de notícias existente e ativa
   - language_original: idioma original da notícia ("pt" | "en" | "es" | "fr" | "de" | "it").
     Na CRON isso é detectado pelo lingua-go; na criação manual é obrigatório (400 se faltar/invável).
-
+  
   Retorna 409 se a url_original já existir entre os registros ativos.
   Retorna 400 se source_id faltar ou apontar para uma fonte inexistente/inativa.
   O source_id é imutável: a rota de edição (PUT) não o altera.
