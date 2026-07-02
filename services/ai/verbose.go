@@ -66,3 +66,33 @@ func (v verboseKeyworder) Keywords(ctx context.Context, title, content string) (
 	}
 	return out, err
 }
+
+// NewVerboseJudger wraps a Judger so each call logs a START/END marker with elapsed time and the
+// resulting score. Gated by its own flag (JUDGEMENT_VERBOSE_MODE). When disabled it returns the
+// inner judger unchanged.
+func NewVerboseJudger(inner Judger, label string, enabled bool) Judger {
+	if !enabled {
+		return inner
+	}
+	return verboseJudger{inner: inner, label: label}
+}
+
+type verboseJudger struct {
+	inner Judger
+	label string
+}
+
+func (v verboseJudger) Judge(ctx context.Context, feedKeywords []string, title string, articleKeywords []string, content string) (int, error) {
+	logger.Print(fmt.Sprintf("@@@ JUDGEMENT START - %s @@@", v.label), logger.ColorCyan)
+	start := time.Now()
+
+	score, err := v.inner.Judge(ctx, feedKeywords, title, articleKeywords, content)
+
+	elapsed := time.Since(start).Round(time.Millisecond)
+	if err != nil {
+		logger.Print(fmt.Sprintf("@@@ JUDGEMENT FAILED - %s - %s: %v @@@", v.label, elapsed, err), logger.ColorRed)
+	} else {
+		logger.Print(fmt.Sprintf("@@@ JUDGEMENT END - %s - %s (score %d) @@@", v.label, elapsed, score), logger.ColorGreen)
+	}
+	return score, err
+}

@@ -48,6 +48,7 @@
 - `POST /articles/create` — `{ title, content, url_original, keywords[5..20], source_id }` →
   201 / 400 (inclui `source_id` ausente ou fonte inativa) / 409 (url_original duplicada) / 500.
 - `POST /articles/treatment` — **dry-run** do tratamento por IA. Body `{ article: { title, content, ... }, keywords_mode? }`. Roda tratamento (LLM) → keywords, e retorna `{ content, keywords, keywords_mode, treatment_ms, keywords_ms }`. **Não persiste**, mas **chama a IA de verdade** (consome quota). O `keywords_mode` opcional (`local`|`groq`|`gemini`) troca o backend das keywords só nesta chamada (benchmark sem reiniciar; 400 se o modo não existe). → 200 / 400 / 500. Aberta (admin-futuro).
+- `POST /articles/judgement` — **dry-run** do julgamento por IA. Body `{ article: { title, content, keywords }, judgement_mode? }` (notícia já tratada; sem `id`). Camada 1: feeds candidatos por sobreposição de keywords (SQL `json_each`, feeds ativos de qualquer usuário); camada 2: `score` 0–100 da IA por candidato vs `JUDGEMENT_THRESHOLD`. Retorna `{ judgement_mode, threshold, candidate_count, judgements: [{ feed_id, feed_name, score, passed }], judgement_ms }`. **Não grava** (para na penúltima etapa), mas **chama a IA de verdade**. `judgement_mode` opcional (`local`|`groq`|`gemini`) troca o backend só nesta chamada (400 se inexistente). → 200 / 400 / 500. Aberta (admin-futuro).
 - `PUT /articles/:id/read` — marca como lida nos feeds do usuário → **200** (em ≥1 feed, ou já
   lida) / **204** (não está em nenhum feed do usuário) / 404 (notícia inexistente). Idempotente.
 - `GET /articles/:id` → 200 / 404. Resposta enriquecida com `is_read`: `null` (não está em
@@ -67,10 +68,13 @@
 ## Descoberta automática (CRON, sem rota)
 - CRON interna (`services/cron`, `robfig/cron/v3`) varre as sources ativas em `RSS_FEED_CRON_SCHEDULE`,
   ativa por `RSS_FEED_CRON_ACTIVE`. Lê o RSS de cada source (gofeed), **deduplica por `url_original`**,
-  **trata** as novas (LLM limpa o conteúdo + SLM nomeia keywords — provider por tarefa via env) e
-  **persiste** o `article`; ao
-  final grava `system.last_article_discovery_at` (informativo). Falha de IA → não persiste, re-tenta
-  na próxima run. Pula a run quando `app_status` está off. Logs gated por `RSS_FEED_CRON_VERBOSE_MODE`.
+  **trata** as novas (LLM limpa o conteúdo + SLM nomeia keywords — provider por tarefa via env),
+  **persiste** o `article` e por fim **julga** (camada 1 SQL por keywords + camada 2 IA vs
+  `JUDGEMENT_THRESHOLD`), gravando as associações aprovadas em `articles_feeds`; ao
+  final grava `system.last_article_discovery_at` (informativo). Falha de IA no tratamento → não
+  persiste, re-tenta na próxima run; falha no julgamento é best-effort (a notícia já está persistida,
+  não é re-julgada — não-retroativo). Pula a run quando `app_status` está off. Logs gated por
+  `RSS_FEED_CRON_VERBOSE_MODE`.
 
 ## Notas
 - Todo endpoint dispara log de início/fim quando `VERBOSE_MODE=true`.

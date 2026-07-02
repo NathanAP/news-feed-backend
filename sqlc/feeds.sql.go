@@ -121,6 +121,47 @@ func (q *Queries) CountActiveFeedsByUser(ctx context.Context, userID string) (in
 	return count, err
 }
 
+const findCandidateFeedsByKeywords = `-- name: FindCandidateFeedsByKeywords :many
+SELECT DISTINCT f.id, f.status, f.name, f.keywords, f.user_id, f.created_at, f.modified_at, f.removed_at
+FROM feeds f
+JOIN json_each(f.keywords) fk
+JOIN json_each(?) ak ON ak.value = fk.value
+WHERE f.status = 1 AND f.removed_at IS NULL
+`
+
+func (q *Queries) FindCandidateFeedsByKeywords(ctx context.Context, articleKeywords string) ([]Feed, error) {
+	rows, err := q.db.QueryContext(ctx, findCandidateFeedsByKeywords, articleKeywords)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []Feed
+	for rows.Next() {
+		var i Feed
+		if err := rows.Scan(
+			&i.ID,
+			&i.Status,
+			&i.Name,
+			&i.Keywords,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.ModifiedAt,
+			&i.RemovedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateFeedByIDAndUser = `-- name: UpdateFeedByIDAndUser :one
 UPDATE feeds
 SET name = ?, keywords = ?, modified_at = CURRENT_TIMESTAMP

@@ -51,7 +51,11 @@ Sem unicidade (nomes duplicados permitidos). Máx. **5 feeds ativos** por usuár
 `id`, `article_id` (FK articles), `feed_id` (FK feeds), `is_read` (0/1), `created_at`,
 `modified_at`. **Sem** `status`/`removed_at`. `user_id` é obtido via JOIN com `feeds` (sem
 desnormalização). Hard delete quando um pai sofre hard remove; no soft remove de um pai o
-registro **permanece** mas fica invisível (filtrado pelo JOIN de ativos).
+registro **permanece** mas fica invisível (filtrado pelo JOIN de ativos). Populado pelo
+**julgamento** (0.22): cada feed aprovado vira um registro. O `score` do julgamento **não** é
+gravado (artefato transitório; julgamento não-retroativo). Camada 1 do julgamento:
+`FindCandidateFeedsByKeywords` compara keywords notícia↔feed inteiramente em SQL via `json_each`
+(feeds ativos de qualquer usuário, `DISTINCT`).
 
 ### system (singleton — painel de controle)
 `id` (UUID v7), `app_status` (0/1), `last_article_discovery_at` (DATETIME nullable),

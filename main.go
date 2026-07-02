@@ -33,6 +33,7 @@ import (
 	sourceendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/sources"
 	systemendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/system"
 	userendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/users"
+	"github.com/nathanap/news-feed-backend/services/judgment"
 	"github.com/nathanap/news-feed-backend/services/sanitize"
 )
 
@@ -116,6 +117,15 @@ func main() {
 		defaultKeyworder = ai.NewDisabledClient()
 	}
 
+	judgers, judgementDefaultMode := buildJudgers()
+	judgementThreshold := parseThreshold(os.Getenv("JUDGEMENT_THRESHOLD"))
+	defaultJudger := judgers[judgementDefaultMode]
+	if defaultJudger == nil {
+		log.Printf("JUDGEMENT_MODE %q not recognized (use local, groq or gemini); judgement disabled by default", judgementDefaultMode)
+		defaultJudger = ai.NewDisabledClient()
+	}
+	evaluator := judgment.NewEvaluator(defaultJudger, judgementThreshold)
+
 	authMiddleware := middlewares.NewAuthMiddleware(jwtSecret, refreshTokenCtrl, runTx)
 
 	app := fiber.New(fiber.Config{
@@ -161,6 +171,7 @@ func main() {
 	articles := api.Group("/articles")
 	articles.Post("/create", append(authMiddleware, articleendpoints.CreateArticle(articleCtrl, runTx))...)
 	articles.Post("/treatment", append(authMiddleware, articleendpoints.TreatArticle(treater, keyworders, keywordsDefaultMode))...)
+	articles.Post("/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, judgementDefaultMode, judgementThreshold, runTx))...)
 	articles.Put("/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(articleCtrl, afCtrl, runTx))...)
 	articles.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, runTx))...)
 	articles.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, runTx))...)
@@ -176,7 +187,7 @@ func main() {
 
 	if os.Getenv("RSS_FEED_CRON_ACTIVE") == "true" {
 		cronVerbose := os.Getenv("RSS_FEED_CRON_VERBOSE_MODE") == "true"
-		processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, treater, defaultKeyworder, cronVerbose)
+		processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, treater, defaultKeyworder, evaluator, cronVerbose)
 		runner := cron.NewDiscoveryRunner(runTx, sourceCtrl, systemCtrl, processor, discoveryHTTPClient, cronVerbose)
 		scheduler, err := cron.NewScheduler(os.Getenv("RSS_FEED_CRON_SCHEDULE"), runner)
 		if err != nil {
@@ -194,48 +205,67 @@ func main() {
 	log.Fatal(app.Listen(":" + apiPort))
 }
 
-// Keyword-naming models are fixed to the ones declared in the stack (CLAUDE.md); the Groq model is
+// SLM/LLM models are fixed to the ones declared in the stack (CLAUDE.md); the Groq model is
 // configurable because the stack does not pin a specific one.
 const (
-	localKeywordsModel  = "qwen3:4b"
-	geminiKeywordsModel = "gemini-2.5-flash"
-	defaultGroqBaseURL  = "https://api.groq.com/openai/v1"
-	defaultOllamaURL    = "http://localhost:11434"
+	localModel                = "qwen3:4b"
+	geminiModel               = "gemini-2.5-flash"
+	defaultGroqBaseURL        = "https://api.groq.com/openai/v1"
+	defaultOllamaURL          = "http://localhost:11434"
+	defaultJudgementThreshold = 70
 )
 
-// buildKeyworders pre-builds the keyword-naming backend for every mode (local | groq | gemini),
-// each wrapped with the verbose logger, and returns them keyed by mode plus the configured default
-// (KEYWORDS_MODE). Pre-building all modes lets the treatment endpoint switch backend per request
-// for benchmarking without a restart.
+// buildModeClients pre-builds an AI client for every mode (local | groq | gemini). The same set of
+// clients backs both the keyword-naming and the judgement steps: each ai.Client implements every
+// capability, so a mode map can be projected onto whichever interface a step needs. Pre-building all
+// modes lets the dry-run endpoints switch backend per request for benchmarking without a restart.
+func buildModeClients() map[string]ai.Client {
+	return map[string]ai.Client{
+		"local":  buildLocalClient(),
+		"groq":   buildGroqClient(),
+		"gemini": buildProvider("google", geminiModel),
+	}
+}
+
+// buildKeyworders projects the mode clients onto the Keyworder interface, each wrapped with the
+// verbose logger (KEYWORDS_VERBOSE_MODE), and returns them keyed by mode plus the configured default
+// (KEYWORDS_MODE).
 func buildKeyworders() (map[string]ai.Keyworder, string) {
 	verbose := os.Getenv("KEYWORDS_VERBOSE_MODE") == "true"
 
-	raw := map[string]ai.Client{
-		"local":  buildLocalKeyworder(),
-		"groq":   buildGroqKeyworder(),
-		"gemini": buildProvider("google", geminiKeywordsModel),
-	}
-
-	keyworders := make(map[string]ai.Keyworder, len(raw))
-	for mode, client := range raw {
+	keyworders := make(map[string]ai.Keyworder)
+	for mode, client := range buildModeClients() {
 		keyworders[mode] = ai.NewVerboseKeyworder(client, "keywords/"+mode, verbose)
 	}
 	return keyworders, os.Getenv("KEYWORDS_MODE")
 }
 
-func buildLocalKeyworder() ai.Client {
+// buildJudgers projects the mode clients onto the Judger interface, each wrapped with the verbose
+// logger (JUDGEMENT_VERBOSE_MODE), and returns them keyed by mode plus the configured default
+// (JUDGEMENT_MODE).
+func buildJudgers() (map[string]ai.Judger, string) {
+	verbose := os.Getenv("JUDGEMENT_VERBOSE_MODE") == "true"
+
+	judgers := make(map[string]ai.Judger)
+	for mode, client := range buildModeClients() {
+		judgers[mode] = ai.NewVerboseJudger(client, "judgement/"+mode, verbose)
+	}
+	return judgers, os.Getenv("JUDGEMENT_MODE")
+}
+
+func buildLocalClient() ai.Client {
 	baseURL := os.Getenv("OLLAMA_BASE_URL")
 	if baseURL == "" {
 		baseURL = defaultOllamaURL
 	}
-	return openaicompat.NewClient(baseURL, localKeywordsModel, "")
+	return openaicompat.NewClient(baseURL, localModel, "")
 }
 
-func buildGroqKeyworder() ai.Client {
+func buildGroqClient() ai.Client {
 	apiKey := os.Getenv("GROQ_API_KEY")
 	model := os.Getenv("GROQ_MODEL")
 	if apiKey == "" || model == "" {
-		log.Println("keywords 'groq' mode disabled: set GROQ_API_KEY and GROQ_MODEL")
+		log.Println("AI 'groq' mode disabled: set GROQ_API_KEY and GROQ_MODEL")
 		return ai.NewDisabledClient()
 	}
 	baseURL := os.Getenv("GROQ_BASE_URL")
@@ -243,6 +273,20 @@ func buildGroqKeyworder() ai.Client {
 		baseURL = defaultGroqBaseURL
 	}
 	return openaicompat.NewClient(baseURL, model, apiKey)
+}
+
+// parseThreshold reads the judgement pass threshold (0-100). It falls back to a sane default when
+// unset or invalid, since a misconfigured threshold must not crash the app.
+func parseThreshold(s string) int {
+	if s == "" {
+		return defaultJudgementThreshold
+	}
+	n, err := strconv.Atoi(s)
+	if err != nil || n < 0 || n > 100 {
+		log.Printf("Invalid JUDGEMENT_THRESHOLD %q (want integer 0-100), using default %d", s, defaultJudgementThreshold)
+		return defaultJudgementThreshold
+	}
+	return n
 }
 
 // buildProvider wires an AI provider for a task from its configured provider/model. Supported

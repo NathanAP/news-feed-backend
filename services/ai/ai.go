@@ -16,6 +16,9 @@ var (
 	// ErrInvalidKeywords is returned when the model's keyword output cannot be parsed or fails
 	// the 5-20 distinct-items rule.
 	ErrInvalidKeywords = errors.New("keywords output is invalid")
+	// ErrInvalidScore is returned when the model's judgement output cannot be parsed into an
+	// integer score in the 0-100 range.
+	ErrInvalidScore = errors.New("judgement score output is invalid")
 	// ErrDisabled is returned by the disabled client when no provider is configured.
 	ErrDisabled = errors.New("ai client is disabled: provider/model not configured")
 )
@@ -30,11 +33,19 @@ type Keyworder interface {
 	Keywords(ctx context.Context, title, content string) ([]string, error)
 }
 
-// Client is a provider that can do both — convenient for providers (Gemini, Ollama) that
-// implement every capability. Wiring picks a Treater and a Keyworder independently.
+// Judger scores how strongly an article belongs to a feed (0-100), given the feed's keywords and
+// the article's title, keywords and content. It is the second judgement layer (after the cheap
+// keyword-overlap filter), so the caller passes only feeds that already survived stage 1.
+type Judger interface {
+	Judge(ctx context.Context, feedKeywords []string, title string, articleKeywords []string, content string) (int, error)
+}
+
+// Client is a provider that can do all capabilities — convenient for providers (Gemini, Ollama)
+// that implement every one. Wiring picks a Treater, a Keyworder and a Judger independently.
 type Client interface {
 	Treater
 	Keyworder
+	Judger
 }
 
 // NewDisabledClient returns a Client that fails every call with ErrDisabled. It lets the app boot
@@ -51,4 +62,8 @@ func (disabledClient) Treat(context.Context, string, string) (string, error) {
 
 func (disabledClient) Keywords(context.Context, string, string) ([]string, error) {
 	return nil, ErrDisabled
+}
+
+func (disabledClient) Judge(context.Context, []string, string, []string, string) (int, error) {
+	return 0, ErrDisabled
 }

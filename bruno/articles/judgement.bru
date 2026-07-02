@@ -1,11 +1,11 @@
 meta {
-  name: Article Treatment (dry-run)
+  name: Article Judgement (dry-run)
   type: http
-  seq: 7
+  seq: 8
 }
 
 post {
-  url: {{baseUrl}}/v1/articles/treatment
+  url: {{baseUrl}}/v1/articles/judgement
   body: json
   auth: bearer
 }
@@ -16,9 +16,30 @@ auth:bearer {
 
 body:json {
   {
-    "keywords_mode": "groq",
+    "judgement_mode": "local",
     "article": {
-      "url_original": "https://www.wikimetal.com.br/rock-in-rio-pop-vende-mais-ingressos-que-rock/",
+      "keywords": [
+        "rock in rio",
+        "roberta medina",
+        "rock in rio lisboa",
+        "rock in rio 2026",
+        "pop",
+        "rock",
+        "ingressos",
+        "festival",
+        "venda de ingressos",
+        "line-up",
+        "arte",
+        "música",
+        "público",
+        "ticketmaster",
+        "parque olímpico",
+        "evento",
+        "programação",
+        "mercado",
+        "gênero musical",
+        "coletiva de imprensa"
+      ],
       "title": "Rock in Rio: Dia do Pop vende mais ingressos que do rock, afirma Roberta Medina",
       "content": "<p><img width=\"370\" height=\"265\" src=\"https://i0.wp.com/www.wikimetal.com.br/wp-content/uploads/2024/08/Rock-in-Rio.png?resize=370%2C265&amp;ssl=1\" class=\"attachment-post-thumbnail size-post-thumbnail wp-post-image\" alt=\"Rock in Rio\" decoding=\"async\" srcset=\"https://i0.wp.com/www.wikimetal.com.br/wp-content/uploads/2024/08/Rock-in-Rio.png?resize=370%2C265&amp;ssl=1 370w, https://i0.wp.com/www.wikimetal.com.br/wp-content/uploads/2024/08/Rock-in-Rio.png?zoom=2&amp;resize=370%2C265&amp;ssl=1 740w, https://i0.wp.com/www.wikimetal.com.br/wp-content/uploads/2024/08/Rock-in-Rio.png?zoom=3&amp;resize=370%2C265&amp;ssl=1 1110w\" sizes=\"(max-width: 370px) 100vw, 370px\" /></p>\n<p>Durante coletiva de imprensa na edição <strong>Rock in Rio Lisboa</strong>. <strong>Roberta Medina</strong>, vice-presidente executiva do Rock in Rio, refletiu sobre os questionamentos&nbsp;do público que critica a falta de bandas de rock no festival.</p>\n\n\n\n<p>Roberta afirmou que entende a insatisfação de parte do público, mas defendeu que a programação precisa acompanhar o comportamento do mercado e da venda de ingressos.</p>\n\n\n\n<p>&#8220;E é muito engraçado porque os roqueiros são barulhentos. Então, quando não tem o rock, eles vão nas redes, fazem barulho, mas o primeiro dia que esgota é o pop&#8221;, afirmou Medina [via <em><a href=\"https://g1.globo.com/pop-arte/musica/noticia/2026/07/01/roberta-medina-sobre-cobranca-de-rock-no-rock-in-rio-roqueiros-fazem-barulho-mas-o-primeiro-dia-que-esgota-e-o-pop.ghtml\">g1</a></em>].</p>\n\n\n\n<p>&#8220;A gente ama o rock. Está na nossa essência, está na nossa atitude. Mas o que a gente precisa construir são dias que funcionam para essas milhares de pessoas&#8221;, analisou a vice-presidente.</p>\n\n\n\n<p>A empresária afirmou que o Rock in Rio continua valorizando o rock e o metal. Ela relembrou, de forma bem-humorada, que chegou a ter receio do público do gênero quando tinha 12 anos, durante a edição realizada no Maracanã, em 1991. Ao mesmo tempo, ressaltou que a definição do line-up depende das condições do mercado e da agenda dos artistas.</p>\n\n\n\n<p>&#8220;A gente é rock, é pop. E a gente aqui até adotou o &#8216;all in Rio&#8217;. Porque é isso, é tudo. Sempre foi. Se a gente olhar para 1985, sempre foi sobre todos os estilos. Nunca foi só rock&#8221;, afirmou.</p>\n\n\n\n<p>O&nbsp;<strong>Rock in Rio 2026</strong>&nbsp;ocorrerá nos dias&nbsp;<a href=\"https://www.wikimetal.com.br/rock-in-rio-2026-anuncia-datas/\">&nbsp;nos dias&nbsp;4, 5, 6, 7, 11, 12 e 13 de setembro</a>, no Parque Olímpico. Os ingressos estão disponíveis&nbsp;<a href=\"https://www.ticketmaster.com.br/event/rockinrio\">através do site da Ticketmaster.</a>&nbsp;</p>\n\n\n\n<p><strong>LEIA TAMBÉM: </strong><a href=\"https://www.wikimetal.com.br/venda-geral-rock-in-rio-2026-saiba-como-comprar-ingressos/\">Venda geral Rock in Rio 2026: Saiba como comprar ingressos</a></p>\n"
     }
@@ -26,12 +47,19 @@ body:json {
 }
 
 docs {
-  Dry-run do tratamento de uma notícia: roda as duas chamadas de IA (tratar o conteúdo e depois
-  nomear as palavras-chave sobre o conteúdo já tratado) e retorna o resultado. NÃO grava nada.
+  Dry-run do julgamento de uma notícia: dado um artigo já tratado (título, conteúdo e keywords),
+  roda as duas camadas exatamente como a CRON faria — camada 1 (feeds candidatos por sobreposição de
+  keywords, uma query read-only no banco) e camada 2 (score de relevância da IA por candidato) — e
+  retorna cada score com o flag `passed` (score >= JUDGEMENT_THRESHOLD). NÃO grava nenhuma associação
+  em articles_feeds (para na penúltima etapa).
   
-  Atenção: chama o provedor de IA de verdade (consome quota). `article.title` e `article.content`
-  são obrigatórios (400). Campo opcional `keywords_mode` (local | groq | gemini) troca o backend das
-  keywords só nesta chamada, pra benchmark sem reiniciar (400 se o modo não existir). Retorna 200 com
-  `{ content, keywords, keywords_mode, treatment_ms, keywords_ms }`; 500 em falha de IA. Aberta por
-  enquanto; futuramente restrita a administradores.
+  Atenção: chama o provedor de IA de verdade (consome quota) e lê feeds reais do banco.
+  `article.title`, `article.content` e `article.keywords` são obrigatórios (400). Campo opcional
+  `judgement_mode` (local | groq | gemini) troca o backend só nesta chamada, pra benchmark sem
+  reiniciar (400 se o modo não existir). Retorna 200 com
+  `{ judgement_mode, threshold, candidate_count, judgements: [{ feed_id, feed_name, score, passed }],
+  judgement_ms }`; 500 em falha de IA. Aberta por enquanto; futuramente restrita a administradores.
+  
+  Observação: precisa existir pelo menos um feed ativo cujas keywords tenham interseção com as
+  keywords do artigo, senão `candidate_count` será 0 e a IA nem chega a rodar.
 }

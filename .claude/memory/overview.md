@@ -33,11 +33,16 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
 - `services/cron/` — scheduler (`robfig/cron/v3`) + `DiscoveryRunner` que varre as sources ativas.
 - `services/sanitize/` — sanitiza a saída do tratamento pra HTML básico (bluemonday, política
   customizada: só tags básicas, sem `a`/`img`/`class`/`style`/URL). Decorator no `Treater`.
-- `services/ai/` — costura de IA **por capacidade**: `Treater` (tratar) e `Keyworder` (keywords),
-  com `ParseKeywords` compartilhada. Impls: `gemini/` (LLM) e `openaicompat/` (Ollama local, Groq,
-  ou qualquer endpoint OpenAI-compatible; com API key opcional). Tratamento via `TREATMENT_*`;
-  keywords via `KEYWORDS_MODE` (`local`/`groq`/`gemini`), com os três backends pré-montados no boot
-  e trocáveis por chamada no `POST /articles/treatment`. `services/prompts/` — `.yaml` (`go:embed`).
+- `services/ai/` — costura de IA **por capacidade**: `Treater` (tratar), `Keyworder` (keywords) e
+  `Judger` (julgar, `score` 0–100), com `ParseKeywords`/`ParseScore` compartilhadas. Impls: `gemini/`
+  (LLM) e `openaicompat/` (Ollama local, Groq, ou qualquer endpoint OpenAI-compatible; API key
+  opcional). Tratamento via `TREATMENT_*`; keywords via `KEYWORDS_MODE`; julgamento via `JUDGEMENT_MODE`
+  + `JUDGEMENT_THRESHOLD` — modos `local`/`groq`/`gemini` pré-montados no boot (`buildModeClients`,
+  compartilhado) e trocáveis por chamada nos dry-runs. `services/prompts/` — `.yaml` (`go:embed`).
+- `services/judgment/` — camada 2 do julgamento: `Evaluator` (um `ai.Judger` + threshold) pontua uma
+  notícia contra feeds candidatos. Sem I/O além da IA; buscar candidatos (camada 1, SQL `json_each`
+  via `FeedController.FindCandidatesByKeywords`) e gravar `articles_feeds` é do chamador, então serve
+  CRON e o `POST /articles/judgement` (dry-run) igual.
 - `middlewares/` — `auth.go` (parse JWT + valida sessão); `app_status.go` (guard de manutenção
   global: 503 quando `system.app_status=0`, exceto `/health` e o toggle).
 - `tests/` — `unit/`, `integration/api/`, `end-to-end/api/`, `fixtures/`, `mocks/`, `utils/`.
@@ -54,12 +59,13 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
 | Feed × Notícia | `articles_feeds` | Junction com `is_read` |
 | Sistema | `system` | Singleton; `app_status` (chave de manutenção global) + `last_article_discovery_at` |
 
-Descoberta via CRON (0.19) + **tratamento por IA e persistência** (0.20/0.21): a CRON descobre,
-deduplica por `url_original`, trata o conteúdo com uma **LLM** (`TREATMENT_*`, sanitizado pra HTML
-básico), nomeia keywords com uma **SLM/LLM** por modo (`KEYWORDS_MODE` = local/groq/gemini, em
-inglês minúsculo) e grava o `article`. Ainda **não** implementado: **julgamento** notícia→feed
-(`articles_feeds`, **0.22**), tradução/resumo por IA, deploy, usuário administrador, exclusão de
-usuário.
+Descoberta via CRON (0.19) + **tratamento por IA e persistência** (0.20/0.21) + **julgamento**
+(0.22): a CRON descobre, deduplica por `url_original`, trata o conteúdo com uma **LLM** (`TREATMENT_*`,
+sanitizado pra HTML básico), nomeia keywords com uma **SLM/LLM** por modo (`KEYWORDS_MODE` =
+local/groq/gemini, em inglês minúsculo), grava o `article` e por fim **julga** a quais feeds ele
+pertence (camada 1 SQL por keywords + camada 2 IA vs `JUDGEMENT_THRESHOLD`), gravando as associações
+em `articles_feeds`. Ainda **não** implementado: tradução/resumo por IA (**0.23**), deploy, usuário
+administrador, exclusão de usuário.
 
 ## Transações (regra central)
 

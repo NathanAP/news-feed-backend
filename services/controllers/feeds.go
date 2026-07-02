@@ -79,6 +79,30 @@ func (c *FeedController) List(ctx context.Context, q db.Querier, userID string) 
 	return feeds, nil
 }
 
+// FindCandidatesByKeywords returns the active feeds (across all users) that share at least one
+// keyword with the given article keywords. This is the cheap first layer of judgement: it narrows
+// the whole feed set down to plausible candidates before the (expensive) AI scoring. Keywords are
+// normalized to the same lowercase JSON representation used for storage so equality matches.
+func (c *FeedController) FindCandidatesByKeywords(ctx context.Context, q db.Querier, keywords []string) ([]db.Feed, error) {
+	if len(keywords) == 0 {
+		return []db.Feed{}, nil
+	}
+
+	encodedKeywords, err := encodeKeywords(keywords)
+	if err != nil {
+		return nil, err
+	}
+
+	feeds, err := q.FindCandidateFeedsByKeywords(ctx, encodedKeywords)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find candidate feeds: %w", err)
+	}
+	if feeds == nil {
+		return []db.Feed{}, nil
+	}
+	return feeds, nil
+}
+
 func (c *FeedController) Update(ctx context.Context, q db.Querier, id, userID, name string, keywords []string) (db.Feed, error) {
 	encodedKeywords, err := encodeKeywords(keywords)
 	if err != nil {

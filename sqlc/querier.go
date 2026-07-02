@@ -22,6 +22,7 @@ type Querier interface {
 	FindArticleByID(ctx context.Context, id string) (Article, error)
 	FindArticleByURLOriginal(ctx context.Context, urlOriginal string) (Article, error)
 	FindArticleFeedsByArticleAndUser(ctx context.Context, arg FindArticleFeedsByArticleAndUserParams) ([]ArticleFeed, error)
+	FindCandidateFeedsByKeywords(ctx context.Context, articleKeywords string) ([]Feed, error)
 	FindFeedByIDAndUser(ctx context.Context, arg FindFeedByIDAndUserParams) (Feed, error)
 	FindRefreshTokenByID(ctx context.Context, id string) (RefreshToken, error)
 	FindSourceByID(ctx context.Context, id string) (Source, error)

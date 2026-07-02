@@ -72,9 +72,11 @@ func TreatArticle(treater ai.Treater, keyworders map[string]ai.Keyworder, defaul
 	}
 }
 
-func availableModes(keyworders map[string]ai.Keyworder) string {
-	modes := make([]string, 0, len(keyworders))
-	for m := range keyworders {
+// availableModes lists the mode keys of an AI-backend map (keyworders, judgers), sorted, for error
+// messages. Generic so it serves every per-mode map without duplication.
+func availableModes[T any](backends map[string]T) string {
+	modes := make([]string, 0, len(backends))
+	for m := range backends {
 		modes = append(modes, m)
 	}
 	sort.Strings(modes)

@@ -51,11 +51,12 @@ func (m *mockRefreshTokenCtrl) RevokeAll(_ context.Context, _ db.Querier, _ stri
 var _ controllers.RefreshTokenControllerInterface = (*mockRefreshTokenCtrl)(nil)
 
 type mockFeedCtrl struct {
-	createFn     func(ctx context.Context, q db.Querier, userID, name string, keywords []string) (db.Feed, error)
-	findByIDFn   func(ctx context.Context, q db.Querier, id, userID string) (db.Feed, error)
-	listFn       func(ctx context.Context, q db.Querier, userID string) ([]db.Feed, error)
-	updateFn     func(ctx context.Context, q db.Querier, id, userID, name string, keywords []string) (db.Feed, error)
-	softDeleteFn func(ctx context.Context, q db.Querier, id, userID string) error
+	createFn         func(ctx context.Context, q db.Querier, userID, name string, keywords []string) (db.Feed, error)
+	findByIDFn       func(ctx context.Context, q db.Querier, id, userID string) (db.Feed, error)
+	findCandidatesFn func(ctx context.Context, q db.Querier, keywords []string) ([]db.Feed, error)
+	listFn           func(ctx context.Context, q db.Querier, userID string) ([]db.Feed, error)
+	updateFn         func(ctx context.Context, q db.Querier, id, userID, name string, keywords []string) (db.Feed, error)
+	softDeleteFn     func(ctx context.Context, q db.Querier, id, userID string) error
 }
 
 func (m *mockFeedCtrl) Create(ctx context.Context, q db.Querier, userID, name string, keywords []string) (db.Feed, error) {
@@ -69,6 +70,12 @@ func (m *mockFeedCtrl) FindByID(ctx context.Context, q db.Querier, id, userID st
 		return m.findByIDFn(ctx, q, id, userID)
 	}
 	return fixtures.NewTestFeed(userID), nil
+}
+func (m *mockFeedCtrl) FindCandidatesByKeywords(ctx context.Context, q db.Querier, keywords []string) ([]db.Feed, error) {
+	if m.findCandidatesFn != nil {
+		return m.findCandidatesFn(ctx, q, keywords)
+	}
+	return []db.Feed{}, nil
 }
 func (m *mockFeedCtrl) List(ctx context.Context, q db.Querier, userID string) ([]db.Feed, error) {
 	if m.listFn != nil {

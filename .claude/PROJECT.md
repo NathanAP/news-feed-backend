@@ -304,16 +304,18 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - O julgamento de notícias só pode considerar feeds que estão ativos.
 - Um endpoint de teste para esse processo pode ser encontrado em `POST base_url/v1/articles/judgement`.
     - Deve simular os exatos mesmos processos que rodaria na CRON.
-    - Deve permitir a troca de modo na etapa de nomeação de palavras-chave através de uma chave chamada `judgement_mode` no body, aceitando os valores disponibilizados na descrição da etapa.
+    - Deve permitir a troca de modo na etapa de julgamento através de uma chave chamada `judgement_mode` no body, aceitando os valores disponibilizados na descrição da etapa.
     - Esse endpoint deve ser exclusivo para administradores.
     - Esse endpoint é considerada uma dry-run, ou seja, ela não cria ou altera nenhum registro do banco de dados.
     - O body deste endpoint deve aceitar um `json` contendo os dados necessários para se fazer a simulação de um julgamento.
         - Evite a necessidade de passar um `id` de notícias válido, assim poderemos fazer simulações mais rapidamente.
+        - Como a camada 1 compara palavras-chave e a camada 2 usa o conteúdo, o body carrega a notícia já tratada: `title`, `content` e `keywords` (a saída do tratamento). Assim nenhum registro precisa existir no banco.
     - Esse endpoint responde os dados do julgamento de notícias antes da gravação no banco de dados, ou seja, até a penúltima etapa.
 
 ### Comparação de palavras chave
 
 - A primeira etapa é a mais simples: ela realiza uma filtragem de quais feeds são os melhores candidatos a seguirem adiante através de uma comparação de palavras-chave da notícia.
+- Essa filtragem é feita inteiramente em SQL. As palavras-chave (tanto da notícia quanto dos feeds) são armazenadas como arrays JSON de strings minúsculas, então usamos `json_each` para expandir ambos os lados em linhas e um `JOIN` por igualdade exata de palavra-chave. Um feed é candidato quando tem pelo menos uma palavra-chave em comum com a notícia. A query considera apenas feeds ativos (`status = 1 AND removed_at IS NULL`) de qualquer usuário e usa `DISTINCT` para não duplicar um feed que casou em várias palavras-chave (query `FindCandidateFeedsByKeywords`).
 
 ### Julgamento
 

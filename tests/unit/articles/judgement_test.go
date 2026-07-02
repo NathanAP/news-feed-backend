@@ -1,0 +1,207 @@
+package articles_test
+
+import (
+	"context"
+	"net/http"
+	"strings"
+	"testing"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/nathanap/news-feed-backend/middlewares"
+	"github.com/nathanap/news-feed-backend/services/ai"
+	"github.com/nathanap/news-feed-backend/services/controllers"
+	articleendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/articles"
+	db "github.com/nathanap/news-feed-backend/sqlc"
+	"github.com/nathanap/news-feed-backend/tests/fixtures"
+	"github.com/nathanap/news-feed-backend/tests/mocks/external"
+	jwtmock "github.com/nathanap/news-feed-backend/tests/mocks/services"
+)
+
+// mockJudgeFeedCtrl implements FeedControllerInterface for the judgement endpoint tests. Only
+// FindCandidatesByKeywords is exercised; the rest satisfy the interface. By default it returns one
+// candidate feed so layer 2 (AI scoring) runs.
+type mockJudgeFeedCtrl struct {
+	findCandidatesFn func(ctx context.Context, q db.Querier, keywords []string) ([]db.Feed, error)
+}
+
+func (m *mockJudgeFeedCtrl) Create(_ context.Context, _ db.Querier, userID, _ string, _ []string) (db.Feed, error) {
+	return fixtures.NewTestFeed(userID), nil
+}
+func (m *mockJudgeFeedCtrl) FindByID(_ context.Context, _ db.Querier, _, userID string) (db.Feed, error) {
+	return fixtures.NewTestFeed(userID), nil
+}
+func (m *mockJudgeFeedCtrl) FindCandidatesByKeywords(ctx context.Context, q db.Querier, keywords []string) ([]db.Feed, error) {
+	if m.findCandidatesFn != nil {
+		return m.findCandidatesFn(ctx, q, keywords)
+	}
+	return []db.Feed{fixtures.NewTestFeed("01900000-0000-7000-8000-000000000001")}, nil
+}
+func (m *mockJudgeFeedCtrl) List(_ context.Context, _ db.Querier, userID string) ([]db.Feed, error) {
+	return []db.Feed{fixtures.NewTestFeed(userID)}, nil
+}
+func (m *mockJudgeFeedCtrl) Update(_ context.Context, _ db.Querier, _, userID, _ string, _ []string) (db.Feed, error) {
+	return fixtures.NewTestFeed(userID), nil
+}
+func (m *mockJudgeFeedCtrl) SoftDelete(_ context.Context, _ db.Querier, _, _ string) error {
+	return nil
+}
+
+var _ controllers.FeedControllerInterface = (*mockJudgeFeedCtrl)(nil)
+
+func judgementApp(feedCtrl controllers.FeedControllerInterface, judger ai.Judger) *fiber.App {
+	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
+	judgers := map[string]ai.Judger{"local": judger, "groq": judger, "gemini": judger}
+	app.Post("/v1/articles/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, "local", 70, fakeTxRunner))...)
+	return app
+}
+
+func postJudgement(t *testing.T, app *fiber.App, body string, authed bool) *http.Response {
+	t.Helper()
+	req, err := http.NewRequest(http.MethodPost, "/v1/articles/judgement", strings.NewReader(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	if authed {
+		req.Header.Set("Authorization", authHeader(t))
+	}
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	return resp
+}
+
+const validJudgeBody = `{"article":{"title":"Some News","content":"body","keywords":["alpha","beta","gamma","delta","epsilon"]}}`
+
+func TestJudgeArticle_Success(t *testing.T) {
+	requireNotProduction(t)
+
+	app := judgementApp(&mockJudgeFeedCtrl{}, &external.MockAIClient{})
+	resp := postJudgement(t, app, validJudgeBody, true)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var result map[string]any
+	require.NoError(t, readJSON(resp, &result))
+	assert.Equal(t, "local", result["judgement_mode"])
+	assert.Equal(t, float64(70), result["threshold"])
+	assert.Equal(t, float64(1), result["candidate_count"])
+	judgements := result["judgements"].([]any)
+	require.Len(t, judgements, 1)
+	first := judgements[0].(map[string]any)
+	assert.Equal(t, float64(90), first["score"]) // mock default score
+	assert.Equal(t, true, first["passed"])       // 90 >= 70
+	_, hasMs := result["judgement_ms"]
+	assert.True(t, hasMs)
+}
+
+func TestJudgeArticle_ModeOverride(t *testing.T) {
+	requireNotProduction(t)
+
+	app := judgementApp(&mockJudgeFeedCtrl{}, &external.MockAIClient{})
+	body := `{"judgement_mode":"gemini","article":{"title":"T","content":"c","keywords":["a","b","c","d","e"]}}`
+	resp := postJudgement(t, app, body, true)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var result map[string]any
+	require.NoError(t, readJSON(resp, &result))
+	assert.Equal(t, "gemini", result["judgement_mode"])
+}
+
+func TestJudgeArticle_BelowThreshold(t *testing.T) {
+	requireNotProduction(t)
+
+	lowScore := &external.MockAIClient{
+		JudgeFn: func(_ context.Context, _ []string, _ string, _ []string, _ string) (int, error) {
+			return 40, nil
+		},
+	}
+	app := judgementApp(&mockJudgeFeedCtrl{}, lowScore)
+	resp := postJudgement(t, app, validJudgeBody, true)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var result map[string]any
+	require.NoError(t, readJSON(resp, &result))
+	first := result["judgements"].([]any)[0].(map[string]any)
+	assert.Equal(t, false, first["passed"]) // 40 < 70
+}
+
+func TestJudgeArticle_NoCandidates(t *testing.T) {
+	requireNotProduction(t)
+
+	noCandidates := &mockJudgeFeedCtrl{
+		findCandidatesFn: func(_ context.Context, _ db.Querier, _ []string) ([]db.Feed, error) {
+			return []db.Feed{}, nil
+		},
+	}
+	app := judgementApp(noCandidates, &external.MockAIClient{})
+	resp := postJudgement(t, app, validJudgeBody, true)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var result map[string]any
+	require.NoError(t, readJSON(resp, &result))
+	assert.Equal(t, float64(0), result["candidate_count"])
+	assert.Empty(t, result["judgements"])
+}
+
+func TestJudgeArticle_UnknownMode(t *testing.T) {
+	requireNotProduction(t)
+
+	app := judgementApp(&mockJudgeFeedCtrl{}, &external.MockAIClient{})
+	body := `{"judgement_mode":"bogus","article":{"title":"T","content":"c","keywords":["a","b","c","d","e"]}}`
+	resp := postJudgement(t, app, body, true)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+func TestJudgeArticle_MissingTitle(t *testing.T) {
+	requireNotProduction(t)
+
+	app := judgementApp(&mockJudgeFeedCtrl{}, &external.MockAIClient{})
+	resp := postJudgement(t, app, `{"article":{"content":"c","keywords":["a","b","c","d","e"]}}`, true)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+func TestJudgeArticle_MissingContent(t *testing.T) {
+	requireNotProduction(t)
+
+	app := judgementApp(&mockJudgeFeedCtrl{}, &external.MockAIClient{})
+	resp := postJudgement(t, app, `{"article":{"title":"T","keywords":["a","b","c","d","e"]}}`, true)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+func TestJudgeArticle_MissingKeywords(t *testing.T) {
+	requireNotProduction(t)
+
+	app := judgementApp(&mockJudgeFeedCtrl{}, &external.MockAIClient{})
+	resp := postJudgement(t, app, `{"article":{"title":"T","content":"c"}}`, true)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+func TestJudgeArticle_InvalidBody(t *testing.T) {
+	requireNotProduction(t)
+
+	app := judgementApp(&mockJudgeFeedCtrl{}, &external.MockAIClient{})
+	resp := postJudgement(t, app, "not json", true)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+func TestJudgeArticle_Unauthenticated(t *testing.T) {
+	requireNotProduction(t)
+
+	app := judgementApp(&mockJudgeFeedCtrl{}, &external.MockAIClient{})
+	resp := postJudgement(t, app, validJudgeBody, false)
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+}
+
+func TestJudgeArticle_AIFailure(t *testing.T) {
+	requireNotProduction(t)
+
+	failing := &external.MockAIClient{
+		JudgeFn: func(_ context.Context, _ []string, _ string, _ []string, _ string) (int, error) {
+			return 0, ai.ErrInvalidScore
+		},
+	}
+	app := judgementApp(&mockJudgeFeedCtrl{}, failing)
+	resp := postJudgement(t, app, validJudgeBody, true)
+	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+}

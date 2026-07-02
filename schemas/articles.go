@@ -40,6 +40,41 @@ type ArticleTreatmentResponse struct {
 	KeywordsMs   int64    `json:"keywords_ms"`
 }
 
+// JudgeArticleInput is a treated article (as it exists right before judgement in the pipeline:
+// cleaned content plus assigned keywords) used as input to the judgement dry-run. It carries no id
+// on purpose, so simulations do not depend on an article being persisted first.
+type JudgeArticleInput struct {
+	Title    string   `json:"title"`
+	Content  string   `json:"content"`
+	Keywords []string `json:"keywords"`
+}
+
+type JudgeArticleRequest struct {
+	Article JudgeArticleInput `json:"article"`
+	// JudgementMode optionally overrides the judgement mode (local | groq | gemini) for this
+	// dry-run only, so different backends can be benchmarked without restarting.
+	JudgementMode string `json:"judgement_mode"`
+}
+
+// FeedJudgement is the score of one candidate feed against the article.
+type FeedJudgement struct {
+	FeedID   string `json:"feed_id"`
+	FeedName string `json:"feed_name"`
+	Score    int    `json:"score"`
+	Passed   bool   `json:"passed"`
+}
+
+// ArticleJudgementResponse is the result of the judgement dry-run: the candidate feeds (layer 1)
+// each scored by the AI (layer 2), with the mode/threshold used and the total elapsed time. It
+// stops at the penultimate step — no articles_feeds association is written.
+type ArticleJudgementResponse struct {
+	JudgementMode  string          `json:"judgement_mode"`
+	Threshold      int             `json:"threshold"`
+	CandidateCount int             `json:"candidate_count"`
+	Judgements     []FeedJudgement `json:"judgements"`
+	JudgementMs    int64           `json:"judgement_ms"`
+}
+
 // UpdateArticleRequest intentionally omits source_id: the article's source is immutable.
 type UpdateArticleRequest struct {
 	Title       string   `json:"title"`

@@ -8,34 +8,47 @@ import (
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/services/ai"
 	"github.com/nathanap/news-feed-backend/services/controllers"
+	"github.com/nathanap/news-feed-backend/services/judgment"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
 // TreatmentProcessor is the real discovery sink: for each discovered article it deduplicates by
 // url_original, runs the two-step AI treatment (clean content, then keywords over the cleaned
-// content), and persists the result. AI calls happen outside any transaction. A failure on one
-// article (AI error, persistence error) is logged and skipped — since nothing is persisted for
-// it, the article is simply rediscovered and retried on the next run.
+// content), persists the result, and finally judges the article against the user feeds — writing an
+// articles_feeds association for every feed that clears the threshold. AI calls happen outside any
+// transaction. A failure on one article (AI error, persistence error) is logged and skipped — since
+// nothing is persisted for it, the article is simply rediscovered and retried on the next run.
+// Judgement is best-effort and non-retroactive: once the article is persisted, a judgement failure
+// is logged and skipped, and the article is not re-judged on later runs (dedup skips it).
 type TreatmentProcessor struct {
 	runTx       controllers.TransactionRunner
 	articleCtrl controllers.ArticleControllerInterface
+	feedCtrl    controllers.FeedControllerInterface
+	afCtrl      controllers.ArticleFeedControllerInterface
 	treater     ai.Treater
 	keyworder   ai.Keyworder
+	evaluator   *judgment.Evaluator
 	verbose     bool
 }
 
 func NewTreatmentProcessor(
 	runTx controllers.TransactionRunner,
 	articleCtrl controllers.ArticleControllerInterface,
+	feedCtrl controllers.FeedControllerInterface,
+	afCtrl controllers.ArticleFeedControllerInterface,
 	treater ai.Treater,
 	keyworder ai.Keyworder,
+	evaluator *judgment.Evaluator,
 	verbose bool,
 ) *TreatmentProcessor {
 	return &TreatmentProcessor{
 		runTx:       runTx,
 		articleCtrl: articleCtrl,
+		feedCtrl:    feedCtrl,
+		afCtrl:      afCtrl,
 		treater:     treater,
 		keyworder:   keyworder,
+		evaluator:   evaluator,
 		verbose:     verbose,
 	}
 }
@@ -66,7 +79,8 @@ func (p *TreatmentProcessor) Process(ctx context.Context, articles []DiscoveredA
 			continue
 		}
 
-		if err := p.persist(ctx, article, treated, keywords); err != nil {
+		saved, err := p.persist(ctx, article, treated, keywords)
+		if err != nil {
 			if errors.Is(err, controllers.ErrArticleAlreadyExists) {
 				continue // created concurrently between the dedup check and the insert
 			}
@@ -75,8 +89,52 @@ func (p *TreatmentProcessor) Process(ctx context.Context, articles []DiscoveredA
 		}
 
 		p.log(fmt.Sprintf("    saved: %s (%s)", article.Title, article.URLOriginal), logger.ColorGreen)
+
+		// Judgement is best-effort: the article is already persisted, so a failure here must not
+		// abort the run — it is logged and the next article proceeds.
+		p.judge(ctx, saved, keywords)
 	}
 	return nil
+}
+
+// judge runs the two judgement layers for a freshly persisted article and writes an articles_feeds
+// association for every feed that clears the threshold. Layer 1 (candidate feeds) and the winner
+// inserts run in their own transactions; the AI scoring (layer 2) runs in between, outside any
+// transaction.
+func (p *TreatmentProcessor) judge(ctx context.Context, article db.Article, keywords []string) {
+	var candidates []db.Feed
+	if err := p.runTx(ctx, func(q db.Querier) error {
+		var e error
+		candidates, e = p.feedCtrl.FindCandidatesByKeywords(ctx, q, keywords)
+		return e
+	}); err != nil {
+		p.log(fmt.Sprintf("    judge candidate lookup failed for %s: %v", article.ID, err), logger.ColorRed)
+		return
+	}
+	if len(candidates) == 0 {
+		p.log(fmt.Sprintf("    judge: no candidate feeds for %s", article.Title), logger.ColorBlue)
+		return
+	}
+
+	results, err := p.evaluator.Evaluate(ctx, candidates, article.Title, keywords, article.Content)
+	if err != nil {
+		p.log(fmt.Sprintf("    judge failed for %s: %v", article.ID, err), logger.ColorRed)
+		return
+	}
+
+	for _, r := range results {
+		if !r.Passed {
+			continue
+		}
+		if err := p.runTx(ctx, func(q db.Querier) error {
+			_, e := p.afCtrl.Create(ctx, q, article.ID, r.Feed.ID)
+			return e
+		}); err != nil {
+			p.log(fmt.Sprintf("    judge: failed to associate %s to feed %s: %v", article.ID, r.Feed.ID, err), logger.ColorRed)
+			continue
+		}
+		p.log(fmt.Sprintf("    judged into feed %q (score %d)", r.Feed.Name, r.Score), logger.ColorGreen)
+	}
 }
 
 func (p *TreatmentProcessor) alreadyExists(ctx context.Context, urlOriginal string) (bool, error) {
@@ -95,11 +153,14 @@ func (p *TreatmentProcessor) alreadyExists(ctx context.Context, urlOriginal stri
 	return exists, err
 }
 
-func (p *TreatmentProcessor) persist(ctx context.Context, article DiscoveredArticle, content string, keywords []string) error {
-	return p.runTx(ctx, func(q db.Querier) error {
-		_, err := p.articleCtrl.Create(ctx, q, article.Title, content, article.URLOriginal, article.SourceID, keywords)
-		return err
+func (p *TreatmentProcessor) persist(ctx context.Context, article DiscoveredArticle, content string, keywords []string) (db.Article, error) {
+	var saved db.Article
+	err := p.runTx(ctx, func(q db.Querier) error {
+		var e error
+		saved, e = p.articleCtrl.Create(ctx, q, article.Title, content, article.URLOriginal, article.SourceID, keywords)
+		return e
 	})
+	return saved, err
 }
 
 func (p *TreatmentProcessor) log(message string, color logger.Color) {

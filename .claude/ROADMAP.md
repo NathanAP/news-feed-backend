@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.21.3.0
+0.22.0.0
 
 ## Versão 0.1.0.0
 
@@ -324,13 +324,15 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.22.0.0
 
-- [ ] Julgamento de notícias aos feeds
-- [ ] Criar uma rota de teste para julgamento de notícias a partir dos dados crus de uma notícia, simulando a exata execução da CRON através do Bruno
+- [x] Julgamento de notícias aos feeds
+    - Camada 1 (comparação de keywords) totalmente em SQL via `json_each` (`FindCandidateFeedsByKeywords`)
+    - Camada 2 (IA + `score`) através da nova capacidade `ai.Judger`, com modos `JUDGEMENT_MODE` (local/groq/gemini) e `JUDGEMENT_THRESHOLD`
+    - Integrado na CRON de descoberta: após persistir a notícia, julga e grava as associações em `articles_feeds`
+- [x] Criar uma rota de teste para julgamento de notícias a partir dos dados crus de uma notícia, simulando a exata execução da CRON através do Bruno
     - Detalhes presentes em `PROJECT.md`
     - Pode estar debaixo de `POST /v1/articles/judgement`
     - Vamos adicionar o usuário administrador depois, então essa rota por enquanto pode ficar aberta
     - Lembrete: essa rota é dry-run
-    - Dúvida: vale a pena gravar o `score` do julgamento junto da tabela de `articles_feeds`? parece que não né?
 
 ## Versão 0.23.0.0
 
@@ -339,11 +341,23 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.24.0.0
 
+- [ ] Adicionar um comando para criar registros de `articles` e `articles_feeds` sem precisar depender da CRON em desenvolvimento
+    - Utilizar arquivos na pasta `raiz/example`
+    - Depende do `task local-start` ou `task docker-start` estar de pé
+    - Se quiser fazer via execução de script localmente e docker + execução de script no docker, não tem problema
+    - Julgamentos podem sempre ser considerados como passados, independente do feed possuir keywords condizente com o tema da notícia ou não
+    - A chamada múltipla desse comando deve continuar adicionando registros ao banco, mesmo que as notícias já estejam lá
+        - Pra evitar o problema da `url_original` duplicada, precisamos que o script executado crie uma url aleatória inexistente para cada notícia
+        - Pode fazer um random numérico mesmo, tipo `https://www.article-{numero_aleatorio}.com.br`
+    - O que acha do comando se chamar `create-default`
+
+## Versão 0.25.0.0
+
 - [ ] Deploy
     - [ ] Docker funcionando
     - [ ] docker-compose orquestrando corretamente
 
-## Versão 0.25.0.0
+## Versão 0.26.0.0
 
 - [ ] Tornar o processo de descoberta, tratamento e julgamento de notícias pode ocorrer em paralelo ao invés de sequencial
     - Acredito que tenhamos que explorar o conceito de workers na API também

@@ -19,6 +19,7 @@ import (
 const (
 	treatmentPromptName = "article_treatment"
 	keywordsPromptName  = "article_keywords"
+	judgementPromptName = "article_feed_judgement"
 
 	requestTimeout = 60 * time.Second
 )
@@ -63,6 +64,20 @@ func (c *Client) Keywords(ctx context.Context, title, content string) ([]string,
 		return nil, err
 	}
 	return ai.ParseKeywords(out)
+}
+
+// Judge runs the judgement prompt and returns the 0-100 relevance score of the article to the feed.
+func (c *Client) Judge(ctx context.Context, feedKeywords []string, title string, articleKeywords []string, content string) (int, error) {
+	out, err := c.generate(ctx, judgementPromptName, map[string]string{
+		"feed_keywords":    strings.Join(feedKeywords, ", "),
+		"title":            title,
+		"article_keywords": strings.Join(articleKeywords, ", "),
+		"content":          content,
+	})
+	if err != nil {
+		return 0, err
+	}
+	return ai.ParseScore(out)
 }
 
 func (c *Client) generate(ctx context.Context, promptName string, vars map[string]string) (string, error) {
