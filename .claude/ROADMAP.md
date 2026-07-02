@@ -360,27 +360,29 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.24.0.0
 
+- [ ] Corrigir a nomenclatura da pasta `raiz/services/judgment` para `judgement`
+    - E também me explicar por que a pasta `langdetect` e `sanitize` tem arquivos com `_test.go` nelas
 - [ ] Adicionar um comando para criar registros de `sources`, `articles` e `articles_feeds` sem precisar depender da CRON em desenvolvimento
-    - Dúvida: eu acho que a melhor forma aqui é ter um executor de SQL?
-    - Dúvida: depende do `task local-start` ou `task docker-start` estar de pé?
-    - Se quiser fazer via execução de script localmente e docker + execução de script no docker, não tem problema
+    - Criar execução deste script localmente
     - Vamos documentar depois esse comando
-    - Utilizar arquivos na pasta `raiz/examples`
+    - Utilizar arquivos na pasta `raiz/cmd/seed/examples`
         - Eu deixei os arquivos em `.json`, mas se quiser transformar eles em algo mais "importáveis" fique a vontade
         - Ligue todos os feeds ao primeiro usuário não-administrador encontrado
         - Ligue todas as noticas a todos os feeds, independente do julgamento entre keywords
     - Julgamentos podem sempre ser considerados como passados, independente do feed possuir keywords condizente com o tema da notícia ou não
-    - Não precisa ser UUID7
+    - Permitir que regras sejam quebradas
+        - Exemplo: excesso de feeds
     - A chamada múltipla desse comando deve continuar adicionando registros ao banco, mesmo que as notícias já estejam lá
         - Pra evitar o problema da `url_original` duplicada, precisamos que o script executado crie uma url aleatória inexistente para cada notícia
         - Pode fazer um random numérico mesmo, tipo `https://www.article-{numero_aleatorio}.com.br`
-    - O que acha do comando se chamar `create-default-data`?
+    - Comando chamado `local-add-seed`
+- [ ] Documentar este comando detalhadamente em `raiz/cmd/seed/instructions.md`
 
 ## Versão 0.25.0.0
 
-- [ ] Deploy
-    - [ ] Docker funcionando
-    - [ ] docker-compose orquestrando corretamente
+- [ ] Docker funcionando
+- [ ] docker-compose orquestrando corretamente
+- [ ] Fazer o comando `local-add-seed` funcionar no container do Docker também
 
 ## Versão 0.26.0.0
 
@@ -389,6 +391,10 @@ Os níveis de tabulação indicam detalhes do assunto.
     - E se a CRON ao invés de executar o código internamente direto subisse um container (ou dois ou três ou quantos precisar) que executasse os códigos de descoberta, tratamento e julgamento e caísse logo depois? Vale a pena ou mais fácil investir em mais instâncias de goroutines?
 - [ ] Atualização de pacotes e dependências
 - [ ] Revisão
+- [ ] Organizar o exemplo de arquivos em structure.md
+    - Você é melhor que eu nisso, não dá pra negar
+    - Desisti da ideia de ter "arquivo.extensão" e "...", é melhor só mostrar a organização das pastas e uma simples descrição em parênteses mesmo
+        - Algo parecido com `├── bruno (tudo relacionado ao Bruno)`
 
 ## Futuro
 

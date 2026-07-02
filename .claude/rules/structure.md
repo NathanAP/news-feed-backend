@@ -4,6 +4,10 @@ Este arquivo descreve a estrutura base atual do projeto. Ele é um guia para ent
 
 Você não precisa alterar esse arquivo. A ideia é que eu possa atualizar ele conforme o projeto evolui, para servir como exemplo para você.
 
+Arquivos ignorados pelo git (como arquivos temporários, de configuração local, etc.) não estão listados aqui.
+
+```
+
 /
 ├── main.go
 ├── go.mod
@@ -12,12 +16,12 @@ Você não precisa alterar esse arquivo. A ideia é que eu possa atualizar ele c
 ├── sqlc.yaml
 ├── Dockerfile
 ├── docker-compose.yaml
-├── .env (gitignored)
 ├── .env.example
 ├── .gitignore
 ├── bruno/
 ├──── ...
-├── db/
+├── cmd/
+├──── seed/
 ├──── ...
 ├── logger/
 ├──── logger.go
@@ -31,6 +35,9 @@ Você não precisa alterar esse arquivo. A ideia é que eu possa atualizar ele c
 ├────── users.go
 ├────── ...
 ├── services/
+├──── ai/
+├────── gemini.go
+├────── ...
 ├──── controllers/
 ├────── users.go
 ├────── ...
@@ -45,11 +52,21 @@ Você não precisa alterar esse arquivo. A ideia é que eu possa atualizar ele c
 ├──────── users/
 ├────────── me.go
 ├────────── ...
+├──────── ...
+├──── judgement/
+├────── judgement.go
+├────── ...
+├──── langdetect/
+├────── langdetect.go
+├────── ...
 ├──── prompts/
 ├────── article_translation.yaml
 ├────── ...
 ├──── rss/
 ├────── discovery.go
+├────── ...
+├──── sanitize/
+├────── sanitize.go
 ├────── ...
 ├── sqlc/
 ├──── db.go
@@ -61,7 +78,7 @@ Você não precisa alterar esse arquivo. A ideia é que eu possa atualizar ele c
 ├────── ...
 ├── tests/
 ├───── end-to-end/
-├─────── api/
+├────── api/
 ├───────── users/
 ├─────────── me_test.go
 ├─────────── ...
@@ -92,5 +109,5 @@ Você não precisa alterar esse arquivo. A ideia é que eu possa atualizar ele c
 ├───── utils/
 ├───────── db.go
 ├───────── ...
-├── tmp/
-└───── ...
+└── ...
+```
