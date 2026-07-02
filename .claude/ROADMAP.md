@@ -336,8 +336,10 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.23.0.0
 
-- [ ] Resumo personalizado
-- [ ] Tradução personalizada
+- [ ] Criar métodos para fazer resumos personalizados
+- [ ] Criar rota para chamada dos resumos personalizados
+- [ ] Criar métodos para fazer traduções personalizadas
+- [ ] Criar rota para chamada das traduções personalizadas
 
 ## Versão 0.24.0.0
 
