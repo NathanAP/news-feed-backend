@@ -165,6 +165,8 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - As regras para quando a notícia não está em nenhum dos feeds do usuário estão explicadas na sessão "Feed x Notícias".
 - As notícias só podem ser criadas, editadas ou excluídas por usuário administradores.
     - Essa regra existe apenas para casos extremos de uma notícia que saiu do controle.
+- As notícias possuem um campo `language_original` que serve para detectar quando uma tradução pode ou não ser feita no client.
+    - Utiliza-se a biblioteca `lingua-go` para fazer a detecção durante o tratamento de notícias.
 - Quando descobertas, as notícias passam por um julgamento através de uma inteligência artificial para definir palavras-chave às quais ela pertence. As palavras-chave definidas servirão como base para saber em quais feeds ela aparecerá ou não.
     - Esse processo deve ser disparado automaticamente após cada criação de notícias.
 - As notícias devem possuir pelo menos 5 palavras-chave com limite de 20.
@@ -327,32 +329,27 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 ## Traduzindo notícias
 
-- A tradução de notícias é uma opção dada ao usuário em suas preferências.
-- Ao entrar na notícia o usuário que tiver a preferência `translate_content` marcada como `true` e a preferência `language` identificada como diferente da original irá automaticamente receber ela traduzida.
-    - Para não abusar da funcionalidade o client deve guardar essa tradução em cache para uso futuro.
-    - O client também pode oferecer a opção de mostrar o conteúdo original salvo.
-    - A personalidade escolhida também deve ser levada em conta na hora de fazer a tradução.
-- A tradução deve:
+- A tradução de notícias é uma opção dada ao usuário quando suas preferências marcarem `true` no campo `translate_content` e a preferência `language` estiver configurada.
+- A tradução de notícias é disparada pelo usuário através do client.
+- A tradução de notícias só pode ser feita quando o `language` configurado nas preferências do usuário for diferente da `language_original` da notícia.
+- É responsabilidade do client guardar essa tradução feita como um cache.
+    - O cache neste projeto via `Redis` será implementado futuramente.
+- A tradução de notícias também leva em conta a personalidade escolhida pelas preferências do usuário na opção `ai_personality`.
+- A tradução de notícias deve:
     - Manter a originalidade do conteúdo.
     - Personalizar a tradução da notícia de acordo com a preferência escolhida em `ai_personality`.
 - Dito isso, a tradução não pode:
-    - Resumir notícias: estritamente proibido fazer resumo neste momento. Melhores informações na sessão "resumindo notícias".
+    - Resumir notícias: estritamente proibido fazer resumo neste momento.
     - Alterar sentido, sintaxe, ideia ou contexto do conteúdo da notícia.
     - Trazer opinião própria.
+- O endpoint `GET /v1/articles/{id}/translate/{language_to_translate}` é o responsável pela tradução de notícias:
+    - O `id` e a `language_to_translate` são obrigatórios.
+    - Se o `language_to_translate` e a `language_original` da notícia forem iguais, o resultado deve ser 400.
 
 ## Resumindo notícias
 
-- O resumo de notícias é uma opção dada ao usuário pelo client.
-- Ao entrar na notícia o usuário tem a opção de resumir a notícia.
-    - Para não abusar da funcionalidade o client deve guardar esse resumo em cache para uso futuro.
-    - A personalidade escolhida também deve ser levada em conta na hora de fazer o resumo.
-- O resumo deve:
-    - Manter a originalidade do conteúdo.
-    - Personalizar o resumo da notícia de acordo com a preferência escolhida em `ai_personality`.
-- Dito isso, o resumo não pode:
-    - Alterar sentido, sintaxe, ideia ou contexto do conteúdo da notícia.
-    - Trazer opinião própria.
-- Notícias que passaram pelo processo de tradução devem ser resumidos no mesmo idioma.
+- O resumo de notícias será feito em versões futuras.
+- O resumo de notícias precisa obrigatoriamente da implementação do Redis no projeto.
 
 ## Administradores
 

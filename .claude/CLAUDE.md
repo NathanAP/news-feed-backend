@@ -88,6 +88,7 @@ Você tem liberdade para acessar qualquer arquivo da pasta `.claude`.
 - `Groq` - serviço online para SLM
 - `Docker + docker-compose` - orquestração
 - `bluemonday` - biblioteca de sanatização de conteúdo HTML
+- `lingua-go` - biblioteca que detecta o idioma de um texto ou conteúdo.
 - `testify` - biblioteca para testes
 - `robfig/cron/v3` - biblioteca em Go para criar CRONs nativamente
 - `Bruno` - app externo para teste e organização da coleção de requisições

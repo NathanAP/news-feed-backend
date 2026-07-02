@@ -336,10 +336,14 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.23.0.0
 
-- [ ] Criar métodos para fazer resumos personalizados
-- [ ] Criar rota para chamada dos resumos personalizados
+- [ ] Criar uma migração que identifica qual é o idioma original da notícia
+    - Adicionar o campo `language_original` à tabela de notícias
+    - Tipo `enum` utilizando o mesmo enum das preferências de usuário
+    - Não precisa ser retroativo, eu excluo meu banco antes de começar a usar novamente
+    - Utilizar o `lingua-go` para detectar o idioma
 - [ ] Criar métodos para fazer traduções personalizadas
 - [ ] Criar rota para chamada das traduções personalizadas
+    - Pode estar debaixo de `GET /v1/articles/{id}/translate/{language}`
 
 ## Versão 0.24.0.0
 
@@ -373,6 +377,8 @@ Os níveis de tabulação indicam detalhes do assunto.
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 
 - Aumentar o verbose mode (+++++++++++++++++++++ logs)
+- Resumo de notícias
+    - Acrescentar cache de resumo e de tradução via redis
 - TlDraw do banco de dados
 - Trocar para Postgres
 - Multi feed
@@ -382,6 +388,7 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
 - Transportar a iniciação de endpoints para outro lugar, health para /api
 - Criar uma rota para aceitar sugestões de fontes de notícias
 - Tratar notícias que se auto-atualizam
+    - Precisa ser feito depois do resumo de notícias pois o início do cache mora lá, e isso depende de trazer o Redis pro stack
     - O Claude falou que gofeed consegue fazer essa detecção também que pode servir como uma outra solução para esses casos
         - Provavelmente já serve como primeira camada confiável o suficiente. Podemos testar e verificar se precisa de uma segunda camada.
     - A segunda camada seria:
