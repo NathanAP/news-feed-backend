@@ -227,6 +227,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 ## Tratamento de notícias
 
 - O tratamento de notícias ocorre em duas etapas principais:
+    - Detecção de idioma: detecta automaticamente qual é o idioma original da notícia.
     - Tratamento principal: traz dinamismo, organização e possíveis correções ao conteúdo da notícia.
     - Sanatização do conteúdo: utiliza a biblioteca `bluemonday` para filtrar e sanatizar trechos indesejados no resultado do tratamento principal.
     - Nomeação de palavras-chave: elenca palavras-chave para a notícia.
@@ -241,6 +242,11 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - O body deste endpoint deve aceitar:
         - `article`: um `json` contendo os dados de uma notícia, obtidos diretamente através da descoberta de notícias.
     - Esse endpoint responde pelos dados do tratamento de notícias.
+
+### Detecção de idioma
+
+- A etapa de detecção de idioma utiliza a biblioteca `lingua-go` para guardar o idioma original da notícia a ser gravado no campo `language_original` no banco de dados.
+- Em caso de falha, o campo `language_original` da notícia deve ficar `null`.
 
 ### Tratamento principal
 
@@ -332,19 +338,25 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - A tradução de notícias é uma opção dada ao usuário quando suas preferências marcarem `true` no campo `translate_content` e a preferência `language` estiver configurada.
 - A tradução de notícias é disparada pelo usuário através do client.
 - A tradução de notícias só pode ser feita quando o `language` configurado nas preferências do usuário for diferente da `language_original` da notícia.
+    - Caso o idioma esteja em `null`, a tradução não poderá ser feita.
 - É responsabilidade do client guardar essa tradução feita como um cache.
     - O cache neste projeto via `Redis` será implementado futuramente.
 - A tradução de notícias também leva em conta a personalidade escolhida pelas preferências do usuário na opção `ai_personality`.
 - A tradução de notícias deve:
-    - Manter a originalidade do conteúdo.
+    - Traduzir o título, conteúdo e keywords da notícia.
+    - Preservar a estrutura HTML presente no conteúdo da notícia.
+    - Manter o contexto do conteúdo.
     - Personalizar a tradução da notícia de acordo com a preferência escolhida em `ai_personality`.
 - Dito isso, a tradução não pode:
     - Resumir notícias: estritamente proibido fazer resumo neste momento.
     - Alterar sentido, sintaxe, ideia ou contexto do conteúdo da notícia.
     - Trazer opinião própria.
 - O endpoint `GET /v1/articles/{id}/translate/{language_to_translate}` é o responsável pela tradução de notícias:
-    - O `id` e a `language_to_translate` são obrigatórios.
+    - O `id` é referente à notícia ser procurada no banco de dados para ser traduzida.
+    - A `language_to_translate` é referente à qual idioma o conteúdo será traduzido. Deve estar na lista do `enum` de idiomas disponíveis nas prefêrencias do usuário.
+    - O usuário deve estar apto à fazer a tradução (`translate_content` em `true` e `language` configurada).
     - Se o `language_to_translate` e a `language_original` da notícia forem iguais, o resultado deve ser 400.
+    - Se a `language_original` da notícia for `null`, o resultado deve ser 400.
 
 ## Resumindo notícias
 

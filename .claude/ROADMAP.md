@@ -339,11 +339,13 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [ ] Criar uma migração que identifica qual é o idioma original da notícia
     - Adicionar o campo `language_original` à tabela de notícias
     - Tipo `enum` utilizando o mesmo enum das preferências de usuário
-    - Não precisa ser retroativo, eu excluo meu banco antes de começar a usar novamente
+    - Não precisa fazer backfill, eu excluo meu banco antes de começar a usar novamente
     - Utilizar o `lingua-go` para detectar o idioma
+- [ ] Adicionar ao tratamento de notícias o passo que detecta o idioma da notícia sendo tratada
 - [ ] Criar métodos para fazer traduções personalizadas
 - [ ] Criar rota para chamada das traduções personalizadas
     - Pode estar debaixo de `GET /v1/articles/{id}/translate/{language}`
+- [ ] Remover idioma japonês e chinês da lista de idiomas disponíveis
 
 ## Versão 0.24.0.0
 
