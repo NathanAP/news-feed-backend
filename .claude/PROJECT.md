@@ -293,9 +293,9 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - `groq`: utiliza serviços do Groq + SLM para realizar a execução da etapa de julgamento.
     - `gemini`: utiliza LLM para realizar a execução da etapa de julgamento.
 - Esta etapa opera de acordo com as seguintes variáveis de ambiente:
-    - `JUDGMENT_MODE`: o modo atualmente utilizado durante esta etapa.
-    - `JUDGMENT_VERBOSE_MODE`: `boolean` que decide se os logs são exibidos no terminal ou não durante esta etapa.
-    - `JUDGMENT_THRESHOLD`: `threshold` de julgamento para considerar notícias pertencentes a um feed.
+    - `JUDGEMENT_MODE`: o modo atualmente utilizado durante esta etapa.
+    - `JUDGEMENT_VERBOSE_MODE`: `boolean` que decide se os logs são exibidos no terminal ou não durante esta etapa.
+    - `JUDGEMENT_THRESHOLD`: `threshold` de julgamento para considerar notícias pertencentes a um feed.
 - O julgamento funciona através de duas etapas:
     - Comparação de palavras chave: utiliza filtros básicos no banco de dados para encontrar os principais feeds candidatos.
     - Julgamento: julga se a notícia pertence aos candidatos selecionados.
