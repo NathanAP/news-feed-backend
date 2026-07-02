@@ -359,7 +359,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - O endpoint `GET /v1/articles/{id}/translate/{language_to_translate}` é o responsável pela tradução de notícias:
     - O `id` é referente à notícia ser procurada no banco de dados para ser traduzida.
     - A `language_to_translate` é referente à qual idioma o conteúdo será traduzido. Deve estar na lista do `enum` de idiomas disponíveis nas prefêrencias do usuário.
-    - O usuário deve estar apto à fazer a tradução (`translate_content` em `true` e `language` configurada).
+    - Se o usuário não estiver apto à fazer a tradução (`translate_content` em `false` ou `language` desconfigurada), o resultado deve ser 403.
     - Se o `language_to_translate` e a `language_original` da notícia forem iguais, o resultado deve ser 400.
     - Se a `language_original` da notícia for `null`, o resultado deve ser 400.
 
