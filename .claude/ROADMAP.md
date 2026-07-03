@@ -372,11 +372,6 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.25.0.0
 
-- [ ] Criar um comando para copiar arquivos do ambiente
-    - Comando deve ser `task copy-files {env}` e `task cf {env}`
-        - Por exemplo: `task cf development`
-    - Todos os arquivos com o padrão `*.{env}.*` devem ser copiados para sua versão original `*.*`
-        - Por exemplo: `Taskfile.{env}.yaml` para `Taskfile.yaml`
 - [ ] Criar um comando para criar registro do usuário dev
     - Comando deve ser `task seed-user-dev` ou `task sud`
     - A execução do comando roda um script em Go presente na pasta `raiz/cmd/seed/dev_user.go`

@@ -507,11 +507,6 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
     - `development`: ambiente de desenvolvimento.
     - `staging`: ambiente de homologação.
     - `production`: ambiente de produção.
-- Arquivos com o padrão `*.{env}.*` passam a existir na lista de arquivos.
-    - Esses arquivos são commitados normalmente ao git.
-    - Os arquivos irmãos aos desse padrão não são mais commitados.
-        - Por exemplo, o arquivo `Taskfile.{env}.yaml` será commitado, mas o arquivo `Taskfile.yaml` não será mais commitado (estará presente em `.gitignore`).
-    - Geralmente quem vai cuidar das regras do `.gitignore` serei eu, mas você tem liberdade em questionar por problemas relacionados a isso.
 
 ### Ambiente de desenvolvimento
 
@@ -521,6 +516,12 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
 - O arquivo `Taskfile.development.yaml` deve ser usado neste ambiente como `Taskfile.yaml`.
 - Rotas exclusivas do ambiente de desenvolvimento:
     - `POST base_url/v1/users/dev-login`: loga o usuário dev diretamente, emitindo um `access_token` e um `refresh_token` sem a necessidade de `OAuth2`.
+
+#### Pasta cmd
+
+- Possui uma coleção de scripts e comandos task para serem executados no ambiente de desenvolvimento.
+- Nunca devem ser usados em homologação ou produção.
+- Devem ser excluídos pelo CI/CD nos ambientes de homologação e produção.
 
 ### Ambiente de homologação
 
