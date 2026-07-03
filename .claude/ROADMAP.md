@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.26.0.0
+0.27.0.0
 
 ## Versão 0.1.0.0
 
@@ -421,17 +421,12 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.27.0.0
 
-- [ ] Tornar o processo de descoberta, tratamento e julgamento de notícias pode ocorrer em paralelo ao invés de sequencial
-    - O problema agora é claro:
-        - Volume = problema
-        - E quanto mais fontes, mais processamento a gente precisa pra conseguir atualizar tudo.
-        - A gente provavelmente vai precisar fazer com que a CRON suba um container pra fazer tratamento e ao terminar seja derrubada?
-        - Ou a gente continua tratando da mesma forma interna com goroutines? A gente precisa fazer a coisa acontecer de uma maneira paralela...
-        - Em modo dev a gente não precisa do paralelismo, mas em homologação ou produção sim.
-            - Se fossem feitas 10 notícias por vez em 30 segundos (chutando alto), a gente 20 notícias por minuto. É pouquíssimo
-            - Eu acho que se a gente conseguisse fazer o groq elencar bem as keywords (e principalmente nunca errar o idioma delas), a gente abaixaria bastante esse tempo
-            - Com o Gemini eu diria que a gente faz em 20 segundos? Se for isso, daria 30 notícias por minuto e ainda seria pouco.
-            - Com o Groq eu diria que a gente faz em 10 segundos? Se for isso, daria 60 notícias por minuto e teríamos um bom início.
+- [x] Tornar o processo de descoberta, tratamento e julgamento de notícias poder ocorrer em paralelo ao invés de sequencial
+    - Escolha: **goroutines internas** (worker pool limitado), não container efêmero. O gargalo é latência de I/O de rede (2-3 round-trips de IA por notícia), que se resolve com concorrência, não com mais containers.
+    - `DISCOVERY_CONCURRENCY` (default `1`) governa a varredura de sources (RSS) e o pipeline por artigo. Dev/testes ficam em `1` (sequencial, determinístico); staging/produção sobem o valor, limitado pelo rate limit do provedor de IA.
+    - A fronteira ficou desenhada de forma que o pipeline por artigo (`processOne`) não conhece quem o despacha — o pool in-process é o caso de 1 nó do modelo de fila distribuída (ver seção futura), então a migração pós-Postgres é troca de dispatcher, não reescrita.
+- [x] Melhorar o prompt de keywords para o Groq acertar o idioma (few-shot multilíngue + regra de nomes próprios + reforço no user)
+    - Motivo bundle: o ganho de throughput da versão depende do Groq elencar keywords bem e nunca errar o idioma delas.
 
 ## Versão 0.28.0.0
 
@@ -486,3 +481,25 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
 - Machine Learning: aprender com leitura/descarte do usuário
 - CI/CD
 - Backup
+
+## Escalabilidade futura: fila distribuída + workers (pós-Postgres)
+
+Sessão própria para amadurecer quando a hora chegar. **Depende do Postgres entrar no stack** — é ele que
+remove o teto de single-writer do SQLite e habilita escrita concorrente de verdade e múltiplas réplicas.
+
+Contexto: a 0.27 já paralelizou descoberta/tratamento/julgamento com um **worker pool in-process**
+(`DISCOVERY_CONCURRENCY`). Isso é o **caso de 1 nó** de um modelo maior: **produtor + fila + pool de
+workers**. O pipeline por artigo (`discovery.processOne`) foi mantido sem conhecer quem o despacha,
+justamente para essa evolução ser uma **troca de dispatcher, não uma reescrita**.
+
+Ideia a avaliar no futuro:
+- A descoberta *produz* jobs (1 artigo = 1 job) numa fila persistente (tabela no Postgres via
+  `river`/`asynq`, ou Redis/NATS).
+- **M réplicas de container**, cada uma com N workers, *consomem* da mesma fila → escala horizontal.
+- A fila absorve picos de volume (ex.: evento de grande repercussão); os workers drenam no ritmo que
+  o provedor de IA aguenta.
+- O teto real nunca é o Go — é o **rate limit do provedor de IA**. A fila + workers dá a capacidade de
+  adicionar throughput horizontalmente até esse limite (ou mais chaves/quota em paralelo).
+
+Não programar agora: sem Postgres/Redis no stack, seria complexidade sem retorno. Só está **arquivado**
+aqui para não perdermos o desenho quando o Postgres chegar.

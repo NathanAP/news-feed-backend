@@ -3,6 +3,7 @@ package cron_test
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"os"
 	"testing"
@@ -78,6 +79,7 @@ func TestIntegration_DiscoveryRunner_DiscoversAndAdvancesWatermark(t *testing.T)
 		controllers.NewSystemController(),
 		proc,
 		mockClient,
+		1,
 		false,
 	)
 
@@ -100,6 +102,49 @@ func TestIntegration_DiscoveryRunner_DiscoversAndAdvancesWatermark(t *testing.T)
 	assert.Empty(t, articles)
 }
 
+func TestIntegration_DiscoveryRunner_ConcurrentFetchCollectsAllSources(t *testing.T) {
+	requireNotProduction(t)
+
+	database := testutils.SetupTestDB(t)
+	queries := db.New(database)
+	runTx := controllers.NewTransactionRunner(database)
+
+	// Three sources, each with its own feed. With a concurrent sweep (workers=3) every source's
+	// items must still be collected — nothing dropped, nothing duplicated.
+	sourceIDs := []string{
+		"01900000-0000-7000-8000-0000000000d1",
+		"01900000-0000-7000-8000-0000000000d2",
+		"01900000-0000-7000-8000-0000000000d3",
+	}
+	feeds := make(map[string]external.MockRSSResponse, len(sourceIDs))
+	for i, id := range sourceIDs {
+		urlRss := fmt.Sprintf("https://cron-feed.com/rss-%d.xml", i)
+		_, err := queries.CreateSource(t.Context(), db.CreateSourceParams{
+			ID: id, Url: fmt.Sprintf("https://cron-feed-%d.com", i), UrlRss: urlRss,
+		})
+		require.NoError(t, err)
+		feeds[urlRss] = external.MockRSSResponse{StatusCode: http.StatusOK, Body: external.SampleRSSFeed}
+	}
+
+	mockClient := external.NewMockRSSClient(feeds)
+	proc := &captureProcessor{}
+	runner := cronsvc.NewDiscoveryRunner(
+		runTx,
+		controllers.NewSourceController(),
+		controllers.NewSystemController(),
+		proc,
+		mockClient,
+		3, // concurrent sweep
+		false,
+	)
+
+	require.NoError(t, runner.Run(t.Context()))
+
+	// SampleRSSFeed carries 1 item; 3 sources → 3 items merged into a single Process call.
+	require.Equal(t, 1, proc.calls)
+	assert.Len(t, proc.got, len(sourceIDs), "a concurrent sweep must collect every source's items")
+}
+
 func TestIntegration_DiscoveryRunner_SkipsWhenAppOff(t *testing.T) {
 	requireNotProduction(t)
 
@@ -120,6 +165,7 @@ func TestIntegration_DiscoveryRunner_SkipsWhenAppOff(t *testing.T) {
 		controllers.NewSystemController(),
 		proc,
 		mockClient,
+		1,
 		false,
 	)
 

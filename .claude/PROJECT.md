@@ -67,9 +67,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 0. Uma nova notícia descoberta entra em etapa de tratamento.
 1. Uma primeira chamada para a inteligência artificial faz a notícia ser revisada, corrigida e melhorada conforme as convenções da aplicação.
-    - É feita através de uma LLM configurada nas variáveis de ambiente `TREATMENT_PROVIDER` e `TREATMENT_MODEL`.
 2. Uma segunda chamada para a inteligência artificial faz a notícia receber palavras-chave correspondente ao seu conteúdo.
-    - É feita através de uma SLM configurada na variável de ambiente `KEYWORDS_PROVIDER` e `KEYWORDS_MODEL`.
 3. A notícia é salva no banco de dados.
 4. A notícia segue para a etapa de julgamento.
 
@@ -212,6 +210,9 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - `RSS_FEED_CRON_ACTIVE`: deve estar em `true` para ser considerado ativo.
     - `RSS_FEED_CRON_SCHEDULE`: o intervalo na qual a CRON irá rodar.
     - `RSS_FEED_CRON_VERBOSE_MODE`: apesar de não ser importante para rodar a CRON, essa variável de ambiente mostra junto as logs a saída de cada chamada da CRON quando estiver marcada como `true`.
+    - `DISCOVERY_CONCURRENCY`: quantas fontes (varredura de RSS) e quantas notícias (pipeline de tratamento + julgamento) são processadas em paralelo. Valor padrão e mínimo é `1` (sequencial). O paralelismo é feito por um worker pool interno de goroutines, limitado por este valor.
+        - Em `development` mantém-se `1` (sequencial e determinístico); em `staging`/`production` sobe-se o valor, limitado pelo rate limit do provedor de IA.
+        - O gargalo do pipeline é a latência de rede das chamadas de IA (2-3 por notícia), por isso a concorrência é o que aumenta o throughput. Ver a seção "Escalabilidade futura" no `ROADMAP.md` para a evolução planejada (fila distribuída + workers, dependente do Postgres).
 - A descoberta de notícias deve acessar cada uma das fontes de notícias cadastradas no banco de dados, olhando pelo RSS de cada uma delas para decidir se há alguma nova notícia.
     - Uma notícia do RSS é considerada nova quando a URL original dela não está presente na nossa lista de notícias.
         - Ou seja, outras notícias já existentes não devem ser passadas adiante para o tratamento e julgamento de notícias.

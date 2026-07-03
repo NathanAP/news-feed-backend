@@ -204,8 +204,9 @@ func main() {
 
 	if os.Getenv("RSS_FEED_CRON_ACTIVE") == "true" {
 		cronVerbose := os.Getenv("RSS_FEED_CRON_VERBOSE_MODE") == "true"
-		processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, detector, treater, defaultKeyworder, evaluator, cronVerbose)
-		runner := cron.NewDiscoveryRunner(runTx, sourceCtrl, systemCtrl, processor, discoveryHTTPClient, cronVerbose)
+		discoveryConcurrency := parseConcurrency(os.Getenv("DISCOVERY_CONCURRENCY"))
+		processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, detector, treater, defaultKeyworder, evaluator, discoveryConcurrency, cronVerbose)
+		runner := cron.NewDiscoveryRunner(runTx, sourceCtrl, systemCtrl, processor, discoveryHTTPClient, discoveryConcurrency, cronVerbose)
 		scheduler, err := cron.NewScheduler(os.Getenv("RSS_FEED_CRON_SCHEDULE"), runner)
 		if err != nil {
 			log.Fatalf("Failed to set up discovery cron: %v", err)
@@ -225,11 +226,12 @@ func main() {
 // SLM/LLM models are fixed to the ones declared in the stack (CLAUDE.md); the Groq model is
 // configurable because the stack does not pin a specific one.
 const (
-	localModel                = "qwen3:4b"
-	geminiModel               = "gemini-2.5-flash"
-	defaultGroqBaseURL        = "https://api.groq.com/openai/v1"
-	defaultOllamaURL          = "http://localhost:11434"
-	defaultJudgementThreshold = 70
+	localModel                  = "qwen3:4b"
+	geminiModel                 = "gemini-2.5-flash"
+	defaultGroqBaseURL          = "https://api.groq.com/openai/v1"
+	defaultOllamaURL            = "http://localhost:11434"
+	defaultJudgementThreshold   = 70
+	defaultDiscoveryConcurrency = 1
 )
 
 // buildModeClients pre-builds an AI client for every mode (local | groq | gemini). The same set of
@@ -290,6 +292,22 @@ func buildGroqClient() ai.Client {
 		baseURL = defaultGroqBaseURL
 	}
 	return openaicompat.NewClient(baseURL, model, apiKey)
+}
+
+// parseConcurrency reads the discovery pipeline concurrency (how many sources / articles are
+// processed in parallel). It falls back to sequential (1) when unset or invalid, since a
+// misconfigured value must not crash the app. Dev keeps the default 1 (deterministic); staging and
+// production raise it, bounded by the AI provider rate limit.
+func parseConcurrency(s string) int {
+	if s == "" {
+		return defaultDiscoveryConcurrency
+	}
+	n, err := strconv.Atoi(s)
+	if err != nil || n < 1 {
+		log.Printf("Invalid DISCOVERY_CONCURRENCY %q (want integer >= 1), using default %d", s, defaultDiscoveryConcurrency)
+		return defaultDiscoveryConcurrency
+	}
+	return n
 }
 
 // parseThreshold reads the judgement pass threshold (0-100). It falls back to a sane default when

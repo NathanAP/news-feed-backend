@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	robfigcron "github.com/robfig/cron/v3"
@@ -17,12 +18,13 @@ import (
 // DiscoveryRunner executes one discovery sweep over every active source. The scheduler invokes it
 // on each tick, and the test endpoint mirrors the same logic scoped to a single source.
 type DiscoveryRunner struct {
-	runTx      controllers.TransactionRunner
-	sourceCtrl controllers.SourceControllerInterface
-	systemCtrl controllers.SystemControllerInterface
-	processor  discovery.Processor
-	httpClient *http.Client
-	verbose    bool
+	runTx       controllers.TransactionRunner
+	sourceCtrl  controllers.SourceControllerInterface
+	systemCtrl  controllers.SystemControllerInterface
+	processor   discovery.Processor
+	httpClient  *http.Client
+	concurrency int
+	verbose     bool
 }
 
 func NewDiscoveryRunner(
@@ -31,15 +33,17 @@ func NewDiscoveryRunner(
 	systemCtrl controllers.SystemControllerInterface,
 	processor discovery.Processor,
 	httpClient *http.Client,
+	concurrency int,
 	verbose bool,
 ) *DiscoveryRunner {
 	return &DiscoveryRunner{
-		runTx:      runTx,
-		sourceCtrl: sourceCtrl,
-		systemCtrl: systemCtrl,
-		processor:  processor,
-		httpClient: httpClient,
-		verbose:    verbose,
+		runTx:       runTx,
+		sourceCtrl:  sourceCtrl,
+		systemCtrl:  systemCtrl,
+		processor:   processor,
+		httpClient:  httpClient,
+		concurrency: concurrency,
+		verbose:     verbose,
 	}
 }
 
@@ -78,18 +82,7 @@ func (r *DiscoveryRunner) Run(ctx context.Context) error {
 
 	r.log(fmt.Sprintf("@@@ DISCOVERY START - %d source(s) @@@", len(sources)), logger.ColorYellow)
 
-	all := make([]discovery.DiscoveredArticle, 0)
-	for _, source := range sources {
-		// No date lower bound: deduplication by url_original (in the processor) is the reliable
-		// "is it new?" mechanism.
-		items, err := discovery.DiscoverFromSource(ctx, r.httpClient, source, time.Time{})
-		if err != nil {
-			r.log(fmt.Sprintf("  source %s (%s) FAILED: %v", source.ID, source.UrlRss, err), logger.ColorRed)
-			continue // isolate the failure — one bad feed must not abort the run
-		}
-		r.log(fmt.Sprintf("  source %s (%s): %d feed item(s)", source.ID, source.UrlRss, len(items)), logger.ColorCyan)
-		all = append(all, items...)
-	}
+	all := r.fetchAll(ctx, sources)
 
 	if err := r.processor.Process(ctx, all); err != nil {
 		r.log(fmt.Sprintf("@@@ DISCOVERY PROCESSOR FAILED: %v @@@", err), logger.ColorRed)
@@ -106,6 +99,72 @@ func (r *DiscoveryRunner) Run(ctx context.Context) error {
 
 	r.log(fmt.Sprintf("@@@ DISCOVERY END - %d feed item(s) processed, watermark=%s @@@", len(all), now.Format(time.RFC3339)), logger.ColorGreen)
 	return nil
+}
+
+// fetchAll pulls the RSS items from every source, isolating per-source failures (one bad feed must
+// not abort the run). Sources are fetched by a bounded pool of at most `concurrency` workers; since
+// each fetch is an independent network round-trip, this collapses the sweep from the sum of the
+// feed latencies to their max (times ceil(n/concurrency)). concurrency <= 1 keeps it sequential and
+// order-preserving (the default in dev/tests). No date lower bound is applied: deduplication by
+// url_original (in the processor) is the reliable "is it new?" mechanism.
+func (r *DiscoveryRunner) fetchAll(ctx context.Context, sources []db.Source) []discovery.DiscoveredArticle {
+	workers := r.concurrency
+	if workers < 1 {
+		workers = 1
+	}
+
+	if workers == 1 || len(sources) <= 1 {
+		all := make([]discovery.DiscoveredArticle, 0)
+		for _, source := range sources {
+			if items, ok := r.fetchOne(ctx, source); ok {
+				all = append(all, items...)
+			}
+		}
+		return all
+	}
+
+	// Bounded pool: the append is guarded by a mutex because workers merge their results
+	// concurrently. Ordering of `all` is not significant — the processor treats articles as an
+	// unordered set.
+	var (
+		all []discovery.DiscoveredArticle
+		mu  sync.Mutex
+		wg  sync.WaitGroup
+	)
+	sem := make(chan struct{}, workers)
+	for _, source := range sources {
+		select {
+		case <-ctx.Done():
+			wg.Wait()
+			return all
+		case sem <- struct{}{}:
+		}
+
+		wg.Add(1)
+		go func(source db.Source) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			if items, ok := r.fetchOne(ctx, source); ok {
+				mu.Lock()
+				all = append(all, items...)
+				mu.Unlock()
+			}
+		}(source)
+	}
+	wg.Wait()
+	return all
+}
+
+// fetchOne fetches a single source's feed, logging and reporting failure (ok=false) so the caller
+// can drop it without aborting the sweep.
+func (r *DiscoveryRunner) fetchOne(ctx context.Context, source db.Source) ([]discovery.DiscoveredArticle, bool) {
+	items, err := discovery.DiscoverFromSource(ctx, r.httpClient, source, time.Time{})
+	if err != nil {
+		r.log(fmt.Sprintf("  source %s (%s) FAILED: %v", source.ID, source.UrlRss, err), logger.ColorRed)
+		return nil, false
+	}
+	r.log(fmt.Sprintf("  source %s (%s): %d feed item(s)", source.ID, source.UrlRss, len(items)), logger.ColorCyan)
+	return items, true
 }
 
 func (r *DiscoveryRunner) log(message string, color logger.Color) {

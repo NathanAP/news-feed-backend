@@ -2,6 +2,7 @@ package discovery_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
@@ -29,7 +30,14 @@ func requireNotProduction(t *testing.T) {
 	require.NotEqual(t, "staging", env, "tests must not run in staging")
 }
 
+// setup builds a processor with concurrency 1: the existing assertions rely on deterministic,
+// sequential processing.
 func setup(t *testing.T, aiClient ai.Client) (controllers.TransactionRunner, db.Querier, *discovery.TreatmentProcessor) {
+	t.Helper()
+	return setupWithConcurrency(t, aiClient, 1)
+}
+
+func setupWithConcurrency(t *testing.T, aiClient ai.Client, concurrency int) (controllers.TransactionRunner, db.Querier, *discovery.TreatmentProcessor) {
 	t.Helper()
 	database := testutils.SetupTestDB(t)
 	queries := db.New(database)
@@ -45,7 +53,7 @@ func setup(t *testing.T, aiClient ai.Client) (controllers.TransactionRunner, db.
 	afCtrl := controllers.NewArticleFeedController()
 	evaluator := judgement.NewEvaluator(aiClient, 70)
 	detector := &servicemocks.MockLanguageDetector{}
-	processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, detector, aiClient, aiClient, evaluator, false)
+	processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, detector, aiClient, aiClient, evaluator, concurrency, false)
 	return runTx, queries, processor
 }
 
@@ -109,7 +117,7 @@ func TestIntegration_Processor_NullLanguageOnDetectionFailure(t *testing.T) {
 	evaluator := judgement.NewEvaluator(aiClient, 70)
 	processor := discovery.NewTreatmentProcessor(
 		runTx, controllers.NewArticleController(), controllers.NewFeedController(),
-		controllers.NewArticleFeedController(), failingDetector, aiClient, aiClient, evaluator, false,
+		controllers.NewArticleFeedController(), failingDetector, aiClient, aiClient, evaluator, 1, false,
 	)
 
 	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{item("https://src.com/nolang")}))
@@ -192,6 +200,46 @@ func TestIntegration_Processor_SkipsFeedBelowThreshold(t *testing.T) {
 		return e
 	}))
 	assert.Empty(t, associations, "a feed scored below the threshold must not be associated")
+}
+
+func TestIntegration_Processor_ConcurrentPersistsAllArticles(t *testing.T) {
+	requireNotProduction(t)
+
+	// A batch of distinct articles processed by a pool of 4 workers must all be persisted — the
+	// worker pool must not drop or lose any article.
+	_, queries, processor := setupWithConcurrency(t, &external.MockAIClient{}, 4)
+
+	const n = 12
+	batch := make([]discovery.DiscoveredArticle, 0, n)
+	for i := 0; i < n; i++ {
+		batch = append(batch, item(fmt.Sprintf("https://src.com/c%d", i)))
+	}
+
+	require.NoError(t, processor.Process(t.Context(), batch))
+
+	articles, err := queries.ListArticles(t.Context())
+	require.NoError(t, err)
+	assert.Len(t, articles, n, "every distinct article in the batch must be persisted under concurrency")
+}
+
+func TestIntegration_Processor_ConcurrentDedupsWithinBatch(t *testing.T) {
+	requireNotProduction(t)
+
+	// The same url_original appears several times in one batch. With concurrent workers the dedup
+	// check may pass for more than one before any insert lands, so the url_original unique
+	// constraint is the real guarantee — the batch must collapse to a single persisted row.
+	_, queries, processor := setupWithConcurrency(t, &external.MockAIClient{}, 4)
+
+	batch := []discovery.DiscoveredArticle{
+		item("https://src.com/same"), item("https://src.com/same"),
+		item("https://src.com/same"), item("https://src.com/same"),
+	}
+
+	require.NoError(t, processor.Process(t.Context(), batch))
+
+	articles, err := queries.ListArticles(t.Context())
+	require.NoError(t, err)
+	assert.Len(t, articles, 1, "duplicate url_original within a batch must collapse to one row")
 }
 
 func TestIntegration_Processor_AIFailureDoesNotPersist(t *testing.T) {

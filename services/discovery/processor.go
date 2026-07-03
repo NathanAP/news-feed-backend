@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/services/ai"
@@ -21,6 +22,14 @@ import (
 // nothing is persisted for it, the article is simply rediscovered and retried on the next run.
 // Judgement is best-effort and non-retroactive: once the article is persisted, a judgement failure
 // is logged and skipped, and the article is not re-judged on later runs (dedup skips it).
+//
+// Articles within a batch are processed by a bounded worker pool (concurrency): the per-article
+// pipeline is dominated by network latency (2-3 AI round-trips), so running several articles at once
+// is the lever that turns discovery throughput. concurrency <= 1 keeps the run strictly sequential
+// (the default, used in dev and tests for determinism); staging/production raise it via
+// DISCOVERY_CONCURRENCY, bounded by the AI provider's rate limit. The in-process pool is the
+// single-node case of the future distributed queue + workers model (see ROADMAP), so the per-article
+// pipeline stays behind processOne and does not know who dispatches it.
 type TreatmentProcessor struct {
 	runTx       controllers.TransactionRunner
 	articleCtrl controllers.ArticleControllerInterface
@@ -30,6 +39,7 @@ type TreatmentProcessor struct {
 	treater     ai.Treater
 	keyworder   ai.Keyworder
 	evaluator   *judgement.Evaluator
+	concurrency int
 	verbose     bool
 }
 
@@ -42,6 +52,7 @@ func NewTreatmentProcessor(
 	treater ai.Treater,
 	keyworder ai.Keyworder,
 	evaluator *judgement.Evaluator,
+	concurrency int,
 	verbose bool,
 ) *TreatmentProcessor {
 	return &TreatmentProcessor{
@@ -53,57 +64,104 @@ func NewTreatmentProcessor(
 		treater:     treater,
 		keyworder:   keyworder,
 		evaluator:   evaluator,
+		concurrency: concurrency,
 		verbose:     verbose,
 	}
 }
 
 var _ Processor = (*TreatmentProcessor)(nil)
 
+// Process runs the per-article pipeline over the batch. Each article is independent (dedup by
+// url_original, then treat/keyword/detect/persist/judge), so they are dispatched to a bounded pool
+// of at most `concurrency` workers. A per-article failure is logged and dropped inside processOne;
+// nothing here aborts the batch, so Process always returns nil — the run is best-effort and dropped
+// articles are simply rediscovered next time.
 func (p *TreatmentProcessor) Process(ctx context.Context, articles []DiscoveredArticle) error {
-	for _, article := range articles {
-		exists, err := p.alreadyExists(ctx, article.URLOriginal)
-		if err != nil {
-			p.log(fmt.Sprintf("    dedup check failed for %s: %v", article.URLOriginal, err), logger.ColorRed)
-			continue
-		}
-		if exists {
-			p.log(fmt.Sprintf("    skip (already exists): %s", article.URLOriginal), logger.ColorBlue)
-			continue
-		}
-
-		treated, err := p.treater.Treat(ctx, article.Title, article.Content)
-		if err != nil {
-			p.log(fmt.Sprintf("    treat failed for %s: %v", article.URLOriginal, err), logger.ColorRed)
-			continue
-		}
-
-		keywords, err := p.keyworder.Keywords(ctx, article.Title, treated)
-		if err != nil {
-			p.log(fmt.Sprintf("    keywords failed for %s: %v", article.URLOriginal, err), logger.ColorRed)
-			continue
-		}
-
-		// Detect the original language from the raw (untreated) text. This is a lingua-go call, not
-		// AI: deterministic and offline. A failed detection is not fatal — the article is stored with
-		// a null language_original (it just cannot be translated later).
-		languageOriginal := p.detectLanguage(article.Title, article.Content)
-
-		saved, err := p.persist(ctx, article, treated, keywords, languageOriginal)
-		if err != nil {
-			if errors.Is(err, controllers.ErrArticleAlreadyExists) {
-				continue // created concurrently between the dedup check and the insert
-			}
-			p.log(fmt.Sprintf("    persist failed for %s: %v", article.URLOriginal, err), logger.ColorRed)
-			continue
-		}
-
-		p.log(fmt.Sprintf("    saved: %s (%s)", article.Title, article.URLOriginal), logger.ColorGreen)
-
-		// Judgement is best-effort: the article is already persisted, so a failure here must not
-		// abort the run — it is logged and the next article proceeds.
-		p.judge(ctx, saved, keywords)
+	workers := p.concurrency
+	if workers < 1 {
+		workers = 1
 	}
+
+	// Sequential fast path: keeps the default (dev/tests) free of any goroutine scheduling and its
+	// interleaved logs, and preserves the original processing order.
+	if workers == 1 || len(articles) <= 1 {
+		for _, article := range articles {
+			p.processOne(ctx, article)
+		}
+		return nil
+	}
+
+	// Bounded worker pool: the semaphore caps in-flight articles at `workers`; each acquires a slot
+	// before starting and releases it when done. ctx cancellation (shutdown) stops dispatching new
+	// work and we wait for the in-flight ones to unwind.
+	sem := make(chan struct{}, workers)
+	var wg sync.WaitGroup
+	for _, article := range articles {
+		select {
+		case <-ctx.Done():
+			wg.Wait()
+			return nil
+		case sem <- struct{}{}:
+		}
+
+		wg.Add(1)
+		go func(article DiscoveredArticle) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			p.processOne(ctx, article)
+		}(article)
+	}
+	wg.Wait()
 	return nil
+}
+
+// processOne runs the full pipeline for a single discovered article. It is self-contained and
+// safe to run concurrently with itself: the dedup check plus the url_original unique constraint
+// make a duplicate within the same batch collapse to a single persisted row (the losing insert
+// gets ErrArticleAlreadyExists and is dropped), and every write goes through its own short
+// transaction. Any failure is logged and swallowed so one bad article never affects the others.
+func (p *TreatmentProcessor) processOne(ctx context.Context, article DiscoveredArticle) {
+	exists, err := p.alreadyExists(ctx, article.URLOriginal)
+	if err != nil {
+		p.log(fmt.Sprintf("    dedup check failed for %s: %v", article.URLOriginal, err), logger.ColorRed)
+		return
+	}
+	if exists {
+		p.log(fmt.Sprintf("    skip (already exists): %s", article.URLOriginal), logger.ColorBlue)
+		return
+	}
+
+	treated, err := p.treater.Treat(ctx, article.Title, article.Content)
+	if err != nil {
+		p.log(fmt.Sprintf("    treat failed for %s: %v", article.URLOriginal, err), logger.ColorRed)
+		return
+	}
+
+	keywords, err := p.keyworder.Keywords(ctx, article.Title, treated)
+	if err != nil {
+		p.log(fmt.Sprintf("    keywords failed for %s: %v", article.URLOriginal, err), logger.ColorRed)
+		return
+	}
+
+	// Detect the original language from the raw (untreated) text. This is a lingua-go call, not
+	// AI: deterministic and offline. A failed detection is not fatal — the article is stored with
+	// a null language_original (it just cannot be translated later).
+	languageOriginal := p.detectLanguage(article.Title, article.Content)
+
+	saved, err := p.persist(ctx, article, treated, keywords, languageOriginal)
+	if err != nil {
+		if errors.Is(err, controllers.ErrArticleAlreadyExists) {
+			return // created concurrently between the dedup check and the insert
+		}
+		p.log(fmt.Sprintf("    persist failed for %s: %v", article.URLOriginal, err), logger.ColorRed)
+		return
+	}
+
+	p.log(fmt.Sprintf("    saved: %s (%s)", article.Title, article.URLOriginal), logger.ColorGreen)
+
+	// Judgement is best-effort: the article is already persisted, so a failure here must not
+	// abort the run — it is logged and the next article proceeds.
+	p.judge(ctx, saved, keywords)
 }
 
 // judge runs the two judgement layers for a freshly persisted article and writes an articles_feeds

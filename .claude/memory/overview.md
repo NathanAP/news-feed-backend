@@ -31,7 +31,12 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
 - `services/rss/` — descoberta de URLs de RSS (a partir de uma URL principal).
 - `services/discovery/` — descoberta de **notícias** no RSS de uma source (gofeed + retry). Seam
   `Processor`; `TreatmentProcessor` deduplica por `url_original`, trata via IA e persiste.
-- `services/cron/` — scheduler (`robfig/cron/v3`) + `DiscoveryRunner` que varre as sources ativas.
+- `services/cron/` — scheduler (`robfig/cron/v3`) + `DiscoveryRunner` que varre as sources ativas. A
+  varredura de RSS e o pipeline por artigo rodam num **worker pool limitado** por `DISCOVERY_CONCURRENCY`
+  (default `1` = sequencial, dev/testes; sobe em staging/prod, limitado pelo rate limit da IA). O pipeline
+  por artigo é `discovery.processOne` — self-contained e concorrente-safe (dedup + unique de `url_original`
+  colapsam duplicatas do batch; cada escrita em sua própria transação curta). É o caso de 1 nó do modelo
+  futuro fila+workers (ROADMAP "Escalabilidade futura", pós-Postgres): trocar dispatcher, não reescrever.
 - `services/sanitize/` — sanitiza a saída do tratamento pra HTML básico (bluemonday, política
   customizada: só tags básicas, sem `a`/`img`/`class`/`style`/URL). Decorator no `Treater`.
 - `services/ai/` — costura de IA **por capacidade**: `Treater` (tratar), `Keyworder` (keywords),
