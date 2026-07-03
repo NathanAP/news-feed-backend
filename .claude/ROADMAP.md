@@ -408,9 +408,10 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [ ] Criar um comando para executar todos de uma vez
     - Comando deve ser `task seed-dev-full` ou `task sdfull`
     - A execução do comando roda um script em Go presente na pasta `raiz/cmd/seed/dev_full.go`
+- [ ] Criar endpoint `login-dev` conforme descritp em `PROJECT.md`
 - [ ] Todos esses scripts só podem ser executados enquanto a variável de ambiente `ENVIRONMENT` estiver em `development`
 - [ ] Documentar sobre esses comandos (os de seed) em `raiz/cmd/seed/instructions.md`
-- [ ] Documentar este comando detalhadamente em `raiz/.claude/memory/taskfile.md`
+- [ ] Documentar todos os comportamentos sobre a pasta `cmd` detalhadamente em `raiz/.claude/memory/cmd.md`
 
 ## Versão 0.26.0.0
 
