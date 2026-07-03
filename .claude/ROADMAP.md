@@ -375,6 +375,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [ ] Criar um comando para criar registro do usuário dev
     - Utilizar arquivos na pasta `raiz/cmd/seed/examples.json`
     - Não permitir criar o usuário duas vezes
+    - Dúvida: como podemos fazer o login dele? eu pensei em fazer uma rota exclusiva em dev pra isso... e aí o front poderia ter um botão em dev que só loga com esse usuário direto sem precisar passar pelo processo da Google também sabe?
 - [ ] Criar um comando para criar registros de fontes de notícias
     - Utilizar arquivos na pasta `raiz/cmd/seed/examples.json`
     - Criar apenas para o usuário dev
@@ -454,3 +455,5 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
 - Descoberta automática de novas RSS feeds
 - Regras de administradores
 - Machine Learning: aprender com leitura/descarte do usuário
+- CI/CD
+- Backup

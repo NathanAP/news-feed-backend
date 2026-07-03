@@ -493,12 +493,51 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
 - Queries erradas de páginas retornam uma lista vazia ao invés de erro.
     - Por exemplo, se a query requisitar a página 5 mas há apenas 4 páginas disponíveis não há erro. O valor da paginação `actual_page` irá estar em `5` e o valor de `total_pages` estará em `4`.
 
-## Ambiente
+## CI/CD
+
+- A implementação de CI/CD será feita futuramente.
+
+## Backup
+
+- A implementação de backups será feita futuramente.
+
+## Ambientes
 
 - O atual ambiente sempre está na variável de ambiente chamada `ENVIRONMENT` e devem estar sempre em um desses três valores:
     - "development": ambiente de desenvolvimento.
     - "staging": ambiente de homologação.
     - "production": ambiente de produção.
+
+### Ambiente de desenvolvimento
+
+- Este ambiente possui diversas habilidades exclusivas de desenvolvimento para cortar caminhos.
+- As pastas e comandos relacionados ao `raiz/cmd/` são exclusivos para serem usados neste ambiente.
+- As pastas e comandos relacionados ao `raiz/test/` está liberada para ser usada.
+- O arquivo `Taskfile.development.yaml` deve ser usado neste ambiente como `Taskfile.yaml`.
+
+### Ambiente de homologação
+
+- Este ambiente simula o ambiente de produção da maneira mais próxima possível.
+- A aplicação atua apenas via Docker neste ambiente.
+- O script de CI/CD neste ambiente deve seguir os seguintes passos:
+    - Derrubar a aplicação.
+    - Realizar `git stash` e `git pull origin staging`.
+    - Excluir as pastas `raiz/.claude/`, `raiz/bruno/`, `raiz/cmd/` e `raiz/test/`.
+    - Excluir arquivos com o padrão `.development` e `.production`.
+    - Copiar o arquivo `Taskfile.staging.yaml` para `Taskfile.yaml`.
+    - Subir a aplicação.
+
+### Ambiente de homologação
+
+- Este é o ambiente de produção, todo cuidado é pouco.
+- A aplicação atua apenas via Docker neste ambiente.
+- O script de CI/CD neste ambiente deve seguir os seguintes passos:
+    - Derrubar a aplicação.
+    - Realizar `git stash` e `git pull origin production`.
+    - Excluir as pastas `raiz/.claude/`, `raiz/bruno/`, `raiz/cmd/` e `raiz/test/`.
+    - Excluir arquivos com o padrão `.development` e `.staging`.
+    - Copiar o arquivo `Taskfile.production.yaml` para `Taskfile.yaml`.
+    - Subir a aplicação.
 
 ## Logs / debug manual
 
