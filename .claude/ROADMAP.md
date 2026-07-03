@@ -417,7 +417,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 - [ ] Fazer com que a aplicação possa subir através do Docker
     - API
-    - SQLite
+    - SQLite + interface gráfica
 - [ ] Fazer os comandos da 0.25 funcionar no container do Docker também
 
 ## Versão 0.27.0.0
