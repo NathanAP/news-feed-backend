@@ -423,9 +423,15 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 - [ ] Tornar o processo de descoberta, tratamento e julgamento de notícias pode ocorrer em paralelo ao invés de sequencial
     - O problema agora é claro:
-        - Quanto mais fontes, mais processamento a gente precisa pra conseguir atualizar tudo.
+        - Volume = problema
+        - E quanto mais fontes, mais processamento a gente precisa pra conseguir atualizar tudo.
         - A gente provavelmente vai precisar fazer com que a CRON suba um container pra fazer tratamento e ao terminar seja derrubada?
         - Ou a gente continua tratando da mesma forma interna com goroutines? A gente precisa fazer a coisa acontecer de uma maneira paralela...
+        - Em modo dev a gente não precisa do paralelismo, mas em homologação ou produção sim.
+            - Se fossem feitas 10 notícias por vez em 30 segundos (chutando alto), a gente 20 notícias por minuto. É pouquíssimo
+            - Eu acho que se a gente conseguisse fazer o groq elencar bem as keywords (e principalmente nunca errar o idioma delas), a gente abaixaria bastante esse tempo
+            - Com o Gemini eu diria que a gente faz em 20 segundos? Se for isso, daria 30 notícias por minuto e ainda seria pouco.
+            - Com o Groq eu diria que a gente faz em 10 segundos? Se for isso, daria 60 notícias por minuto e teríamos um bom início.
 
 ## Versão 0.28.0.0
 
