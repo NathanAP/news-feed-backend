@@ -363,6 +363,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [ ] Corrigir a nomenclatura da pasta `raiz/services/judgment` para `judgement`
     - E também me explicar por que a pasta `langdetect` e `sanitize` tem arquivos com `_test.go` nelas
 - [ ] Criar lógica de paginação para uso global
+    - Seguir a lógica presente em `PROJECT.md`
 - [ ] Adicionar paginação em todas as rotas de busca múltipla (`GET base_url/v1/{model}/`)
 - [ ] Mover `enums` para um local comum
     - Acredito que o melhor lugar seja `raiz/services/enums/`? E cada arquivo na pasta é um enum diferente?

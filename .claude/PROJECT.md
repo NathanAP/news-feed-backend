@@ -468,6 +468,28 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
 
 - Servem como scripts utilitários para a execução de testes. Sinta-se livre para criar qualquer utilidade aqui, como subir uma instância SQLite temporária com as migrações, por exemplo.
 
+## Paginação
+
+- A paginação deve estar presente em todos os endpoints de busca de coleções.
+    - Geralmente presentes em `GET base_url/v1/{model}/`
+- A paginação não precisa ser feita ao montar relatórios, métricas, indicadores ou afins.
+- Ao usar paginação, a resposta deve seguir o seguinte formato `json`:
+    ```json
+    {
+        "docs": [{...}, {...}], // Lista de registros
+        "paginagion": {
+            "actual_page": "a página atual",
+            "total_pages": "total de páginas",
+            "actual_count": "contador de registros desta página",
+            "total_count": "contador total de registros em todas as páginas",
+            "has_next_page": "indicador rápido para saber se há uma próxima página",
+            "has_previous_page": "indicador rápido para saber se há uma página anterior",
+        }
+    }
+    ```
+- Queries erradas de páginas retornam uma lista vazia ao invés de erro.
+    - Por exemplo, se a query requisitar a página 5 mas há apenas 4 páginas disponíveis não há erro. O valor da paginação `actual_page` irá estar em `5` e o valor de `total_pages` estará em `4`.
+
 ## Ambiente
 
 - O atual ambiente sempre está na variável de ambiente chamada `ENVIRONMENT` e devem estar sempre em um desses três valores:
