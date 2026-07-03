@@ -379,33 +379,40 @@ Os níveis de tabulação indicam detalhes do assunto.
         - Por exemplo: `Taskfile.{env}.yaml` para `Taskfile.yaml`
 - [ ] Criar um comando para criar registro do usuário dev
     - Comando deve ser `task seed-user-dev` ou `task sud`
+    - A execução do comando roda um script em Go presente na pasta `raiz/cmd/seed/dev_user.go`
     - Utilizar arquivos na pasta `raiz/cmd/seed/examples.json`
     - Não permitir criar o usuário duas vezes
 - [ ] Criar um comando para criar um `access_token` ao usuário dev
     - Comando deve ser `task seed-dev-login` ou `task sdl`
+    - A execução do comando roda um script em Go presente na pasta `raiz/cmd/seed/dev_login.go`
     - Usuário dev deve existir
     - Emitir automaticamente um `refresh_token` e um `access_token` como retorno final do comando
 - [ ] Criar um comando para criar registros de fontes de notícias
     - Comando deve ser `task seed-dev-sources` ou `task sds`
+    - A execução do comando roda um script em Go presente na pasta `raiz/cmd/seed/dev_sources.go`
     - Utilizar arquivos na pasta `raiz/cmd/seed/examples.json`
-    - Criar apenas para o usuário dev
+    - Não permitir criar o fontes de notícias duas vezes
 - [ ] Criar um comando para criar registros de notícias sem precisar depender da CRON
     - Comando deve ser `task seed-dev-articles` ou `task sda`
+    - A execução do comando roda um script em Go presente na pasta `raiz/cmd/seed/dev_articles.go`
     - Utilizar arquivos na pasta `raiz/cmd/seed/examples.json`
     - Permitir chamar o comando mais de uma vez pra criar as mesmas notícias mais de uma vez
     - Pra evitar o problema da `url_original` duplicada, precisamos que o script executado crie uma url aleatória inexistente para cada notícia
         - Pode fazer um random numérico mesmo, tipo `https://www.article-{numero_aleatorio}.com.br/feed/`
 - [ ] Criar um comando para criar registros de feeds
     - Comando deve ser `task seed-dev-feeds` ou `task sdf`
+    - A execução do comando roda um script em Go presente na pasta `raiz/cmd/seed/dev_feeds.go`
     - Utilizar arquivos na pasta `raiz/cmd/seed/examples.json`
     - Criar apenas para o usuário dev
-    - Não pode permitir que regras sejam quebradas
+    - Não permitir criar o feeds duas vezes
 - [ ] Criar um comando para criar registros de `articles_feeds` sem precisar depender da CRON
     - Comando deve ser `task seed-dev-articles-feeds` ou `task sdaf`
+    - A execução do comando roda um script em Go presente na pasta `raiz/cmd/seed/dev_article_feeds.go`
     - Procurar cada notícia e ligar elas em cada feed existente
     - Criar apenas para o usuário dev
 - [ ] Criar um comando para executar todos de uma vez
     - Comando deve ser `task seed-dev-full` ou `task sdfull`
+    - A execução do comando roda um script em Go presente na pasta `raiz/cmd/seed/dev_full.go`
 - [ ] Todos esses scripts só podem ser executados enquanto a variável de ambiente `ENVIRONMENT` estiver em `development`
 - [ ] Documentar sobre esses comandos (os de seed) em `raiz/cmd/seed/instructions.md`
 - [ ] Documentar este comando detalhadamente em `raiz/.claude/memory/taskfile.md`
