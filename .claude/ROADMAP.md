@@ -362,20 +362,34 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 - [ ] Corrigir a nomenclatura da pasta `raiz/services/judgment` para `judgement`
     - E também me explicar por que a pasta `langdetect` e `sanitize` tem arquivos com `_test.go` nelas
-- [ ] Adicionar um comando para criar registros de `sources`, `articles` e `articles_feeds` sem precisar depender da CRON em desenvolvimento
-    - Criar execução deste script localmente
-    - Vamos documentar depois esse comando
-    - Utilizar arquivos na pasta `raiz/cmd/seed/examples`
-        - Eu deixei os arquivos em `.json`, mas se quiser transformar eles em algo mais "importáveis" fique a vontade
-        - Ligue todos os feeds ao primeiro usuário não-administrador encontrado
-        - Ligue todas as noticas a todos os feeds, independente do julgamento entre keywords
-    - Julgamentos podem sempre ser considerados como passados, independente do feed possuir keywords condizente com o tema da notícia ou não
-    - Permitir que regras sejam quebradas
-        - Exemplo: excesso de feeds
-    - A chamada múltipla desse comando deve continuar adicionando registros ao banco, mesmo que as notícias já estejam lá
-        - Pra evitar o problema da `url_original` duplicada, precisamos que o script executado crie uma url aleatória inexistente para cada notícia
-        - Pode fazer um random numérico mesmo, tipo `https://www.article-{numero_aleatorio}.com.br`
-    - Comando chamado `local-add-seed`
+- [ ] Criar lógica de paginação para uso global
+- [ ] Adicionar paginação em todas as rotas de busca múltipla (`GET base_url/v1/{model}/`)
+- [ ] Mover `enums` para um local comum
+    - Acredito que o melhor lugar seja `raiz/services/enums/`? E cada arquivo na pasta é um enum diferente?
+    - Mesmo que sejam específicos de certos modelos
+    - A ideia é que o código possa sempre fazer `enum.meu_enum` sem preocupação de importações desnecessárias
+
+## Versão 0.25.0.0
+
+- [ ] Criar um comando para criar registro do usuário dev
+    - Utilizar arquivos na pasta `raiz/cmd/seed/examples.json`
+    - Não permitir criar o usuário duas vezes
+- [ ] Criar um comando para criar registros de fontes de notícias
+    - Utilizar arquivos na pasta `raiz/cmd/seed/examples.json`
+    - Criar apenas para o usuário dev
+- [ ] Criar um comando para criar registros de notícias sem precisar depender da CRON
+    - Utilizar arquivos na pasta `raiz/cmd/seed/examples.json`
+    - Permitir chamar o comando mais de uma vez pra criar as mesmas notícias mais de uma vez
+    - Pra evitar o problema da `url_original` duplicada, precisamos que o script executado crie uma url aleatória inexistente para cada notícia
+        - Pode fazer um random numérico mesmo, tipo `https://www.article-{numero_aleatorio}.com.br/feed/`
+- [ ] Criar um comando para criar registros de feeds
+    - Utilizar arquivos na pasta `raiz/cmd/seed/examples.json`
+    - Criar apenas para o usuário dev
+    - Não pode permitir que regras sejam quebradas
+- [ ] Criar um comando para criar registros de `articles_feeds` sem precisar depender da CRON
+    - Procurar cada notícia e ligar elas em cada feed existente
+    - Criar apenas para o usuário dev
+- [ ] Todos esses scripts só podem ser executados enquanto a variável de ambiente `ENVIRONMENT` estiver em `development`
 - [ ] Documentar este comando detalhadamente em `raiz/cmd/seed/instructions.md`
 
 ## Versão 0.25.0.0
@@ -405,6 +419,7 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
     - Acrescentar cache de resumo e de tradução via redis
 - TlDraw do banco de dados
 - Trocar para Postgres
+- Preparar ambiente staging + production
 - Multi feed
 - Editar informações básicas do usuário
 - Cascade de tabelas

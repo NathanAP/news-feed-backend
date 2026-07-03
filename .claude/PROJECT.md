@@ -92,7 +92,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - `created_at`: data de criação do usuário relacionado.
     - `refresh_token_id`: `UUID` do `refresh_token` relacionado.
     - `theme`: `enum` contendo o atual tema e presente nas preferências do usuário relacionado.
-    - `language`: `enum` contendo o idioma preferido e presente nas preferências do usuário relacionado.
+    - `language`: `enum` contendo o idioma preferido e presente nos idiomas globalmente usados na aplicação.
     - `translate_content`: `bool` sobre a necessidade de tradução do conteúdo das notícias e presente nas preferências do usuário relacionado.
     - `ai_personality`: `enum` contendo a personalidade da IA e presente nas preferências do usuário relacionado.
 - Um struct chamado `Claims` mantém também esse mapeamento no código.
@@ -363,7 +363,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - O método pode ser o exato mesmo utilizado no tratamento de notícias.
 - O endpoint `GET /v1/articles/{id}/translate/{language_to_translate}` é o responsável pela tradução de notícias:
     - O `id` é referente à notícia ser procurada no banco de dados para ser traduzida.
-    - A `language_to_translate` é referente à qual idioma o conteúdo será traduzido. Deve estar na lista do `enum` de idiomas disponíveis nas prefêrencias do usuário.
+    - A `language_to_translate` é referente à qual idioma o conteúdo será traduzido. Deve estar na lista do `enum` de idiomas usado globalmente na aplicação.
     - Se o usuário não estiver apto à fazer a tradução (`translate_content` em `false` ou `language` desconfigurada), o resultado deve ser 403.
     - Se o `language_to_translate` e a `language_original` da notícia forem iguais, o resultado deve ser 400.
     - Se a `language_original` da notícia for `null`, o resultado deve ser 400.
