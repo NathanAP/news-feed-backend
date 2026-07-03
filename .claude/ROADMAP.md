@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.25.0.0
+0.26.0.0
 
 ## Versão 0.1.0.0
 
@@ -415,15 +415,20 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.26.0.0
 
-- [ ] Fazer com que a aplicação possa subir através do Docker
-    - API
-    - SQLite + interface gráfica
+- [x] Fazer com que a aplicação possa subir através do Docker
+    - API (Dockerfile multi-stage, binário estático Go puro; healthcheck em `/health`)
+    - SQLite + interface gráfica (`sqlite-web`, espera a API ficar healthy antes de abrir o banco)
 
 ## Versão 0.27.0.0
 
 - [ ] Tornar o processo de descoberta, tratamento e julgamento de notícias pode ocorrer em paralelo ao invés de sequencial
-    - Acredito que tenhamos que explorar o conceito de workers na API também
-    - E se a CRON ao invés de executar o código internamente direto subisse um container (ou dois ou três ou quantos precisar) que executasse os códigos de descoberta, tratamento e julgamento e caísse logo depois? Vale a pena ou mais fácil investir em mais instâncias de goroutines?
+    - O problema agora é claro:
+        - Quanto mais fontes, mais processamento a gente precisa pra conseguir atualizar tudo.
+        - A gente provavelmente vai precisar fazer com que a CRON suba um container pra fazer tratamento e ao terminar seja derrubada?
+        - Ou a gente continua tratando da mesma forma interna com goroutines? A gente precisa fazer a coisa acontecer de uma maneira paralela...
+
+## Versão 0.28.0.0
+
 - [ ] Atualização de pacotes e dependências
 - [ ] Revisão
 - [ ] Organizar o exemplo de arquivos em structure.md

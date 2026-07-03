@@ -1,21 +1,51 @@
 services:
-  api:
-    build: .
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./db:/app/db
-    env_file:
-      - .env
-    restart: unless-stopped
+    api:
+        container_name: news-feed-api
+        build: .
+        ports:
+            - "3000:3000"
+        volumes:
+            # Bind-mount the SQLite database so it persists across restarts and is shared with sqlite-web
+            # (and with host-run seed commands: seeding on the host writes to the same file).
+            - ./db:/app/db
+        env_file:
+            - .env
+        # Lets the container reach services running on the host (e.g. a native Ollama) via
+        # `host.docker.internal`. Automatic on Docker Desktop; this makes it work on Linux too. In Docker
+        # prefer KEYWORDS_MODE=groq|gemini; only set OLLAMA_BASE_URL=http://host.docker.internal:11434 if
+        # you really want the host's local Ollama.
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        healthcheck:
+            # /health is exempt from the maintenance guard, so it answers 200 whenever the app is up.
+            # Use 127.0.0.1 (not localhost): the app binds IPv4 (0.0.0.0) and busybox may resolve localhost
+            # to IPv6 (::1) first, which would be refused.
+            test:
+                [
+                    "CMD-SHELL",
+                    "wget -q -O /dev/null http://127.0.0.1:${API_PORT:-3000}/${API_VERSION:-v1}/health || exit 1",
+                ]
+            interval: 10s
+            timeout: 3s
+            retries: 5
+            start_period: 10s
+        restart: unless-stopped
 
-  sqlite-web:
-    image: coleifer/sqlite-web
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./db:/data
-    command: ["-H", "0.0.0.0", "-p", "8080", "/data/news_feed.db"]
-    depends_on:
-      - api
-    restart: unless-stopped
+    # SQLite web UI for inspecting the database. Development convenience.
+    # Configured via the image's documented interface (SQLITE_DATABASE env + /data mount); it defaults
+    # to binding 0.0.0.0:8080, so no command override is needed (overriding it breaks the entrypoint).
+    sqlite-web:
+        container_name: news-feed-sqlite-web
+        image: coleifer/sqlite-web
+        ports:
+            - "8080:8080"
+        volumes:
+            - ./db:/data
+        environment:
+            SQLITE_DATABASE: news_feed.db
+        depends_on:
+            # Wait until the API is healthy — by then it has created and migrated the database file, so
+            # sqlite-web does not race to open a non-existent file on first boot.
+            api:
+                condition: service_healthy
+        restart: unless-stopped

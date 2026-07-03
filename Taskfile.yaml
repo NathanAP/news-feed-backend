@@ -94,28 +94,35 @@ tasks:
     # ── Docker ─────────────────────────────────────────────────────────────────
 
     docker-start:
-        desc: Start the application via Docker Compose
+        desc: Build and start the application via Docker Compose (API + sqlite-web)
         aliases: [ds]
         cmds:
-            - docker-compose up -d
+            - docker compose up -d --build
 
     docker-down:
         desc: Stop Docker Compose services
         aliases: [dd]
         cmds:
-            - docker-compose down
+            - docker compose down
 
     docker-restart:
-        desc: Restart Docker Compose services
+        desc: Restart Docker Compose services (no rebuild)
         aliases: [dr]
         cmds:
-            - docker-compose restart
+            - docker compose restart
+
+    docker-full-restart:
+        desc: Stop everything, then rebuild and start again (down + up --build)
+        aliases: [dfr]
+        cmds:
+            - task: docker-down
+            - task: docker-start
 
     docker-prune:
         desc: Stop containers and prune unused Docker resources
         aliases: [dp]
         cmds:
-            - docker-compose down --volumes --remove-orphans
+            - docker compose down --volumes --remove-orphans
             - docker system prune -f
 
     # ── Database ───────────────────────────────────────────────────────────────

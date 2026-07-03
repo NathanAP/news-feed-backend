@@ -111,7 +111,7 @@ Você tem liberdade para acessar qualquer arquivo da pasta `.claude`.
 
 - `go run main.go` - Rodar localmente
 - `go build -o api` - Build executável
-- `docker-compose up` - Rodar com Docker
+- `docker compose up` - Rodar com Docker (ou `task ds`)
 - `go mod tidy` - Limpar dependências
 
 ## Inicialização rápida

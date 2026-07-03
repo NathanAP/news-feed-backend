@@ -94,3 +94,9 @@ migração `NOT NULL` quebrar o boot por dado antigo, basta apagar o arquivo).
 feeds, artigos, associações) e imprime um token; `task sdl` só emite o token. `cmd/` é exclusivo de
 dev (ver `.claude/memory/cmd.md`). Login do dev sem OAuth: CLI `task sdl` ou `POST /v1/users/dev-login`
 (rota registrada só em `development`).
+
+**Docker**: `task ds` (`docker compose up -d --build`) sobe a **API** (Dockerfile multi-stage,
+binário Go puro `CGO_ENABLED=0`, healthcheck em `/health`) + **sqlite-web** (`:8080`, espera a API
+ficar healthy). Banco em volume `./db` (compartilhado com host/seed). Em Docker use
+`KEYWORDS_MODE=groq|gemini` (Ollama local do host não é alcançável por `localhost` no container;
+`host.docker.internal` disponível via `extra_hosts`).
