@@ -40,7 +40,7 @@
 - `GET /sources/rss-discovery?url=` — descobre feeds RSS da URL → 200 `{ feeds: [...] }` (lista pode ser vazia) / 400.
 - `GET /sources/:id/article-discovery` — **dry-run** da descoberta de notícias de 1 source (espelha a CRON: parsing RSS + dedup por `url_original`). Não grava nada. Query opcional `last_article_discovery_at` (RFC3339 UTC) adiciona limite inferior por data. → 200 `{ articles: [...] }` (pode ser vazia) / 400 (data inválida) / 404 (source inexistente). Aberta (admin-futuro).
 - `GET /sources/:id` → 200 / 404.
-- `GET /sources?url=` — filtro por substring na url → 200 (lista).
+- `GET /sources?url=` — filtro por substring na url → 200 (paginada, ver "Paginação").
 - `PUT /sources/:id` — `{ url, url_rss }` → 200 / 400 / 404 / 409.
 - `DELETE /sources/:id` — soft delete → 204 / 404. Cascata: soft-remove das `articles` da fonte.
 
@@ -55,7 +55,7 @@
   lida) / **204** (não está em nenhum feed do usuário) / 404 (notícia inexistente). Idempotente.
 - `GET /articles/:id` → 200 / 404. Resposta enriquecida com `is_read`: `null` (não está em
   feed do usuário) | `false` (em ≥1 feed, ao menos um não lido) | `true` (todos lidos).
-- `GET /articles?url=` — filtro por substring em url_original → 200 (lista).
+- `GET /articles?url=` — filtro por substring em url_original → 200 (paginada, ver "Paginação").
 - `PUT /articles/:id` — `{ title, content, url_original, keywords, language_original }` (sem `source_id`, imutável) → 200 / 400 / 404 / 409.
 - `DELETE /articles/:id` — soft delete → 204 / 404.
 
@@ -63,7 +63,7 @@
 - Acesso restrito ao dono: feed de outro usuário responde **404** (não 403), sem vazar existência.
 - `POST /feeds/create` — `{ name (≤120), keywords[5..20] }` → 201 / 400 / 409 (limite de 5 feeds ativos) / 500.
 - `GET /feeds/:id` → 200 / 404 (inexistente ou de outro usuário).
-- `GET /feeds?name=` — só os próprios feeds, filtro por substring no nome → 200 (lista).
+- `GET /feeds?name=` — só os próprios feeds, filtro por substring no nome → 200 (paginada, ver "Paginação").
 - `PUT /feeds/:id` — `{ name, keywords }` (sem `user_id`, imutável) → 200 / 400 / 404.
 - `DELETE /feeds/:id` — soft delete (permanente, sem reativação) → 204 / 404.
 
@@ -77,6 +77,13 @@
   persiste, re-tenta na próxima run; falha no julgamento é best-effort (a notícia já está persistida,
   não é re-julgada — não-retroativo). Pula a run quando `app_status` está off. Logs gated por
   `RSS_FEED_CRON_VERBOSE_MODE`.
+
+## Paginação
+- Toda rota de busca de coleção (`GET /v1/articles`, `/v1/sources`, `/v1/feeds`) é **paginada**.
+  Query: `?page=` (mín/padrão 1) e `?page_size=` (mín 1, máx 100, padrão 20). Resposta:
+  `{ docs: [...], pagination: { actual_page, total_pages, actual_count, total_count, has_next_page,
+  has_previous_page } }`. Página fora do range → `docs` vazio (sem erro), `actual_page` fica no valor
+  pedido. Helper global em `services/pagination` (paginação em memória sobre a lista já filtrada).
 
 ## Notas
 - Todo endpoint dispara log de início/fim quando `VERBOSE_MODE=true`.

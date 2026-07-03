@@ -6,6 +6,7 @@ import (
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/middlewares"
 	"github.com/nathanap/news-feed-backend/schemas"
+	"github.com/nathanap/news-feed-backend/schemas/enums"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
@@ -75,10 +76,10 @@ func UpdatePreferences(prefCtrl controllers.UserPreferencesControllerInterface, 
 			AccessToken: newToken,
 			ExpiresIn:   accessTokenExpirySeconds,
 			Preferences: schemas.UserPreferencesResponse{
-				Theme:            schemas.Theme(updatedPrefs.Theme),
-				Language:         schemas.Language(updatedPrefs.Language),
+				Theme:            enums.Theme(updatedPrefs.Theme),
+				Language:         enums.Language(updatedPrefs.Language),
 				TranslateContent: updatedPrefs.TranslateContent == 1,
-				AIPersonality:    schemas.AIPersonality(updatedPrefs.AiPersonality),
+				AIPersonality:    enums.AIPersonality(updatedPrefs.AiPersonality),
 			},
 		})
 	}

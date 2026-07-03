@@ -38,6 +38,16 @@ func readJSON(resp *http.Response, target any) error {
 	return json.NewDecoder(resp.Body).Decode(target)
 }
 
+// decodePage reads a paginated list response ({ docs, pagination }) and returns the docs slice.
+func decodePage(t *testing.T, resp *http.Response) []map[string]any {
+	t.Helper()
+	var env struct {
+		Docs []map[string]any `json:"docs"`
+	}
+	require.NoError(t, readJSON(resp, &env))
+	return env.Docs
+}
+
 // setupE2EApp wires the real handlers exactly like main.go around the maintenance guard:
 // /health and the toggle are exempt; auth and the sources group are guarded.
 func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Querier) {
@@ -171,8 +181,7 @@ func TestE2E_System_MaintenanceFlow(t *testing.T) {
 	// Business works again, and the source created earlier is still there.
 	list := do(t, app, http.MethodGet, "/v1/sources", token, "")
 	assert.Equal(t, http.StatusOK, list.StatusCode)
-	var listed []map[string]any
-	require.NoError(t, readJSON(list, &listed))
+	listed := decodePage(t, list)
 	assert.Len(t, listed, 1)
 }
 

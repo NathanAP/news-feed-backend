@@ -34,6 +34,16 @@ func readJSON(resp *http.Response, target any) error {
 	return json.NewDecoder(resp.Body).Decode(target)
 }
 
+// decodePage reads a paginated list response ({ docs, pagination }) and returns the docs slice.
+func decodePage(t *testing.T, resp *http.Response) []map[string]any {
+	t.Helper()
+	var env struct {
+		Docs []map[string]any `json:"docs"`
+	}
+	require.NoError(t, readJSON(resp, &env))
+	return env.Docs
+}
+
 func setupIntegrationApp(t *testing.T) (*fiber.App, db.Querier) {
 	t.Helper()
 
@@ -221,8 +231,7 @@ func TestIntegration_ListArticles_ReturnsAll(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var result []map[string]any
-	require.NoError(t, readJSON(resp, &result))
+	result := decodePage(t, resp)
 	assert.Len(t, result, 2)
 }
 
@@ -247,8 +256,7 @@ func TestIntegration_ListArticles_ExcludesSoftDeleted(t *testing.T) {
 	listResp, err := app.Test(listReq)
 	require.NoError(t, err)
 
-	var result []map[string]any
-	require.NoError(t, readJSON(listResp, &result))
+	result := decodePage(t, listResp)
 	require.Len(t, result, 1)
 	assert.Equal(t, keptID, result[0]["id"])
 }

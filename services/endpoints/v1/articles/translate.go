@@ -8,6 +8,7 @@ import (
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/middlewares"
 	"github.com/nathanap/news-feed-backend/schemas"
+	"github.com/nathanap/news-feed-backend/schemas/enums"
 	"github.com/nathanap/news-feed-backend/services/ai"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	"github.com/nathanap/news-feed-backend/services/sanitize"
@@ -37,7 +38,7 @@ func TranslateArticle(articleCtrl controllers.ArticleControllerInterface, transl
 		}
 
 		target := c.Params("language")
-		if !schemas.Language(target).IsValid() {
+		if !enums.Language(target).IsValid() {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "unsupported target language"})
 		}
 
@@ -63,7 +64,7 @@ func TranslateArticle(articleCtrl controllers.ArticleControllerInterface, transl
 
 		translation, err := translator.Translate(
 			c.Context(),
-			schemas.Language(target).DisplayName(),
+			enums.Language(target).DisplayName(),
 			string(claims.AIPersonality),
 			article.Title,
 			article.Content,

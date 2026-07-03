@@ -153,6 +153,7 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 
 - Testes nunca podem ser executados em ambientes de homologação ou produção.
 - Não há testes ligados diretamente ao banco de dados. Ao invés disso, faremos todos esses testes através dos endpoints da API, garantindo que o endpoint e o banco de dados estejam funcionando corretamente ao mesmo tempo.
+    - Exceção: pacotes de **lógica pura** (sem banco e sem rota — por exemplo `services/langdetect`, `services/sanitize`, `services/pagination` e os parsers em `services/ai`) podem ter teste **co-localizado** (`arquivo_test.go` ao lado do arquivo), que é a forma idiomática de cobrir função pura e seus edge cases. Testá-los "através de um endpoint" seria artificial. As regras abaixo valem para tudo que toca banco/rotas (que continua em `raiz/tests/`).
 - Os testes de API devem ficar dentro da pasta `raiz/tests/unit/` seguindo o padrão de pastas de `structure.md`.
 - Ao criar um novo endpoint na API, um teste unitário correspondente deve ser criado para ele, garantindo que aquela funcionalidade esteja funcionando corretamente e que o código esteja testável.
 - Ao alterar um endpoint existente na API, o teste unitário correspondente deve ser atualizado para refletir as mudanças feitas, garantindo que a funcionalidade continue funcionando corretamente e que o código continue testável.

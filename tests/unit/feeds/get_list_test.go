@@ -69,8 +69,7 @@ func TestListFeeds_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var result []map[string]any
-	require.NoError(t, readJSON(resp, &result))
+	result := decodePage(t, resp)
 	assert.Len(t, result, 2)
 }
 
@@ -89,8 +88,7 @@ func TestListFeeds_Empty(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var result []map[string]any
-	require.NoError(t, readJSON(resp, &result))
+	result := decodePage(t, resp)
 	assert.Empty(t, result)
 }
 
@@ -109,8 +107,7 @@ func TestListFeeds_FilterByName(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var result []map[string]any
-	require.NoError(t, readJSON(resp, &result))
+	result := decodePage(t, resp)
 	require.Len(t, result, 1)
 	assert.Equal(t, "Anime Feed", result[0]["name"])
 }

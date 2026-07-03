@@ -34,6 +34,16 @@ func readJSON(resp *http.Response, target any) error {
 	return json.NewDecoder(resp.Body).Decode(target)
 }
 
+// decodePage reads a paginated list response ({ docs, pagination }) and returns the docs slice.
+func decodePage(t *testing.T, resp *http.Response) []map[string]any {
+	t.Helper()
+	var env struct {
+		Docs []map[string]any `json:"docs"`
+	}
+	require.NoError(t, readJSON(resp, &env))
+	return env.Docs
+}
+
 // mockRefreshTokenCtrl satisfies RefreshTokenControllerInterface for auth middleware.
 type mockRefreshTokenCtrl struct{}
 

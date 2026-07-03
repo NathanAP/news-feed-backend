@@ -11,7 +11,7 @@ import (
 	"github.com/nathanap/news-feed-backend/services/ai"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	"github.com/nathanap/news-feed-backend/services/discovery"
-	"github.com/nathanap/news-feed-backend/services/judgment"
+	"github.com/nathanap/news-feed-backend/services/judgement"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 	"github.com/nathanap/news-feed-backend/tests/fixtures"
 	"github.com/nathanap/news-feed-backend/tests/mocks/external"
@@ -43,7 +43,7 @@ func setup(t *testing.T, aiClient ai.Client) (controllers.TransactionRunner, db.
 	articleCtrl := controllers.NewArticleController()
 	feedCtrl := controllers.NewFeedController()
 	afCtrl := controllers.NewArticleFeedController()
-	evaluator := judgment.NewEvaluator(aiClient, 70)
+	evaluator := judgement.NewEvaluator(aiClient, 70)
 	detector := &servicemocks.MockLanguageDetector{}
 	processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, detector, aiClient, aiClient, evaluator, false)
 	return runTx, queries, processor
@@ -106,7 +106,7 @@ func TestIntegration_Processor_NullLanguageOnDetectionFailure(t *testing.T) {
 	require.NoError(t, err)
 
 	aiClient := &external.MockAIClient{}
-	evaluator := judgment.NewEvaluator(aiClient, 70)
+	evaluator := judgement.NewEvaluator(aiClient, 70)
 	processor := discovery.NewTreatmentProcessor(
 		runTx, controllers.NewArticleController(), controllers.NewFeedController(),
 		controllers.NewArticleFeedController(), failingDetector, aiClient, aiClient, evaluator, false,

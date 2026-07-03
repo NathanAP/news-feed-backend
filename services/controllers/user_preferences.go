@@ -7,17 +7,17 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/nathanap/news-feed-backend/schemas"
+	"github.com/nathanap/news-feed-backend/schemas/enums"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
 var ErrUserPreferencesNotFound = errors.New("user preferences not found")
 
 type UpdatePreferencesParams struct {
-	Theme            schemas.Theme
-	Language         schemas.Language
+	Theme            enums.Theme
+	Language         enums.Language
 	TranslateContent bool
-	AIPersonality    schemas.AIPersonality
+	AIPersonality    enums.AIPersonality
 }
 
 type UserPreferencesController struct{}
@@ -38,10 +38,10 @@ func DefaultPreferencesParams(userID string) (db.CreateUserPreferencesParams, er
 	return db.CreateUserPreferencesParams{
 		ID:               id.String(),
 		UserID:           userID,
-		Theme:            string(schemas.ThemeDark),
-		Language:         string(schemas.LanguagePT),
+		Theme:            string(enums.ThemeDark),
+		Language:         string(enums.LanguagePT),
 		TranslateContent: 1,
-		AiPersonality:    string(schemas.AIPersonalityMixed),
+		AiPersonality:    string(enums.AIPersonalityMixed),
 	}, nil
 }
 

@@ -15,7 +15,9 @@ auth:bearer {
 }
 
 params:query {
-  name:
+  ~name:
+  ~page: 1
+  ~page_size: 20
 }
 
 docs {
@@ -24,7 +26,11 @@ docs {
   Filtro opcional:
   - name: filtra por substring no nome (case-insensitive)
 
+  Paginação: page (mín/padrão 1) e page_size (mín 1, máx 100, padrão 20). Resposta paginada:
+  { docs: [...], pagination: {...} }. Ver PROJECT.md.
+
   Exemplos:
   - /v1/feeds
   - /v1/feeds?name=metal
+  - /v1/feeds?page=2&page_size=10
 }

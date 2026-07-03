@@ -35,6 +35,16 @@ func readJSON(resp *http.Response, target any) error {
 	return json.NewDecoder(resp.Body).Decode(target)
 }
 
+// decodePage reads a paginated list response ({ docs, pagination }) and returns the docs slice.
+func decodePage(t *testing.T, resp *http.Response) []map[string]any {
+	t.Helper()
+	var env struct {
+		Docs []map[string]any `json:"docs"`
+	}
+	require.NoError(t, readJSON(resp, &env))
+	return env.Docs
+}
+
 func setupIntegrationApp(t *testing.T) (*fiber.App, db.Querier) {
 	t.Helper()
 
@@ -218,8 +228,7 @@ func TestIntegration_Feeds_CrossUserIsolation(t *testing.T) {
 	listReq.Header.Set("Authorization", "Bearer "+tokenB)
 	listResp, err := app.Test(listReq)
 	require.NoError(t, err)
-	var listed []map[string]any
-	require.NoError(t, readJSON(listResp, &listed))
+	listed := decodePage(t, listResp)
 	assert.Empty(t, listed)
 
 	// User A still sees their own feed.
@@ -299,8 +308,7 @@ func TestIntegration_DeleteFeed_RemovesFromList(t *testing.T) {
 	listReq.Header.Set("Authorization", "Bearer "+token)
 	listResp, err := app.Test(listReq)
 	require.NoError(t, err)
-	var listed []map[string]any
-	require.NoError(t, readJSON(listResp, &listed))
+	listed := decodePage(t, listResp)
 	assert.Empty(t, listed)
 }
 
@@ -318,8 +326,7 @@ func TestIntegration_ListFeeds_FilterByName(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var result []map[string]any
-	require.NoError(t, readJSON(resp, &result))
+	result := decodePage(t, resp)
 	require.Len(t, result, 1)
 	assert.Equal(t, "Metallica News", result[0]["name"])
 }

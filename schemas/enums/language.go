@@ -1,4 +1,4 @@
-package schemas
+package enums
 
 // Language is the application-wide set of supported languages. It is the single source of truth
 // shared by every feature that reasons about language: user preferences (the reader's language),

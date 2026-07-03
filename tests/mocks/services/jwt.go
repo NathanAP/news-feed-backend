@@ -5,6 +5,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/nathanap/news-feed-backend/schemas"
+	"github.com/nathanap/news-feed-backend/schemas/enums"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
@@ -16,16 +17,16 @@ func GenerateTestAccessToken(user db.User, refreshTokenID string, prefs ...db.Us
 		picture = user.Picture.String
 	}
 
-	theme := schemas.ThemeDark
-	language := schemas.LanguagePT
+	theme := enums.ThemeDark
+	language := enums.LanguagePT
 	translateContent := true
-	aiPersonality := schemas.AIPersonalityMixed
+	aiPersonality := enums.AIPersonalityMixed
 
 	if len(prefs) > 0 {
-		theme = schemas.Theme(prefs[0].Theme)
-		language = schemas.Language(prefs[0].Language)
+		theme = enums.Theme(prefs[0].Theme)
+		language = enums.Language(prefs[0].Language)
 		translateContent = prefs[0].TranslateContent == 1
-		aiPersonality = schemas.AIPersonality(prefs[0].AiPersonality)
+		aiPersonality = enums.AIPersonality(prefs[0].AiPersonality)
 	}
 
 	claims := schemas.Claims{

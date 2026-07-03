@@ -35,6 +35,16 @@ func readJSON(resp *http.Response, target any) error {
 	return json.NewDecoder(resp.Body).Decode(target)
 }
 
+// decodePage reads a paginated list response ({ docs, pagination }) and returns the docs slice.
+func decodePage(t *testing.T, resp *http.Response) []map[string]any {
+	t.Helper()
+	var env struct {
+		Docs []map[string]any `json:"docs"`
+	}
+	require.NoError(t, readJSON(resp, &env))
+	return env.Docs
+}
+
 func setupIntegrationApp(t *testing.T, httpClient *http.Client) (*fiber.App, db.Querier) {
 	t.Helper()
 
@@ -179,8 +189,7 @@ func TestIntegration_CreateSource_AfterSoftDelete(t *testing.T) {
 	listReq.Header.Set("Authorization", "Bearer "+token)
 	listResp, err := app.Test(listReq)
 	require.NoError(t, err)
-	var listed []map[string]any
-	require.NoError(t, readJSON(listResp, &listed))
+	listed := decodePage(t, listResp)
 	require.Len(t, listed, 1)
 	assert.Equal(t, recreated["id"], listed[0]["id"])
 }
@@ -303,8 +312,7 @@ func TestIntegration_ListSources_ReturnsAll(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var result []map[string]any
-	require.NoError(t, readJSON(resp, &result))
+	result := decodePage(t, resp)
 	assert.Len(t, result, 2)
 }
 
@@ -322,8 +330,7 @@ func TestIntegration_ListSources_EmptyDB(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var result []map[string]any
-	require.NoError(t, readJSON(resp, &result))
+	result := decodePage(t, resp)
 	assert.Empty(t, result)
 }
 
@@ -365,8 +372,7 @@ func TestIntegration_ListSources_ExcludesSoftDeleted(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, listResp.StatusCode)
 
-	var result []map[string]any
-	require.NoError(t, readJSON(listResp, &result))
+	result := decodePage(t, listResp)
 	require.Len(t, result, 1)
 	assert.Equal(t, keptID, result[0]["id"])
 	assert.NotEqual(t, deletedID, result[0]["id"])

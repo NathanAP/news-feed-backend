@@ -11,7 +11,7 @@ import (
 	"github.com/nathanap/news-feed-backend/schemas"
 	"github.com/nathanap/news-feed-backend/services/ai"
 	"github.com/nathanap/news-feed-backend/services/controllers"
-	"github.com/nathanap/news-feed-backend/services/judgment"
+	"github.com/nathanap/news-feed-backend/services/judgement"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
@@ -65,7 +65,7 @@ func JudgeArticle(feedCtrl controllers.FeedControllerInterface, judgers map[stri
 		}
 
 		// Layer 2: AI scoring against each candidate.
-		evaluator := judgment.NewEvaluator(judger, threshold)
+		evaluator := judgement.NewEvaluator(judger, threshold)
 		start := time.Now()
 		results, err := evaluator.Evaluate(c.Context(), candidates, req.Article.Title, req.Article.Keywords, req.Article.Content)
 		judgementMs := time.Since(start).Milliseconds()

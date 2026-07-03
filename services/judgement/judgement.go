@@ -1,10 +1,10 @@
-// Package judgment is the second (AI) layer of feed judgement. Given a set of candidate feeds
+// Package judgement is the second (AI) layer of feed judgement. Given a set of candidate feeds
 // (already narrowed by the cheap keyword-overlap query) and an article, it asks the AI to score how
 // strongly the article belongs to each feed and compares the score against a threshold. It performs
 // no I/O beyond the AI calls: fetching candidates and persisting the resulting associations is the
 // caller's responsibility, so the same Evaluator serves both the discovery CRON and the dry-run
 // endpoint.
-package judgment
+package judgement
 
 import (
 	"context"

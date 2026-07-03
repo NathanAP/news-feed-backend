@@ -8,6 +8,7 @@ import (
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/schemas"
 	"github.com/nathanap/news-feed-backend/services/controllers"
+	"github.com/nathanap/news-feed-backend/services/pagination"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
@@ -35,7 +36,8 @@ func ListSources(ctrl controllers.SourceControllerInterface, runTx controllers.T
 			result[i] = toSourceResponse(s)
 		}
 
-		return c.JSON(result)
+		params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
+		return c.JSON(pagination.Paginate(result, params))
 	}
 }
 

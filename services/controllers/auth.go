@@ -12,6 +12,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/nathanap/news-feed-backend/schemas"
+	"github.com/nathanap/news-feed-backend/schemas/enums"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
@@ -162,10 +163,10 @@ func (c *AuthController) GenerateAccessToken(user db.User, refreshTokenID string
 		Picture:          picture,
 		RefreshTokenID:   refreshTokenID,
 		CreatedAt:        user.CreatedAt,
-		Theme:            schemas.Theme(prefs.Theme),
-		Language:         schemas.Language(prefs.Language),
+		Theme:            enums.Theme(prefs.Theme),
+		Language:         enums.Language(prefs.Language),
 		TranslateContent: prefs.TranslateContent == 1,
-		AIPersonality:    schemas.AIPersonality(prefs.AiPersonality),
+		AIPersonality:    enums.AIPersonality(prefs.AiPersonality),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(c.accessTokenExpiry)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

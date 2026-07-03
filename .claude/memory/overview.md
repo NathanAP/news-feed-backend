@@ -23,7 +23,8 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
 - `migrations/` — SQL goose (up/down). `schema.sql` — espelho do schema para o sqlc.
 - `sqlc/` — código gerado (models, querier, `*.sql.go`) + `queries/*.sql`. Gerado à mão
   seguindo o padrão do sqlc (não há `sqlc generate` rodando no CI ainda).
-- `schemas/` — DTOs de request/response e enums.
+- `schemas/` — DTOs de request/response. Enums em `schemas/enums/` (fonte única, um arquivo por
+  enum: `theme.go`, `language.go`, `ai_personality.go`), referenciados como `enums.X`.
 - `services/controllers/` — regras de negócio. **Stateless**, recebem `db.Querier`, nunca
   commitam (ver "Transações" abaixo).
 - `services/endpoints/v1/<modelo>/` — handlers HTTP (um arquivo por rota).
@@ -40,7 +41,7 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
   opcional). Tratamento via `TREATMENT_*`; keywords via `KEYWORDS_MODE`; julgamento via `JUDGEMENT_MODE`
   + `JUDGEMENT_THRESHOLD` — modos `local`/`groq`/`gemini` pré-montados no boot (`buildModeClients`,
   compartilhado) e trocáveis por chamada nos dry-runs. `services/prompts/` — `.yaml` (`go:embed`).
-- `services/judgment/` — camada 2 do julgamento: `Evaluator` (um `ai.Judger` + threshold) pontua uma
+- `services/judgement/` — camada 2 do julgamento: `Evaluator` (um `ai.Judger` + threshold) pontua uma
   notícia contra feeds candidatos. Sem I/O além da IA; buscar candidatos (camada 1, SQL `json_each`
   via `FeedController.FindCandidatesByKeywords`) e gravar `articles_feeds` é do chamador, então serve
   CRON e o `POST /articles/judgement` (dry-run) igual.
@@ -48,7 +49,10 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
   determinístico, **não é IA**), restrito aos idiomas suportados. Roda no tratamento e grava em
   `articles.language_original` (null quando não confiável). Capacidade `ai.Translator` (LLM apenas,
   `TRANSLATION_*`) faz a **tradução personalizada** on-demand (`GET /articles/:id/translate/:language`),
-  read-only, respeitando `ai_personality`. Enum de idiomas único em `schemas/language.go`.
+  read-only, respeitando `ai_personality`. Enum de idiomas único em `schemas/enums/language.go`.
+- `services/pagination/` — paginação global (`ParseParams` + `Paginate[T]` genérico). Toda rota de
+  lista (`GET /v1/{model}`) responde `{ docs, pagination }` (`page`/`page_size` na query). Em memória
+  sobre a lista já filtrada (revisitar com SQL LIMIT/OFFSET quando/se escalar — pós-Postgres).
 - `middlewares/` — `auth.go` (parse JWT + valida sessão); `app_status.go` (guard de manutenção
   global: 503 quando `system.app_status=0`, exceto `/health` e o toggle).
 - `tests/` — `unit/`, `integration/api/`, `end-to-end/api/`, `fixtures/`, `mocks/`, `utils/`.

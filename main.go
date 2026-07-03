@@ -33,7 +33,7 @@ import (
 	sourceendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/sources"
 	systemendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/system"
 	userendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/users"
-	"github.com/nathanap/news-feed-backend/services/judgment"
+	"github.com/nathanap/news-feed-backend/services/judgement"
 	"github.com/nathanap/news-feed-backend/services/langdetect"
 	"github.com/nathanap/news-feed-backend/services/sanitize"
 )
@@ -125,7 +125,7 @@ func main() {
 		log.Printf("JUDGEMENT_MODE %q not recognized (use local, groq or gemini); judgement disabled by default", judgementDefaultMode)
 		defaultJudger = ai.NewDisabledClient()
 	}
-	evaluator := judgment.NewEvaluator(defaultJudger, judgementThreshold)
+	evaluator := judgement.NewEvaluator(defaultJudger, judgementThreshold)
 
 	// Language detection (lingua-go) is used by the treatment step; not AI, so no provider/mode.
 	detector := langdetect.New()

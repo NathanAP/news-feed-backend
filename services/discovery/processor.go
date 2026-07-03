@@ -8,7 +8,7 @@ import (
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/services/ai"
 	"github.com/nathanap/news-feed-backend/services/controllers"
-	"github.com/nathanap/news-feed-backend/services/judgment"
+	"github.com/nathanap/news-feed-backend/services/judgement"
 	"github.com/nathanap/news-feed-backend/services/langdetect"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
@@ -29,7 +29,7 @@ type TreatmentProcessor struct {
 	detector    langdetect.Detector
 	treater     ai.Treater
 	keyworder   ai.Keyworder
-	evaluator   *judgment.Evaluator
+	evaluator   *judgement.Evaluator
 	verbose     bool
 }
 
@@ -41,7 +41,7 @@ func NewTreatmentProcessor(
 	detector langdetect.Detector,
 	treater ai.Treater,
 	keyworder ai.Keyworder,
-	evaluator *judgment.Evaluator,
+	evaluator *judgement.Evaluator,
 	verbose bool,
 ) *TreatmentProcessor {
 	return &TreatmentProcessor{

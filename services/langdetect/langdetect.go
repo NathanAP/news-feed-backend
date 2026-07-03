@@ -1,6 +1,6 @@
 // Package langdetect detects the original language of an article's text. It is a thin wrapper over
 // lingua-go, restricted to the languages the application supports (CLAUDE.md), and returns lowercase
-// ISO 639-1 codes that line up with the schemas.Language enum. Detection is deterministic, offline
+// ISO 639-1 codes that line up with the enums.Language enum. Detection is deterministic, offline
 // and quota-free — it is NOT an AI call, so it stays provider-agnostic and cheap.
 package langdetect
 

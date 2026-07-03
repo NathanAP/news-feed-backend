@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.23.1.0
+0.24.0.0
 
 ## Versão 0.1.0.0
 
@@ -360,14 +360,15 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.24.0.0
 
-- [ ] Corrigir a nomenclatura da pasta `raiz/services/judgment` e `raiz/services/ai/judgment` para `judgement`
-- [ ] Criar lógica de paginação para uso global
+- [x] Corrigir a nomenclatura da pasta `raiz/services/judgment` e `raiz/services/ai/judgment` para `judgement`
+- [x] Criar lógica de paginação para uso global
     - Seguir a lógica presente em `PROJECT.md`
-- [ ] Adicionar paginação em todas as rotas de busca múltipla (`GET base_url/v1/{model}/`)
-- [ ] Mover `enums` para um local comum
-    - Acredito que o melhor lugar seja `raiz/services/enums/`? E cada arquivo na pasta é um enum diferente?
-    - Mesmo que sejam específicos de certos modelos
-    - A ideia é que o código possa sempre fazer `enum.meu_enum` sem preocupação de importações desnecessárias
+    - Pacote `services/pagination` (`ParseParams` + `Paginate[T]` genérico); paginação em memória sobre a lista já filtrada
+- [x] Adicionar paginação em todas as rotas de busca múltipla (`GET base_url/v1/{model}/`)
+    - `GET /v1/articles`, `/v1/sources`, `/v1/feeds` agora retornam `{ docs, pagination }`
+- [x] Mover `enums` para um local comum
+    - Ficaram em `schemas/enums/` (um arquivo por enum: `theme.go`, `language.go`, `ai_personality.go`)
+    - Sobre `langdetect`/`sanitize` terem `_test.go`: são pacotes de lógica pura (sem banco/rota), então teste co-localizado é o idiomático — mesmo padrão do `services/ai`. Documentado no `conventions.md`.
 
 ## Versão 0.25.0.0
 
@@ -389,6 +390,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [ ] Criar um comando para criar registros de `articles_feeds` sem precisar depender da CRON
     - Procurar cada notícia e ligar elas em cada feed existente
     - Criar apenas para o usuário dev
+- [ ] Criar um comando para executar todos de uma vez
 - [ ] Todos esses scripts só podem ser executados enquanto a variável de ambiente `ENVIRONMENT` estiver em `development`
 - [ ] Documentar este comando detalhadamente em `raiz/cmd/seed/instructions.md`
 

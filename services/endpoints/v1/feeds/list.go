@@ -9,6 +9,7 @@ import (
 	"github.com/nathanap/news-feed-backend/middlewares"
 	"github.com/nathanap/news-feed-backend/schemas"
 	"github.com/nathanap/news-feed-backend/services/controllers"
+	"github.com/nathanap/news-feed-backend/services/pagination"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
@@ -41,7 +42,8 @@ func ListFeeds(ctrl controllers.FeedControllerInterface, runTx controllers.Trans
 			result = append(result, response)
 		}
 
-		return c.JSON(result)
+		params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
+		return c.JSON(pagination.Paginate(result, params))
 	}
 }
 

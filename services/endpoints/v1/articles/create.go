@@ -9,6 +9,7 @@ import (
 
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/schemas"
+	"github.com/nathanap/news-feed-backend/schemas/enums"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
@@ -95,7 +96,7 @@ func validateLanguageOriginal(language string) string {
 	if language == "" {
 		return "language_original is required"
 	}
-	if !schemas.Language(language).IsValid() {
+	if !enums.Language(language).IsValid() {
 		return "language_original must be a supported language code"
 	}
 	return ""

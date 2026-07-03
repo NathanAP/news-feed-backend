@@ -39,8 +39,7 @@ func TestListArticles_Success(t *testing.T) {
 	resp := listArticles(t, app, "", true)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var result []map[string]any
-	require.NoError(t, readJSON(resp, &result))
+	result := decodePage(t, resp)
 	assert.Len(t, result, 2)
 }
 
@@ -57,8 +56,7 @@ func TestListArticles_Empty(t *testing.T) {
 	resp := listArticles(t, app, "", true)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var result []map[string]any
-	require.NoError(t, readJSON(resp, &result))
+	result := decodePage(t, resp)
 	assert.Empty(t, result)
 }
 
@@ -77,8 +75,7 @@ func TestListArticles_FilterByURL(t *testing.T) {
 	resp := listArticles(t, app, "?url=other-site", true)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var result []map[string]any
-	require.NoError(t, readJSON(resp, &result))
+	result := decodePage(t, resp)
 	require.Len(t, result, 1)
 	assert.Equal(t, a2.UrlOriginal, result[0]["url_original"])
 }

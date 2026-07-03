@@ -38,6 +38,16 @@ func readJSON(resp *http.Response, target any) error {
 	return json.NewDecoder(resp.Body).Decode(target)
 }
 
+// decodePage reads a paginated list response ({ docs, pagination }) and returns the docs slice.
+func decodePage(t *testing.T, resp *http.Response) []map[string]any {
+	t.Helper()
+	var env struct {
+		Docs []map[string]any `json:"docs"`
+	}
+	require.NoError(t, readJSON(resp, &env))
+	return env.Docs
+}
+
 func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth, httpClient *http.Client) (*fiber.App, db.Querier) {
 	t.Helper()
 
@@ -156,8 +166,7 @@ func TestE2E_Sources_FullCRUDFlow(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, listResp.StatusCode)
 
-	var listed []map[string]any
-	require.NoError(t, readJSON(listResp, &listed))
+	listed := decodePage(t, listResp)
 	assert.Len(t, listed, 1)
 
 	// Update

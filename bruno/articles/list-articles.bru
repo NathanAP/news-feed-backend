@@ -15,12 +15,21 @@ auth:bearer {
 }
 
 params:query {
-  url:
+  ~url:
+  ~page: 1
+  ~page_size: 20
 }
 
 docs {
   Filtro opcional (query param):
   - url: filtra por substring na url_original (case-insensitive)
+
+  Paginação (query params, ver PROJECT.md):
+  - page: página atual (mín/padrão 1)
+  - page_size: registros por página (mín 1, máx 100, padrão 20)
+
+  Resposta paginada: { docs: [...], pagination: { actual_page, total_pages, actual_count,
+  total_count, has_next_page, has_previous_page } }. Página fora do range devolve docs vazio (sem erro).
 
   Apenas notícias ativas são retornadas. Registros soft-deleted nunca
   aparecem em listas, conforme as regras de status em PROJECT.md.
@@ -28,4 +37,5 @@ docs {
   Exemplos:
   - /v1/articles
   - /v1/articles?url=wikimetal
+  - /v1/articles?page=2&page_size=10
 }

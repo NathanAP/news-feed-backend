@@ -30,8 +30,7 @@ func TestListSources_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var result []map[string]any
-	require.NoError(t, readJSON(resp, &result))
+	result := decodePage(t, resp)
 	assert.Len(t, result, 2)
 }
 
@@ -53,8 +52,7 @@ func TestListSources_Empty(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var result []map[string]any
-	require.NoError(t, readJSON(resp, &result))
+	result := decodePage(t, resp)
 	assert.Empty(t, result)
 }
 
@@ -78,8 +76,7 @@ func TestListSources_FilterByURL(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var result []map[string]any
-	require.NoError(t, readJSON(resp, &result))
+	result := decodePage(t, resp)
 	assert.Len(t, result, 1)
 	assert.Equal(t, s2.Url, result[0]["url"])
 }
