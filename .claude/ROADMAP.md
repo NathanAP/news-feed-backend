@@ -393,7 +393,7 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Utilizar arquivos na pasta `raiz/cmd/seed/examples.json`
     - Permitir chamar o comando mais de uma vez pra criar as mesmas notícias mais de uma vez
     - Pra evitar o problema da `url_original` duplicada, precisamos que o script executado crie uma url aleatória inexistente para cada notícia
-        - Pode fazer um random numérico mesmo, tipo `https://www.article-{numero_aleatorio}.com.br/feed/`
+        - Pode fazer um random numérico mesmo, tipo `https://www.article-{uuid_aleatorio}.com.br/feed/`
 - [ ] Criar um comando para criar registros de feeds
     - Comando deve ser `task seed-dev-feeds` ou `task sdf`
     - A execução do comando roda um script em Go presente na pasta `raiz/cmd/seed/dev_feeds.go`

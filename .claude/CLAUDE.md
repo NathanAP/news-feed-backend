@@ -17,9 +17,10 @@ API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
     - Melhoria da clareza escrita na especificação da tarefa.
     - Planejamento de programação da tarefa.
     - Execução.
-    - Atualização nos testes unitários, de integração e end-to-end.
+    - Atualização nos testes unitários, de integração e end-to-end presentes em `raiz/tests/`.
+    - Atualização nos scripts de teste presentes em `raiz/cmd/`.
     - Atualização de arquivos de controle de versão.
-    - Criar um arquivo na pasta `versions` para resumir o que foi feito.
+    - Criar um arquivo na pasta `versions/` para resumir o que foi feito.
     - Atualização de arquivos de controle de memória.
     - Resumir o que foi feito.
     - Explicar a melhor forma de testar o que foi feito (quando aplicável).

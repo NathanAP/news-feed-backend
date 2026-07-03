@@ -1,8 +1,14 @@
 {
-    "users": {
+    "user": {
         "email": "dev@example.com",
         "name": "Development",
         "picture": "https://avatars.githubusercontent.com/u/1031871?v=4"
+    },
+    "user_preferences": {
+        "theme": "dark",
+        "language": "pt",
+        "translate_content": true,
+        "ai_personality": "friendly"
     },
     "sources": [
         {
