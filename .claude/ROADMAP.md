@@ -415,9 +415,10 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.26.0.0
 
-- [ ] Docker funcionando
-- [ ] docker-compose orquestrando corretamente
-- [ ] Fazer o comando `local-add-seed` funcionar no container do Docker também
+- [ ] Fazer com que a aplicação possa subir através do Docker
+    - API
+    - SQLite
+- [ ] Fazer os comandos da 0.25 funcionar no container do Docker também
 
 ## Versão 0.27.0.0
 
