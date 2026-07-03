@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.24.0.0
+0.25.0.0
 
 ## Versão 0.1.0.0
 
@@ -372,46 +372,46 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.25.0.0
 
-- [ ] Criar um comando para criar registro do usuário dev
+- [x] Criar um comando para criar registro do usuário dev
     - Comando deve ser `task seed-user-dev` ou `task sud`
     - A execução do comando roda um script em Go presente na pasta `raiz/cmd/seed/dev_user.go`
     - Utilizar arquivos na pasta `raiz/cmd/seed/examples.json`
     - Não permitir criar o usuário duas vezes
-- [ ] Criar um comando para criar um `access_token` ao usuário dev
+- [x] Criar um comando para criar um `access_token` ao usuário dev
     - Comando deve ser `task seed-dev-login` ou `task sdl`
     - A execução do comando roda um script em Go presente na pasta `raiz/cmd/seed/dev_login.go`
     - Usuário dev deve existir
     - Emitir automaticamente um `refresh_token` e um `access_token` como retorno final do comando
-- [ ] Criar um comando para criar registros de fontes de notícias
+- [x] Criar um comando para criar registros de fontes de notícias
     - Comando deve ser `task seed-dev-sources` ou `task sds`
     - A execução do comando roda um script em Go presente na pasta `raiz/cmd/seed/dev_sources.go`
     - Utilizar arquivos na pasta `raiz/cmd/seed/examples.json`
     - Não permitir criar o fontes de notícias duas vezes
-- [ ] Criar um comando para criar registros de notícias sem precisar depender da CRON
+- [x] Criar um comando para criar registros de notícias sem precisar depender da CRON
     - Comando deve ser `task seed-dev-articles` ou `task sda`
     - A execução do comando roda um script em Go presente na pasta `raiz/cmd/seed/dev_articles.go`
     - Utilizar arquivos na pasta `raiz/cmd/seed/examples.json`
     - Permitir chamar o comando mais de uma vez pra criar as mesmas notícias mais de uma vez
     - Pra evitar o problema da `url_original` duplicada, precisamos que o script executado crie uma url aleatória inexistente para cada notícia
         - Pode fazer um random numérico mesmo, tipo `https://www.article-{uuid_aleatorio}.com.br/feed/`
-- [ ] Criar um comando para criar registros de feeds
+- [x] Criar um comando para criar registros de feeds
     - Comando deve ser `task seed-dev-feeds` ou `task sdf`
     - A execução do comando roda um script em Go presente na pasta `raiz/cmd/seed/dev_feeds.go`
     - Utilizar arquivos na pasta `raiz/cmd/seed/examples.json`
     - Criar apenas para o usuário dev
     - Não permitir criar o feeds duas vezes
-- [ ] Criar um comando para criar registros de `articles_feeds` sem precisar depender da CRON
+- [x] Criar um comando para criar registros de `articles_feeds` sem precisar depender da CRON
     - Comando deve ser `task seed-dev-articles-feeds` ou `task sdaf`
     - A execução do comando roda um script em Go presente na pasta `raiz/cmd/seed/dev_article_feeds.go`
     - Procurar cada notícia e ligar elas em cada feed existente
     - Criar apenas para o usuário dev
-- [ ] Criar um comando para executar todos de uma vez
+- [x] Criar um comando para executar todos de uma vez
     - Comando deve ser `task seed-dev-full` ou `task sdfull`
     - A execução do comando roda um script em Go presente na pasta `raiz/cmd/seed/dev_full.go`
-- [ ] Criar endpoint `login-dev` conforme descritp em `PROJECT.md`
-- [ ] Todos esses scripts só podem ser executados enquanto a variável de ambiente `ENVIRONMENT` estiver em `development`
-- [ ] Documentar sobre esses comandos (os de seed) em `raiz/cmd/seed/instructions.md`
-- [ ] Documentar todos os comportamentos sobre a pasta `cmd` detalhadamente em `raiz/.claude/memory/cmd.md`
+- [x] Criar endpoint `login-dev` conforme descritp em `PROJECT.md`
+- [x] Todos esses scripts só podem ser executados enquanto a variável de ambiente `ENVIRONMENT` estiver em `development`
+- [x] Documentar sobre esses comandos (os de seed) em `raiz/cmd/seed/instructions.md`
+- [x] Documentar todos os comportamentos sobre a pasta `cmd` detalhadamente em `raiz/.claude/memory/cmd.md`
 
 ## Versão 0.26.0.0
 

@@ -29,11 +29,15 @@
 - `DELETE /auth/invalidate` — **aberta** (admin-futuro). Body `{ refresh_token }`. Derruba uma sessão.
 - `DELETE /auth/invalidate-all` — **aberta** (admin-futuro). Query `user_id`. Derruba todas as sessões.
 
-## Users (`/v1/users`) — todas com auth
+## Users (`/v1/users`) — com auth (exceto dev-login)
 - `GET /users/me` — dados do usuário (lidos do JWT).
 - `GET /users/me/preferences` — preferências (lidas do JWT).
 - `PUT /users/me/preferences` — atualiza preferências. Retorna `{ access_token, expires_in, preferences }`
   (novo token já com as preferências atualizadas).
+- `POST /users/dev-login` — **exclusivo de desenvolvimento** (registrado só quando `ENVIRONMENT=development`;
+  não existe em staging/prod). **Sem auth.** Loga o usuário dev semeado (`task sud`) sem Google OAuth,
+  emitindo `{ access_token, refresh_token, expires_in }`. 404 se o usuário dev não foi semeado. Equivalente
+  ao `task sdl` no CLI.
 
 ## Sources (`/v1/sources`) — auth (semântica admin; hoje aberta a qualquer autenticado)
 - `POST /sources/create` — `{ url, url_rss }` → 201 / 400 / 409 (url duplicada entre ativas) / 500.

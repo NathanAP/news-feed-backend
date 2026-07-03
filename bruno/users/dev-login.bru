@@ -1,0 +1,25 @@
+meta {
+  name: Dev Login (development only)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/v1/users/dev-login
+  body: none
+  auth: none
+}
+
+docs {
+  Login do usuário dev SEM Google OAuth — exclusivo do ambiente de desenvolvimento. Emite um
+  `access_token` e um `refresh_token` para o usuário semeado (`task sud` / seed-user-dev).
+
+  A rota só é registrada quando `ENVIRONMENT=development` (registro condicional no main.go), então
+  NÃO existe em homologação/produção.
+
+  Respostas:
+  - 200 `{ access_token, refresh_token, expires_in }` — cole o `access_token` no environment do Bruno.
+  - 404 se o usuário dev ainda não foi semeado (rode `task sud`).
+
+  Alternativa via CLI: `task sdl` (seed-dev-login) imprime os mesmos tokens no terminal.
+}

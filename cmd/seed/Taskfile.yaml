@@ -1,0 +1,48 @@
+version: "3"
+
+# Development-only seed commands. Included (flattened) by the root Taskfile, so they are invoked as
+# `task sud`, `task sds`, ... from the project root. Each runs the `cmd/seed` binary with a
+# subcommand; every command refuses to run unless ENVIRONMENT=development. See instructions.md.
+
+tasks:
+    seed-user-dev:
+        desc: "Seed the development user (with preferences). Idempotent."
+        aliases: [sud]
+        cmds:
+            - go run ./cmd/seed user
+
+    seed-dev-login:
+        desc: "Issue an access_token + refresh_token for the dev user (prints them)."
+        aliases: [sdl]
+        cmds:
+            - go run ./cmd/seed login
+
+    seed-dev-sources:
+        desc: "Seed the example news sources. Idempotent."
+        aliases: [sds]
+        cmds:
+            - go run ./cmd/seed sources
+
+    seed-dev-articles:
+        desc: "Seed the example articles (re-runnable; random url_original each run)."
+        aliases: [sda]
+        cmds:
+            - go run ./cmd/seed articles
+
+    seed-dev-feeds:
+        desc: "Seed the example feeds for the dev user. Idempotent."
+        aliases: [sdf]
+        cmds:
+            - go run ./cmd/seed feeds
+
+    seed-dev-articles-feeds:
+        desc: "Link every article to every dev-user feed (bypasses judgement). Idempotent."
+        aliases: [sdaf]
+        cmds:
+            - go run ./cmd/seed articles-feeds
+
+    seed-dev-full:
+        desc: "Run all seed commands in order (user, sources, feeds, articles, articles-feeds, login)."
+        aliases: [sdfull]
+        cmds:
+            - go run ./cmd/seed full

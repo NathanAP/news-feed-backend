@@ -166,6 +166,13 @@ func main() {
 	users.Get("/me/preferences", append(authMiddleware, userendpoints.GetPreferences())...)
 	users.Put("/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(prefCtrl, authCtrl, runTx, int(accessTokenExpiry.Seconds())))...)
 
+	// Development-only: log in the seeded dev user without Google OAuth. Registered conditionally so
+	// the route literally does not exist outside development (defense in depth beyond any runtime check).
+	if os.Getenv("ENVIRONMENT") == "development" {
+		users.Post("/dev-login", userendpoints.DevLogin(userCtrl, prefCtrl, refreshTokenCtrl, authCtrl, runTx, int(accessTokenExpiry.Seconds())))
+		log.Println("Development mode: POST /v1/users/dev-login enabled")
+	}
+
 	discoveryHTTPClient := &http.Client{Timeout: 30 * time.Second}
 
 	sources := api.Group("/sources")

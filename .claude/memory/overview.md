@@ -89,3 +89,8 @@ nunca finalizam. Quem orquestra o caso de uso (rota/middleware) abre a transaç�
 `task ls` (sobe local) · `task ta` (todos os testes) · `task tu`/`ti`/`te2e` (por camada) ·
 `task va` (vet). Porta em `API_PORT`. Banco local em `db/news_feed.db` (descartável: se uma
 migração `NOT NULL` quebrar o boot por dado antigo, basta apagar o arquivo).
+
+**Seed de dev** (`ENVIRONMENT=development`): `task sdfull` popula o banco (usuário dev, sources,
+feeds, artigos, associações) e imprime um token; `task sdl` só emite o token. `cmd/` é exclusivo de
+dev (ver `.claude/memory/cmd.md`). Login do dev sem OAuth: CLI `task sdl` ou `POST /v1/users/dev-login`
+(rota registrada só em `development`).

@@ -6,6 +6,17 @@ vars:
     LOG_FILE: ./tmp/app.log
     ERR_FILE: ./tmp/app.error.log
 
+# Development-only seed commands live in cmd/seed/Taskfile.yaml. Flattened so they are called as
+# `task sud`, `task sds`, ... from the root. They run the cmd/seed binary from the repo root.
+# optional: the whole cmd/ folder is deleted by CI/CD in staging/production — without this, Task
+# would fail to load the root Taskfile there. With it, the include is simply skipped when absent.
+includes:
+    seed:
+        taskfile: ./cmd/seed/Taskfile.yaml
+        dir: .
+        flatten: true
+        optional: true
+
 tasks:
     default:
         desc: Show available tasks
