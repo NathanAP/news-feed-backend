@@ -360,8 +360,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.24.0.0
 
-- [ ] Corrigir a nomenclatura da pasta `raiz/services/judgment` para `judgement`
-    - E também me explicar por que a pasta `langdetect` e `sanitize` tem arquivos com `_test.go` nelas
+- [ ] Corrigir a nomenclatura da pasta `raiz/services/judgment` e `raiz/services/ai/judgment` para `judgement`
 - [ ] Criar lógica de paginação para uso global
     - Seguir a lógica presente em `PROJECT.md`
 - [ ] Adicionar paginação em todas as rotas de busca múltipla (`GET base_url/v1/{model}/`)

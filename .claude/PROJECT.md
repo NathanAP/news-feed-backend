@@ -477,7 +477,7 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
     ```json
     {
         "docs": [{...}, {...}], // Lista de registros
-        "paginagion": {
+        "pagination": {
             "actual_page": "a página atual",
             "total_pages": "total de páginas",
             "actual_count": "contador de registros desta página",
@@ -487,6 +487,9 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
         }
     }
     ```
+- Queries devem usar as seguintes nomenclaturas:
+    - `?page=`: trafega entre as páginas. Valor mínimo e padrão em `1`.
+    - `?page_size=`: número de registros a serem trazidos. Valor mínimo `1`, máximo `100` e padrão `20`.
 - Queries erradas de páginas retornam uma lista vazia ao invés de erro.
     - Por exemplo, se a query requisitar a página 5 mas há apenas 4 páginas disponíveis não há erro. O valor da paginação `actual_page` irá estar em `5` e o valor de `total_pages` estará em `4`.
 
