@@ -1,0 +1,26 @@
+# Keep the build context small and never bake local/dev cruft or secrets into images.
+# What the builds NEED is kept: Go sources, go.mod/go.sum, migrations/ (embedded), and cmd/ +
+# examples.json (for the dev seed image).
+
+# Local database and runtime artifacts
+db/
+tmp/
+*.log
+.pid
+
+# Secrets and local env (compose injects .env at runtime via env_file, not at build time)
+.env
+.env.*
+!.env.example
+
+# VCS and editor
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Docs / tooling not needed to build the binaries
+.claude/
+bruno/
+tests/
+*.md
