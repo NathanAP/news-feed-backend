@@ -393,13 +393,13 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [ ] Todos esses scripts só podem ser executados enquanto a variável de ambiente `ENVIRONMENT` estiver em `development`
 - [ ] Documentar este comando detalhadamente em `raiz/cmd/seed/instructions.md`
 
-## Versão 0.25.0.0
+## Versão 0.26.0.0
 
 - [ ] Docker funcionando
 - [ ] docker-compose orquestrando corretamente
 - [ ] Fazer o comando `local-add-seed` funcionar no container do Docker também
 
-## Versão 0.26.0.0
+## Versão 0.27.0.0
 
 - [ ] Tornar o processo de descoberta, tratamento e julgamento de notícias pode ocorrer em paralelo ao invés de sequencial
     - Acredito que tenhamos que explorar o conceito de workers na API também
