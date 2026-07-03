@@ -523,7 +523,7 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
     - Derrubar a aplicação.
     - Realizar `git stash` e `git pull origin staging`.
     - Excluir as pastas `raiz/.claude/`, `raiz/bruno/`, `raiz/cmd/` e `raiz/test/`.
-    - Excluir arquivos com o padrão `.development` e `.production`.
+    - Excluir arquivos com o padrão `.development.` e `.production.`.
     - Copiar o arquivo `Taskfile.staging.yaml` para `Taskfile.yaml`.
     - Subir a aplicação.
 
@@ -535,7 +535,7 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
     - Derrubar a aplicação.
     - Realizar `git stash` e `git pull origin production`.
     - Excluir as pastas `raiz/.claude/`, `raiz/bruno/`, `raiz/cmd/` e `raiz/test/`.
-    - Excluir arquivos com o padrão `.development` e `.staging`.
+    - Excluir arquivos com o padrão `.development.` e `.staging.`.
     - Copiar o arquivo `Taskfile.production.yaml` para `Taskfile.yaml`.
     - Subir a aplicação.
 

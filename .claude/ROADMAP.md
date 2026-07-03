@@ -372,28 +372,40 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.25.0.0
 
+- [ ] Criar um comando para copiar arquivos do ambiente
+    - Comando deve ser `task copy-files {ambiente}` e `task cf {ambiente}`
+        - Por exemplo: `task cf development`
+    - Arquivos com o padrão `.{ambiente}.` devem ser copiados para sua versão original
+        - Por exemplo: `Taskfile.{ambiente}.yaml` para `Taskfile.yaml`
 - [ ] Criar um comando para criar registro do usuário dev
+    - Comando deve ser `task seed-user-dev` ou `task sud`
     - Utilizar arquivos na pasta `raiz/cmd/seed/examples.json`
     - Não permitir criar o usuário duas vezes
     - Dúvida: como podemos fazer o login dele? eu pensei em fazer uma rota exclusiva em dev pra isso... e aí o front poderia ter um botão em dev que só loga com esse usuário direto sem precisar passar pelo processo da Google também sabe?
 - [ ] Criar um comando para criar registros de fontes de notícias
+    - Comando deve ser `task seed-dev-sources` ou `task sds`
     - Utilizar arquivos na pasta `raiz/cmd/seed/examples.json`
     - Criar apenas para o usuário dev
 - [ ] Criar um comando para criar registros de notícias sem precisar depender da CRON
+    - Comando deve ser `task seed-dev-articles` ou `task sda`
     - Utilizar arquivos na pasta `raiz/cmd/seed/examples.json`
     - Permitir chamar o comando mais de uma vez pra criar as mesmas notícias mais de uma vez
     - Pra evitar o problema da `url_original` duplicada, precisamos que o script executado crie uma url aleatória inexistente para cada notícia
         - Pode fazer um random numérico mesmo, tipo `https://www.article-{numero_aleatorio}.com.br/feed/`
 - [ ] Criar um comando para criar registros de feeds
+    - Comando deve ser `task seed-dev-feeds` ou `task sdf`
     - Utilizar arquivos na pasta `raiz/cmd/seed/examples.json`
     - Criar apenas para o usuário dev
     - Não pode permitir que regras sejam quebradas
 - [ ] Criar um comando para criar registros de `articles_feeds` sem precisar depender da CRON
+    - Comando deve ser `task seed-dev-articles-feeds` ou `task sdaf`
     - Procurar cada notícia e ligar elas em cada feed existente
     - Criar apenas para o usuário dev
 - [ ] Criar um comando para executar todos de uma vez
+    - Comando deve ser `task seed-dev-full` ou `task sdfull`
 - [ ] Todos esses scripts só podem ser executados enquanto a variável de ambiente `ENVIRONMENT` estiver em `development`
-- [ ] Documentar este comando detalhadamente em `raiz/cmd/seed/instructions.md`
+- [ ] Documentar sobre esses comandos (os de seed) em `raiz/cmd/seed/instructions.md`
+- [ ] Documentar este comando detalhadamente em `raiz/.claude/memory/taskfile.md`
 
 ## Versão 0.26.0.0
 
