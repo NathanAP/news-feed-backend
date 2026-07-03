@@ -375,13 +375,16 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [ ] Criar um comando para copiar arquivos do ambiente
     - Comando deve ser `task copy-files {ambiente}` e `task cf {ambiente}`
         - Por exemplo: `task cf development`
-    - Arquivos com o padrão `.{ambiente}.` devem ser copiados para sua versão original
+    - Todos os arquivos com o padrão `*.{ambiente}.*` devem ser copiados para sua versão original `*.*`
         - Por exemplo: `Taskfile.{ambiente}.yaml` para `Taskfile.yaml`
 - [ ] Criar um comando para criar registro do usuário dev
     - Comando deve ser `task seed-user-dev` ou `task sud`
     - Utilizar arquivos na pasta `raiz/cmd/seed/examples.json`
     - Não permitir criar o usuário duas vezes
-    - Dúvida: como podemos fazer o login dele? eu pensei em fazer uma rota exclusiva em dev pra isso... e aí o front poderia ter um botão em dev que só loga com esse usuário direto sem precisar passar pelo processo da Google também sabe?
+- [ ] Criar um comando para criar um `access_token` ao usuário dev
+    - Comando deve ser `task seed-dev-login` ou `task sdl`
+    - Usuário dev deve existir
+    - Emitir automaticamente um `refresh_token` e um `access_token` como retorno final do comando
 - [ ] Criar um comando para criar registros de fontes de notícias
     - Comando deve ser `task seed-dev-sources` ou `task sds`
     - Utilizar arquivos na pasta `raiz/cmd/seed/examples.json`
