@@ -80,23 +80,23 @@ Você tem liberdade para acessar qualquer arquivo da pasta `.claude`.
 
 ## Stack
 
-- `GoLang` - linguagem base
-- `Fiber` - framework web
-- `SQLite3` - banco de dados
-- `sqlite-web` - interface de visualização do banco de dados
-- `goose` - migrações do banco de dados
-- `sqlc` - operações SQL
-- `jwt` - autenticação Bearer
-- `gofeed` - parsing de RSS feeds
-- `Google Gemini 2.5 Flash` - modelo LLM padrão
-- `Ollama qwen3:4b` - modelo SLM padrão
-- `Groq` - serviço online para SLM
-- `Docker + docker-compose` - orquestração
-- `bluemonday` - biblioteca de sanatização de conteúdo HTML
-- `lingua-go` - biblioteca que detecta o idioma de um texto ou conteúdo.
-- `testify` - biblioteca para testes
-- `robfig/cron/v3` - biblioteca em Go para criar CRONs nativamente
-- `Bruno` - app externo para teste e organização da coleção de requisições
+- `GoLang`: linguagem base.
+- `Fiber`: framework web.
+- `SQLite3`: banco de dados.
+- `sqlite-web`: interface de visualização do banco de dados.
+- `goose`: migrações do banco de dados.
+- `sqlc`: operações SQL.
+- `jwt`: autenticação Bearer.
+- `gofeed`: parsing de RSS feeds.
+- `Google Gemini 2.5 Flash`: modelo LLM padrão.
+- `Ollama qwen3:4b`: modelo SLM padrão.
+- `Groq`: serviço online para SLM.
+- `Docker + docker-compose`: orquestração.
+- `bluemonday`: biblioteca de sanatização de conteúdo HTML.
+- `lingua-go`: biblioteca que detecta o idioma de um texto ou conteúdo.
+- `testify`: biblioteca para testes.
+- `robfig/cron/v3`: biblioteca em Go para criar CRONs nativamente.
+- `Bruno`: app externo para teste e organização da coleção de requisições.
 
 ## Regras da stack
 
