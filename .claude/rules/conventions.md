@@ -135,7 +135,7 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Você tem liberdade de escrever os prompts.
 - Os prompts devem ser escritos de maneira eficiente e clara.
 - Atuais prompts do projeto:
-    - Prompt para tratamento de notícia: deve melhorar a notícia de forma que ela seja mais clara, corrigindo textos mal elaborados ou erros de digitação.
+    - Prompt para tratamento de notícia: deve revisar a notícia de forma que ela seja mais clara, corrigindo textos mal elaborados ou erros de digitação.
     - Prompt para decisão de palavras-chave: deve avaliar a notícia para definir quais palavras-chave que mais se encaixam com a informação nela.
     - Prompt para julgamento de notícias (segunda camada): deve avaliar se as palavras-chave de um feed e uma notícia estão relacionadas de alguma forma.
     - Prompt de tradução: deve fazer a tradução de uma notícia para o idioma desejado de forma eficaz e sem alterar o contexto e a informação passada pela notícia.
