@@ -161,6 +161,11 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Dito isso, a `url_original` da notícia é única dentro das outras notícias ativas no banco de dados.
 - Um usuário tem acesso a qualquer notícia registrada na aplicação.
     - As regras para quando a notícia não está em nenhum dos feeds do usuário estão explicadas na sessão "Feed x Notícias".
+- O endpoint `GET base_url/v1/feeds/{id}/articles` é responsável por trazer as notícias de um feed específico.
+    - Esse endpoint é a base da aplicação, é através dela que o usuário vê as notícias do(s) seu(s) feed(s).
+    - Esse endpoint deve ser exclusivo do usuário.
+    - Esse endpoint deve ser paginado.
+    - Esse endpoint deve trazer também os dados da tabela relacional (junction table) entre cada notícia e o feed.
 - As notícias só podem ser criadas, editadas ou excluídas por usuário administradores.
     - Essa regra existe apenas para casos extremos de uma notícia que saiu do controle.
 - As notícias possuem um campo `language_original` que serve para detectar quando uma tradução pode ou não ser feita no client.

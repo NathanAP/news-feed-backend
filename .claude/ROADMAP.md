@@ -447,6 +447,18 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Desisti da ideia de ter "arquivo.extensão" e "...", é melhor só mostrar a organização das pastas e uma simples descrição em parênteses mesmo
         - Algo parecido com `├── bruno (tudo relacionado ao Bruno)`
 
+## Versão 0.29.0.0
+
+- [ ] Criar uma rota para buscar notícias dos feeds
+    - Pode ser debaixo de `GET base_url/v1/feeds/{id}/articles`
+    - Lembrete: apenas do usuário da requisição (relacionado ao `access_token`)
+    - Lembrete: trazer também o estado da notícia (por enquanto é o campo da tabela relacional `is_read`)
+    - Lembrete: paginação necessária
+- [ ] Configurar CORS
+    - Utilizaremos React + Vite pro nosso client web
+    - Preparar tanto para dev quanto para homologação e produção
+    - Me responde também se eu preciso detalhar isso no arquivo `PROJECT.md`
+
 ## Futuro
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
@@ -503,9 +515,10 @@ workers**. O pipeline por artigo (`discovery.processOne`) foi mantido sem conhec
 justamente para essa evolução ser uma **troca de dispatcher, não uma reescrita**.
 
 Ideia a avaliar no futuro:
-- A descoberta *produz* jobs (1 artigo = 1 job) numa fila persistente (tabela no Postgres via
+
+- A descoberta _produz_ jobs (1 artigo = 1 job) numa fila persistente (tabela no Postgres via
   `river`/`asynq`, ou Redis/NATS).
-- **M réplicas de container**, cada uma com N workers, *consomem* da mesma fila → escala horizontal.
+- **M réplicas de container**, cada uma com N workers, _consomem_ da mesma fila → escala horizontal.
 - A fila absorve picos de volume (ex.: evento de grande repercussão); os workers drenam no ritmo que
   o provedor de IA aguenta.
 - O teto real nunca é o Go — é o **rate limit do provedor de IA**. A fila + workers dá a capacidade de
