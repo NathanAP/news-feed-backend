@@ -453,7 +453,8 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Pode ser debaixo de `GET base_url/v1/feeds/{id}/articles`
     - Possibilitar filtragem através da query:
         - `is_read`: apenas lidos ou não lidos
-        - `period_starting_at` e `period_ending_at`: a partir de uma data inicial, até uma data final ou entre duas datas
+        - `period_starting_at` e `period_ending_at`: filtro direto em `articles.created_at` a partir de uma data inicial, até uma data final ou entre duas datas
+    - Lembrete: 404 caso o feed com o `id` for inexistente. 200 e lista vazia caso não haja notícias para aquele filtro (docs vazio).
     - Lembrete: apenas do usuário da requisição (relacionado ao `access_token`)
     - Lembrete: trazer também o estado da notícia (por enquanto é o campo da tabela relacional `is_read`)
     - Lembrete: paginação necessária

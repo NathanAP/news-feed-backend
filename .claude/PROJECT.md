@@ -98,11 +98,26 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 ### Fluxo de login
 
-1. Client redireciona o usuário para `/v1/auth/google`.
-2. Google autentica através do seu próprio fluxo.
-3. Google redireciona para o nosso callback (`/v1/auth/google/callback`).
-4. Nosso callback redireciona de volta ao client.
-5. Client captura esse token e passa a usar como header (`Authorization: Bearer <token>`) nas próximas chamadas.
+1. Client redireciona o usuário para `/v1/auth/google?redirect_uri={uri}`.
+2. Recebemos a requisição.
+3. Validamos o match exato entre a URI enviado contra os itens de uma lista de URIs permitidas (allowlist).
+4. Um valor aleatório secreto (`CSRF`) é criado para o `redirect_uri` do client para ser passado como `state` adiante.
+5. Redirecionamos o usuário para o fluxo de autenticação do Google, passando o nosso próprio `redirect_uri` fixo (`GET base_url/v1/auth/google/callback`) e o `state` (gerado no passo anterior).
+6. Usuário se autentica pelo Google.
+7. Recebemos a confirmação de sucesso contendo um `code` e o mesmo `state` através do `redirect_uri`.
+8. Confirmamos que o `state` é realmente válido.
+9. Trocamos o `code` pelos dados reais do usuário no Google (`email`, `google_id`, ...).
+10. Com os dados recebidos, identificamos se o usuário pode ser encontrado diretamente ou se precisa criar ele.
+11. Prossegue com a geração dos `tokens` e dados necessários.
+12. Nosso callback redireciona de volta à URI enviada lá no passo 1 junto com os `tokens` gerados através de `fragment`.
+13. Client captura os dados e limpa o `fragment`.
+14. Client passa a usar o `access_token` como header (`Authorization: Bearer {token}`) nas próximas requisições.
+
+### Erros no fluxo de login
+
+- Quando `redirect_uri` for inválido ou não estiver na allowlist: erro 400.
+- Troca de `code` falha ou `state` inválido: erro 401.
+- Desistência ou cancelamento no fluxo de login da Google: redirect de volta ao cliente com erro na query (`?error=access_denied`).
 
 ## Usuário
 
@@ -509,7 +524,7 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
 
 ## CORS
 
-- As CORS são tratadas através da variável de ambiente `CORS_ALLOWED_ORIGINS` e deve ser uma lista separada por vírgula.
+- As CORS são tratadas através da variável de ambiente `CORS_ALLOWED_ORIGINS` e deve ser uma lista separada por vírgula no formato `protocol+host+port`.
     - Em ambiente de desenvolvimento deve liberar `localhost` enquanto em produção e homologação apenas os domínios reais.
 
 ## CI/CD
