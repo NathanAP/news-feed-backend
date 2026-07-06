@@ -49,7 +49,7 @@ API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
     - Código que gera problemas de performance (exemplo: endpoint de filtragem que aplica filtros fora do SQL).
     - Código que não respeita a filosofia de programação da linguagem (exemplo: erros não tipados em Go).
     - Má aplicação de convenções básicas (exemplo: endpoint `GET` que recebe `body`).
-    - Typagem errada.
+    - Tipagem errada.
     - Gambiarra explícita.
     - Código considerado depreciado pela biblioteca ou semi-depreciado (ou seja, que vai se tornar depreciado).
 
