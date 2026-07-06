@@ -460,7 +460,6 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [ ] Configurar CORS
     - Utilizaremos React + Vite pro nosso client web
     - Preparar tanto para dev quanto para homologação e produção
-    - Me responde também se eu preciso detalhar isso no arquivo `PROJECT.md`
 - [ ] Alterar o callback do `OAuth2` para ir de volta ao frontend
 
 ## Futuro
