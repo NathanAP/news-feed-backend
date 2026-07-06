@@ -458,6 +458,8 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Utilizaremos React + Vite pro nosso client web
     - Preparar tanto para dev quanto para homologação e produção
     - Me responde também se eu preciso detalhar isso no arquivo `PROJECT.md`
+- [ ] Alterar o callback do `OAuth2` para ir de volta ao frontend
+    - Dúvida: vale a pena fazer algum tipo de flag pra saber quando redirecionar ao client ou quando exibir o JSON de resposta? Pergunto isso por conta do teste via Bruno...
 
 ## Futuro
 
