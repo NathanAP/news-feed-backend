@@ -451,6 +451,9 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 - [ ] Criar uma rota para buscar notícias dos feeds
     - Pode ser debaixo de `GET base_url/v1/feeds/{id}/articles`
+    - Possibilitar filtragem através da query:
+        - `is_read`: apenas lidos ou não lidos
+        - `period_starting_at` e `period_ending_at`: a partir de uma data inicial, até uma data final ou entre duas datas
     - Lembrete: apenas do usuário da requisição (relacionado ao `access_token`)
     - Lembrete: trazer também o estado da notícia (por enquanto é o campo da tabela relacional `is_read`)
     - Lembrete: paginação necessária
@@ -459,7 +462,6 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Preparar tanto para dev quanto para homologação e produção
     - Me responde também se eu preciso detalhar isso no arquivo `PROJECT.md`
 - [ ] Alterar o callback do `OAuth2` para ir de volta ao frontend
-    - Dúvida: vale a pena fazer algum tipo de flag pra saber quando redirecionar ao client ou quando exibir o JSON de resposta? Pergunto isso por conta do teste via Bruno...
 
 ## Futuro
 

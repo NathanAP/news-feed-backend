@@ -74,7 +74,6 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 ## Autenticação
 
 - O secret dos tokens está na variável de ambiente chamada `JWT_SECRET_KEY`.
-- Fluxo de login: client redireciona o usuário para `/v1/auth/google` → Google autentica → Google redireciona para o nosso callback (`/v1/auth/google/callback`) → nosso callback retorna um JSON com o JWT → client captura esse token e passa a usar como header (`Authorization: Bearer <token>`) nas próximas chamadas.
 - Tokens são divididos em dois níveis:
     - o primeiro é um `access_token` que expira de acordo com a variável de ambiente `JWT_ACCESS_TOKEN_EXPIRY_MINUTES` (em minutos) e que é usado pelo client em todas as requisições através de Authorization, como citado acima.
     - o segundo é um `refresh_token` que expira de acordo com a variável de ambiente `JWT_REFRESH_TOKEN_EXPIRY_DAYS` (em dias) e que é usado pelo client quando precisar renovar seu `access_token`. Esse token está presente em uma tabela simples chamada `refresh_tokens` que é usado silenciosamente quando for buscar um novo.
@@ -96,6 +95,14 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Um struct chamado `Claims` mantém também esse mapeamento no código.
 - Se o usuário sofrer soft remove, os seus `refresh_tokens` também devem sofrer soft remove.
 - Se o usuário sofrer hard remove, os seus `refresh_tokens` também devem sofrer hard remove.
+
+### Fluxo de login
+
+1. Client redireciona o usuário para `/v1/auth/google`.
+2. Google autentica através do seu próprio fluxo.
+3. Google redireciona para o nosso callback (`/v1/auth/google/callback`).
+4. Nosso callback redireciona de volta ao client.
+5. Client captura esse token e passa a usar como header (`Authorization: Bearer <token>`) nas próximas chamadas.
 
 ## Usuário
 
@@ -428,7 +435,7 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
 - Devem ser o mais próximo da realidade possível.
 - Não podem conter informações ou dados considerados sensíveis, proibidos ou ofensivos.
 - Os controllers e a camada de queries (`sqlc`) são testados via testes de integração com banco em memória real ao invés de mocks de repositório escritos à mão pois correm o risco de ficar desatualizados a cada nova query.
-    - Se um dia for necessário isolar um controller em teste unitário, o mock deve ser gerado a partir da interface `db.Querier` (ex: `mockgen`) e nunca escrito manualmente para evitar o esquecimento em uma atualização.
+    - Se um dia for necessário isolar um controller em teste unitário, o mock deve ser gerado a partir da interface `db.Querier` (exemplo: `mockgen`) e nunca escrito manualmente para evitar o esquecimento em uma atualização.
 
 ### Fixtures
 
@@ -449,7 +456,7 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
         - A nuance de simplicidade entre o teste unitário e teste de integração neste caso é bem baixa e isso pode ser considerado normal.
     - Banco de dados interno: garantir a capacidade de fazer o CRUD básico proposto pela pasta e arquivos presentes em `raiz/sqlc/`.
         - O banco de dados utilizado deve ser sempre em memória durante este teste.
-    - `OAuth2`: garantir que a configuração atende aos requisitos mínimos para funcionamento natural do processo de testes (Exemplo: checagem de variáveis de ambiente `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e `GOOGLE_REDIRECT_URL`).
+    - `OAuth2`: garantir que a configuração atende aos requisitos mínimos para funcionamento natural do processo de testes (exemplo: checagem de variáveis de ambiente `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e `GOOGLE_REDIRECT_URL`).
 - Devem ser menos simples e diretos em comparação aos unitários, mas acabam por abranger mais setores do código.
 - Dependem que os serviços estejam de pé para funcionamento garantido e correto.
 
@@ -476,8 +483,9 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
 
 ## Paginação
 
-- A paginação deve estar presente em todos os endpoints de busca de coleções.
-    - Geralmente presentes em `GET base_url/v1/{model}/`
+- A paginação deve estar presente em todos os endpoints de:
+    - Buscas de múltiplos registros de um modelo (exemplo: `GET base_url/v1/articles/`).
+    - Buscas de registros cruzados de modelos (exemplo: `GET base_url/v1/feeds/{id}/articles`)
 - A paginação não precisa ser feita ao montar relatórios, métricas, indicadores ou afins.
 - Ao usar paginação, a resposta deve seguir o seguinte formato `json`:
     ```json
@@ -498,6 +506,11 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
     - `?page_size=`: número de registros a serem trazidos. Valor mínimo `1`, máximo `100` e padrão `20`.
 - Queries erradas de páginas retornam uma lista vazia ao invés de erro.
     - Por exemplo, se a query requisitar a página 5 mas há apenas 4 páginas disponíveis não há erro. O valor da paginação `actual_page` irá estar em `5` e o valor de `total_pages` estará em `4`.
+
+## CORS
+
+- As CORS são tratadas através da variável de ambiente `CORS_ALLOWD_ORIGINS` e deve ser uma lista separada por vírgula.
+    - Em ambiente de desenvolvimento deve liberar `localhost` enquanto em produção e homologação apenas os domínios reais.
 
 ## CI/CD
 
