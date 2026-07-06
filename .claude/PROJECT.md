@@ -6,7 +6,7 @@
 
 ## Ideia geral
 
-Um feed de notícias hiper personalizado que coleta, filtra, traduz e resume notícias baseado nas preferências do usuário.
+Um feed de notícias hiper personalizado que coleta e filtra notícias baseado nas preferências do usuário.
 
 ## Características
 
@@ -15,17 +15,14 @@ Um feed de notícias hiper personalizado que coleta, filtra, traduz e resume not
 - Descobre automaticamente notícias através do RSS das fontes existentes.
 - Filtra notícias por palavras-chave + inteligência artificial.
 - Julga a quais feeds dos usuários a notícia descoberta pertence.
-- Traduz e classifica notícias através da inteligência artificial.
-- Resume notícias de forma personalizada através da inteligência artificial.
 
 ## Features
 
-- **Descoberta automática de RSS**: Detecta feeds sem input manual, apenas através da URL principal
-- **Filtragem dual-layer**: Palavras-chave rápidas + IA inteligente
-- **Tradução de notícias**: Traduz notícias de acordo com as preferências do usuário
-- **Personalização de notícias**: Personaliza notícias de acordo com as preferências do usuário
-- **Endpoints REST**: API simples e intuitiva
-- **Banco SQLite integrado**: Zero dependencies de infraestrutura
+- Descoberta automática de RSS: detecta feeds sem input manual, apenas através da URL principal
+- Filtragem dual-layer: palavras-chave rápidas + IA inteligente
+- Personalização de notícias: personaliza notícias de acordo com as preferências do usuário
+- Endpoints REST: API simples e intuitiva
+- Banco SQLite integrado: zero dependencies de infraestrutura
 
 ## Público alvo
 
