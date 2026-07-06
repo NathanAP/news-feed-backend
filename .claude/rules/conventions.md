@@ -93,12 +93,15 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Middlewares devem estar na pasta `raiz/middlewares/` e seguir a convenção de nomeação de arquivos (Exemplo: `auth.go` para middleware de autenticação, `logging.go` para middleware de logging).
 - Endpoints devem estar em seu próprio arquivo, organizado dentro de uma pasta do modelo correspondente (Exemplo: `raiz/services/endpoints/v1/users/` para endpoints relacionados a usuários; arquivo `login.go` corresponde à rota de login do usuário).
 - Endpoints devem seguir o padrão `base_url/versao_da_api/modelo/acao` (Exemplo: `http://localhost:3000/v1/users/create`, `http://localhost:3000/v1/users/login`).
-- Endpoints de criação deve sempre ser um POST e seguir o padrão `base_url/versao_da_api/modelo/create` (Exemplo: `http://localhost:3000/v1/sources/create`).
-- Endpoints de atualização deve sempre ser um PUT e seguir o padrão `base_url/versao_da_api/modelo/{id}` (Exemplo: `http://localhost:3000/v1/sources/{id}`).
-- Endpoints de remoção deve sempre ser um DELETE e seguir o padrão `base_url/versao_da_api/modelo/{id}` (Exemplo: `http://localhost:3000/v1/sources/{id}`).
-- Endpoints de pesquisa por ID deve sempre ser um GET e seguir o padrão `base_url/versao_da_api/modelo/{id}` (Exemplo: `http://localhost:3000/v1/sources/{id}`).
-- Endpoints de pesquisa por múltiplos parâmetros deve sempre ser um GET e seguir o padrão `base_url/versao_da_api/modelo?parametro1=valor1&parametro2=valor2` (Exemplo: `http://localhost:3000/v1/sources?url=example&url_rss=example`).
+- Endpoints de criação deve sempre seguir o padrão `POST base_url/versao_da_api/modelo/create` (Exemplo: `http://localhost:3000/v1/sources/create`).
+- Endpoints de atualização deve sempre seguir o padrão `PUT base_url/versao_da_api/modelo/{id}` (Exemplo: `http://localhost:3000/v1/sources/{id}`).
+- Endpoints de remoção deve sempre seguir o padrão `DELETE base_url/versao_da_api/modelo/{id}` (Exemplo: `http://localhost:3000/v1/sources/{id}`).
+- Endpoints de pesquisa por ID deve sempre seguir o padrão `GET base_url/versao_da_api/modelo/{id}` (Exemplo: `http://localhost:3000/v1/sources/{id}`).
+- Endpoints de pesquisa por múltiplos parâmetros deve sempre seguir o padrão `GET base_url/versao_da_api/modelo?parametro1=valor1&parametro2=valor2` (Exemplo: `http://localhost:3000/v1/sources?url=example&url_rss=example`).
     - O campo `status` nunca deve ser exposto como filtro de busca: registros inativos jamais podem ser retornados, conforme as regras de `status` em `PROJECT.md`.
+- Endpoints de pesquisa por múltiplos parâmetros devem sempre ter a opção de paginação, com os parâmetros `page` e `page_size` (Exemplo: `http://localhost:3000/v1/sources?url=example&url_rss=example&page=1&page_size=20`).
+    - Mais detalhes sobre como a paginação é estruturada podem ser encontrados no arquivo `raiz/.claude/PROJECT.md`.
+- Endpoints de recurso aninhado devem seguir o padrão de endpoints de múltiplos parâmetros, seguindo o padrão de URL `GET base_url/versao_da_api/modelo/{id}/recurso` (Exemplo: `http://localhost:3000/v1/feeds/{id}/articles`).
 - Endpoints criados devem ser acrescentados nos testes da pasta `tests/` seguindo as convenções de testes abaixo.
 - Endpoints alterados devem ser corrigidos (caso necessário) nos testes da pasta `tests/` seguindo as convenções de testes abaixo.
 - Endpoints removidos devem ser removidos dos testes da pasta `tests/`.
