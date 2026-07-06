@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.27.0.0
+0.28.1.0
 
 ## Versão 0.1.0.0
 
@@ -430,9 +430,19 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.28.0.0
 
-- [ ] Atualização de pacotes e dependências
-- [ ] Revisão
-- [ ] Organizar o exemplo de arquivos em structure.md
+- [x] Atualização de pacotes e dependências
+    - Bump conservador das diretas desatualizadas: `fiber` v2.52.14, `goose` v3.27.2, `sqlite` v1.53.0 (+ `go mod tidy`)
+- [x] Revisão
+    - Achados corrigidos no patch `0.28.1.0` (banco de produção sem `busy_timeout`; detecção de UNIQUE por substring)
+- [x] Organizar o exemplo de arquivos em structure.md
+
+## Versão 0.28.1.0
+
+- [x] Corrigir banco de produção sem `busy_timeout`/`WAL` (achado grave da revisão da 0.28)
+    - `main.go` abria o SQLite sem PRAGMA nem config de pool; com a concorrência da 0.27 (`DISCOVERY_CONCURRENCY > 1`) ou mesmo a cron sobreposta às requisições, escritas paralelas davam `SQLITE_BUSY` e o artigo era descartado
+    - DSN passou a carregar `_pragma=busy_timeout(5000)` (writer espera o lock em vez de falhar) e `_pragma=journal_mode(WAL)` (leitores não bloqueiam o writer)
+- [x] Trocar a detecção de violação de UNIQUE por substring por erro tipado do driver
+    - Novo helper `controllers.isUniqueViolation` (checa `SQLITE_CONSTRAINT_UNIQUE` via `*sqlite.Error`); aplicado nos 5 call sites (users, sources×2, articles×2)
     - Você é melhor que eu nisso, não dá pra negar
     - Desisti da ideia de ter "arquivo.extensão" e "...", é melhor só mostrar a organização das pastas e uma simples descrição em parênteses mesmo
         - Algo parecido com `├── bruno (tudo relacionado ao Bruno)`

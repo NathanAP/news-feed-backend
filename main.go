@@ -52,7 +52,14 @@ func main() {
 		log.Fatalf("Failed to create db directory: %v", err)
 	}
 
-	database, err := sql.Open("sqlite", "./db/news_feed.db")
+	// SQLite connection pragmas, carried on the DSN so every pooled connection inherits them:
+	//   busy_timeout(5000): wait up to 5s for a lock instead of failing immediately with SQLITE_BUSY.
+	//     SQLite allows a single writer at a time, and the discovery pipeline (DISCOVERY_CONCURRENCY)
+	//     plus the cron running alongside API requests can contend for it — without this, the losing
+	//     writer errors out and the article is dropped.
+	//   journal_mode(WAL): readers no longer block the writer, so API reads proceed during a
+	//     discovery sweep. Both are SQLite-specific DSN params — a future Postgres swap drops them.
+	database, err := sql.Open("sqlite", "./db/news_feed.db?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)")
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}

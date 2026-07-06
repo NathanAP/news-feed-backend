@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/google/uuid"
 	db "github.com/nathanap/news-feed-backend/sqlc"
@@ -34,7 +33,7 @@ func (c *SourceController) Create(ctx context.Context, q db.Querier, url, urlRss
 		UrlRss: urlRss,
 	})
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		if isUniqueViolation(err) {
 			return db.Source{}, ErrSourceAlreadyExists
 		}
 		return db.Source{}, fmt.Errorf("failed to create source: %w", err)
@@ -75,7 +74,7 @@ func (c *SourceController) Update(ctx context.Context, q db.Querier, id, url, ur
 		if errors.Is(err, sql.ErrNoRows) {
 			return db.Source{}, ErrSourceNotFound
 		}
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		if isUniqueViolation(err) {
 			return db.Source{}, ErrSourceAlreadyExists
 		}
 		return db.Source{}, fmt.Errorf("failed to update source: %w", err)

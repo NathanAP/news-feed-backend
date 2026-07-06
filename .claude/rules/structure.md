@@ -1,113 +1,49 @@
 # Estrutura
 
-Este arquivo descreve a estrutura base atual do projeto. Ele é um guia para entender onde cada parte do código deve ser colocada e como o projeto está organizado junto com alguns exemplos de arquivos.
+Este arquivo descreve a organização de pastas atual do projeto. Ele é um guia para entender onde cada parte do código deve ser colocada.
 
-Você não precisa alterar esse arquivo. A ideia é que eu possa atualizar ele conforme o projeto evolui, para servir como exemplo para você.
-
-Arquivos ignorados pelo git (como arquivos temporários, de configuração local, etc.) não estão listados aqui.
+Mostramos apenas a hierarquia de pastas com uma descrição em parênteses. Arquivos individuais e arquivos ignorados pelo git (temporários, configuração local, banco local, etc.) não são listados aqui.
 
 ```
-
-/
-├── main.go
-├── go.mod
-├── go.sum
-├── schema.sql
-├── sqlc.yaml
-├── Dockerfile
-├── docker-compose.yaml
-├── .env.example
-├── .gitignore
-├── bruno/
-├──── ...
-├── cmd/
-├──── seed/
-├──── ...
-├── logger/
-├──── logger.go
-├── middlewares/
-├──── auth.go
-├──── ...
-├── migrations/
-├──── 20260618120000_create_users_table.sql
-├──── ...
-├── schemas/
-├────── users.go
-├────── ...
-├── services/
-├──── ai/
-├────── gemini.go
-├────── ...
-├──── controllers/
-├────── users.go
-├────── ...
-├──── cron/
-├────── cron.go
-├────── ...
-├──── discovery/
-├────── discovery.go
-├────── ...
-├──── endpoints/
-├────── v1/
-├──────── users/
-├────────── me.go
-├────────── ...
-├──────── ...
-├──── judgement/
-├────── judgement.go
-├────── ...
-├──── langdetect/
-├────── langdetect.go
-├────── ...
-├──── prompts/
-├────── article_translation.yaml
-├────── ...
-├──── rss/
-├────── discovery.go
-├────── ...
-├──── sanitize/
-├────── sanitize.go
-├────── ...
-├── sqlc/
-├──── db.go
-├──── models.go
-├──── users.sql.go
-├──── ...
-├──── queries/
-├────── users.sql
-├────── ...
-├── tests/
-├───── end-to-end/
-├────── api/
-├───────── users/
-├─────────── me_test.go
-├─────────── ...
-├───── unit/
-├─────── users/
-├───────── me_test.go
-├───────── ...
-├───── integration/
-├─────── api/
-├───────── users/
-├─────────── me_test.go
-├─────────── ...
-├───── fixtures/
-├─────── users.go
-├─────── ...
-├───── mocks/
-├─────── external/
-├───────── gemini_client.go
-├───────── google_oauth.go
-├───────── rss_client.go
-├───────── ...
-├─────── repositories/
-├───────── users_repository.go
-├───────── ...
-├─────── services/
-├───────── jwt.go
-├───────── ...
-├───── utils/
-├───────── db.go
-├───────── ...
-└── ...
+/                              (raiz: main.go, go.mod/go.sum, schema.sql, sqlc.yaml,
+│                               Taskfile.yaml, Dockerfile, docker-compose.yaml, .env.example)
+├── bruno                      (coleção de requisições do app externo Bruno)
+├── cmd                        (executáveis auxiliares fora da API)
+│   └── seed                   (scripts de seed de dev: usuário, sources, feeds, artigos, associações)
+├── logger                     (sistema de log global, controlado por VERBOSE_MODE)
+├── middlewares                (middlewares HTTP: auth JWT, guard de manutenção por app_status)
+├── migrations                 (migrações goose up/down, embutidas via embed)
+├── schemas                    (DTOs de request/response da API)
+│   └── enums                  (enums de fonte única: theme, language, ai_personality)
+├── services                   (regras de negócio e integrações)
+│   ├── ai                     (costura de IA por capacidade: Treater, Keyworder, Judger, Translator)
+│   │   ├── gemini             (implementação LLM — Google Gemini)
+│   │   └── openaicompat       (implementação OpenAI-compatible — Ollama local, Groq)
+│   ├── controllers            (regras de negócio stateless; recebem db.Querier e nunca commitam)
+│   ├── cron                   (scheduler robfig/cron + DiscoveryRunner que varre as sources ativas)
+│   ├── discovery              (descoberta de notícias no RSS de uma source + pipeline por artigo)
+│   ├── endpoints              (handlers HTTP)
+│   │   └── v1                 (versão 1 da API: uma pasta por modelo, um arquivo por rota)
+│   ├── judgement              (camada 2 do julgamento: pontua uma notícia contra feeds candidatos)
+│   ├── langdetect             (detecção do idioma original via lingua-go, offline/determinístico)
+│   ├── pagination             (paginação global genérica: ParseParams + Paginate[T])
+│   ├── prompts                (prompts de IA em .yaml, embutidos via go:embed)
+│   ├── rss                    (descoberta de URLs de RSS a partir de uma URL principal)
+│   └── sanitize               (sanitização de HTML do tratamento via bluemonday)
+├── sqlc                       (código gerado pelo sqlc: models, querier, *.sql.go)
+│   └── queries                (queries SQL de origem consumidas pelo sqlc)
+└── tests                      (testes automatizados)
+    ├── end-to-end             (testes E2E)
+    │   └── api                (uma pasta por modelo: users, auth, feeds, sources, ...)
+    ├── integration            (testes de integração)
+    │   ├── api                (uma pasta por modelo)
+    │   ├── cron               (testes do scheduler/descoberta)
+    │   └── discovery          (testes do pipeline de descoberta/tratamento)
+    ├── unit                   (testes unitários; uma pasta por modelo)
+    ├── fixtures               (helpers reaproveitáveis: criar usuário, feed, source, etc.)
+    ├── mocks                  (mocks de integrações e dependências)
+    │   ├── external           (Google OAuth2, Gemini, RSS)
+    │   ├── repositories       (dados do banco de dados)
+    │   └── services           (serviços internos, como geração de JWT)
+    └── utils                  (utilitários gerais de teste)
 ```

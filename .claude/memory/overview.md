@@ -89,6 +89,13 @@ Toda escrita passa por `WithTransaction` (`services/controllers/transaction.go`)
 dono de commit/rollback. Controllers são passos intermediários que recebem `q db.Querier` e
 nunca finalizam. Quem orquestra o caso de uso (rota/middleware) abre a transação no topo.
 
+O DSN de produção (`main.go`) carrega `_pragma=busy_timeout(5000)` + `_pragma=journal_mode(WAL)`
+(0.28.1.0): sob escrita concorrente (pipeline da 0.27 com `DISCOVERY_CONCURRENCY > 1`, ou a cron
+sobreposta às requisições de API) o writer **espera** o lock em vez de falhar com `SQLITE_BUSY`. O
+teto de single-writer do SQLite permanece — escrita concorrente real + réplicas dependem do Postgres
+(ROADMAP "Escalabilidade futura"). Violação de UNIQUE é detectada por código de resultado tipado do
+driver (`controllers.isUniqueViolation`, `SQLITE_CONSTRAINT_UNIQUE`), não por texto do erro.
+
 ## Como rodar
 
 `task ls` (sobe local) · `task ta` (todos os testes) · `task tu`/`ti`/`te2e` (por camada) ·

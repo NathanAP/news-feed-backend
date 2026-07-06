@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/google/uuid"
 	db "github.com/nathanap/news-feed-backend/sqlc"
@@ -40,7 +39,7 @@ func (c *UserController) CreateUser(ctx context.Context, q db.Querier, googleID,
 		Picture:  sql.NullString{String: picture, Valid: picture != ""},
 	})
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		if isUniqueViolation(err) {
 			return db.User{}, ErrUserAlreadyExists
 		}
 		return db.User{}, fmt.Errorf("failed to create user: %w", err)

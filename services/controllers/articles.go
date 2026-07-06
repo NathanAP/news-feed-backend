@@ -54,7 +54,7 @@ func (c *ArticleController) Create(ctx context.Context, q db.Querier, title, con
 		LanguageOriginal: nullString(languageOriginal),
 	})
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		if isUniqueViolation(err) {
 			return db.Article{}, ErrArticleAlreadyExists
 		}
 		return db.Article{}, fmt.Errorf("failed to create article: %w", err)
@@ -116,7 +116,7 @@ func (c *ArticleController) Update(ctx context.Context, q db.Querier, id, title,
 		if errors.Is(err, sql.ErrNoRows) {
 			return db.Article{}, ErrArticleNotFound
 		}
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		if isUniqueViolation(err) {
 			return db.Article{}, ErrArticleAlreadyExists
 		}
 		return db.Article{}, fmt.Errorf("failed to update article: %w", err)

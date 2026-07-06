@@ -17,6 +17,7 @@ API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
     - Melhoria da clareza escrita na especificação da tarefa.
     - Planejamento de programação da tarefa.
     - Execução.
+    - Atualização do arquivo `raiz/.claude/rules/structure.md` caso necessário.
     - Atualização nos testes unitários, de integração e end-to-end presentes em `raiz/tests/`.
     - Atualização nos scripts de teste presentes em `raiz/cmd/`.
     - Atualização de arquivos de controle de versão.
