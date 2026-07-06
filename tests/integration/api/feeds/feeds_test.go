@@ -53,12 +53,14 @@ func setupIntegrationApp(t *testing.T) (*fiber.App, db.Querier) {
 	runTx := controllers.NewTransactionRunner(database)
 
 	feedCtrl := controllers.NewFeedController()
+	afCtrl := controllers.NewArticleFeedController()
 	refreshTokenCtrl := controllers.NewRefreshTokenController(30 * 24 * time.Hour)
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	f := app.Group("/v1/feeds")
 	f.Post("/create", append(authMiddleware, feedendpoints.CreateFeed(feedCtrl, runTx))...)
+	f.Get("/:id/articles", append(authMiddleware, feedendpoints.FeedArticles(feedCtrl, afCtrl, runTx))...)
 	f.Get("/:id", append(authMiddleware, feedendpoints.GetFeed(feedCtrl, runTx))...)
 	f.Get("", append(authMiddleware, feedendpoints.ListFeeds(feedCtrl, runTx))...)
 	f.Put("/:id", append(authMiddleware, feedendpoints.UpdateFeed(feedCtrl, runTx))...)

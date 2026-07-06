@@ -26,6 +26,7 @@ Mostramos apenas a hierarquia de pastas com uma descrição em parênteses. Arqu
 │   │   └── v1                 (versão 1 da API: uma pasta por modelo, um arquivo por rota)
 │   ├── judgement              (camada 2 do julgamento: pontua uma notícia contra feeds candidatos)
 │   ├── langdetect             (detecção do idioma original via lingua-go, offline/determinístico)
+│   ├── oauthstate             (assina/valida o `state` do login OAuth: CSRF + carrega o redirect_uri)
 │   ├── pagination             (paginação global genérica: ParseParams + Paginate[T])
 │   ├── prompts                (prompts de IA em .yaml, embutidos via go:embed)
 │   ├── rss                    (descoberta de URLs de RSS a partir de uma URL principal)

@@ -112,6 +112,7 @@ var _ controllers.ArticleControllerInterface = (*mockArticleCtrl)(nil)
 type mockArticleFeedCtrl struct {
 	createFn               func(ctx context.Context, q db.Querier, articleID, feedID string) (db.ArticleFeed, error)
 	findByArticleAndUserFn func(ctx context.Context, q db.Querier, articleID, userID string) ([]db.ArticleFeed, error)
+	listByFeedFn           func(ctx context.Context, q db.Querier, feedID, userID string) ([]db.ListArticlesByFeedForUserRow, error)
 	markAsReadFn           func(ctx context.Context, q db.Querier, articleID, userID string) (bool, error)
 }
 
@@ -126,6 +127,12 @@ func (m *mockArticleFeedCtrl) FindByArticleAndUser(ctx context.Context, q db.Que
 		return m.findByArticleAndUserFn(ctx, q, articleID, userID)
 	}
 	return []db.ArticleFeed{}, nil
+}
+func (m *mockArticleFeedCtrl) ListArticlesByFeedForUser(ctx context.Context, q db.Querier, feedID, userID string) ([]db.ListArticlesByFeedForUserRow, error) {
+	if m.listByFeedFn != nil {
+		return m.listByFeedFn(ctx, q, feedID, userID)
+	}
+	return []db.ListArticlesByFeedForUserRow{}, nil
 }
 func (m *mockArticleFeedCtrl) MarkAsRead(ctx context.Context, q db.Querier, articleID, userID string) (bool, error) {
 	if m.markAsReadFn != nil {

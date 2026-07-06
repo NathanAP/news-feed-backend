@@ -5,14 +5,27 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/v1/auth/google
+  url: {{baseUrl}}/v1/auth/google?redirect_uri={{oauthRedirectUri}}
   body: none
   auth: none
 }
 
+params:query {
+  redirect_uri: {{oauthRedirectUri}}
+}
+
 docs {
-  Abre o fluxo de autenticação Google. Abra essa URL no navegador — não funciona
-  como requisição direta pois requer o redirect do Google. Após autenticar, copie
-  o access_token e refresh_token da resposta do callback e salve nas variáveis
-  de ambiente do Bruno.
+  Abre o fluxo de autenticação Google. Abra essa URL no navegador — não funciona como
+  requisição direta pois requer o redirect do Google.
+
+  Query obrigatória:
+  - redirect_uri: para onde o callback deve devolver o usuário no fim. Precisa ser um match
+    exato de um item da allowlist do servidor (env OAUTH_ALLOWED_REDIRECT_URIS), senão 400.
+
+  O servidor gera um `state` assinado (CSRF + carrega o redirect_uri pela ida-e-volta do Google) e
+  redireciona ao Google. Após autenticar, o callback (`/v1/auth/google/callback`) valida o state,
+  troca o `code` e redireciona de volta ao redirect_uri com os tokens no FRAGMENT da URL
+  (#access_token=...&refresh_token=...&expires_in=...). Copie de lá e salve nas variáveis de
+  ambiente do Bruno (accessToken / refreshToken). O callback não é testável direto pelo Bruno
+  (exige o code real do Google).
 }

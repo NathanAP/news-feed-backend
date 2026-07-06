@@ -62,15 +62,17 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 		runTx, []byte(jwtmock.TestJWTSecret), time.Hour,
 	)
 	feedCtrl := controllers.NewFeedController()
+	afCtrl := controllers.NewArticleFeedController()
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 
 	auth := app.Group("/v1/auth")
-	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl))
+	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl, []byte(jwtmock.TestJWTSecret)))
 
 	f := app.Group("/v1/feeds")
 	f.Post("/create", append(authMiddleware, feedendpoints.CreateFeed(feedCtrl, runTx))...)
+	f.Get("/:id/articles", append(authMiddleware, feedendpoints.FeedArticles(feedCtrl, afCtrl, runTx))...)
 	f.Get("/:id", append(authMiddleware, feedendpoints.GetFeed(feedCtrl, runTx))...)
 	f.Get("", append(authMiddleware, feedendpoints.ListFeeds(feedCtrl, runTx))...)
 	f.Put("/:id", append(authMiddleware, feedendpoints.UpdateFeed(feedCtrl, runTx))...)
@@ -82,21 +84,9 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 func loginViaCallback(t *testing.T, app *fiber.App, queries db.Querier) string {
 	t.Helper()
 
-	req, err := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?code=any-code", nil)
-	require.NoError(t, err)
+	token, refreshTokenID := testutils.CompleteOAuthLogin(t, app, []byte(jwtmock.TestJWTSecret))
 
-	resp, err := app.Test(req)
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-
-	var body map[string]any
-	require.NoError(t, readJSON(resp, &body))
-
-	token, _ := body["access_token"].(string)
-	require.NotEmpty(t, token)
-	refreshTokenID, _ := body["refresh_token"].(string)
-	require.NotEmpty(t, refreshTokenID)
-
+	// Sanity-check that the login persisted the session and user.
 	rt, err := queries.FindRefreshTokenByID(context.Background(), refreshTokenID)
 	require.NoError(t, err)
 	_, err = queries.FindUserByID(context.Background(), rt.UserID)
@@ -173,6 +163,64 @@ func TestE2E_Feeds_FullCRUDFlow(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, afterResp.StatusCode)
 }
 
+func TestE2E_Feeds_FetchArticles(t *testing.T) {
+	requireNotProduction(t)
+
+	oauth := external.MockGoogleOAuth{
+		UserInfo: external.GoogleUserInfo{
+			ID: "e2e-feeds-articles", Email: "feedarticles@example.com", Name: "Feed Articles User",
+		},
+	}
+	app, queries := setupE2EApp(t, oauth)
+	token := loginViaCallback(t, app, queries)
+
+	// Create a feed.
+	createBody := `{"name":"News Feed","keywords":["metallica","rock","metal","music","concert"]}`
+	createReq, _ := http.NewRequest(http.MethodPost, "/v1/feeds/create", strings.NewReader(createBody))
+	createReq.Header.Set("Content-Type", "application/json")
+	createReq.Header.Set("Authorization", "Bearer "+token)
+	createResp, err := app.Test(createReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, createResp.StatusCode)
+	var created map[string]any
+	require.NoError(t, readJSON(createResp, &created))
+	feedID := created["id"].(string)
+
+	// Seed a source + article and link the article to the feed (the discovery pipeline's output).
+	_, err = queries.CreateSource(context.Background(), db.CreateSourceParams{
+		ID: "01900000-0000-7000-8000-0000000e0001", Url: "https://e2e-src.example.com", UrlRss: "https://e2e-src.example.com/rss",
+	})
+	require.NoError(t, err)
+	_, err = queries.CreateArticle(context.Background(), db.CreateArticleParams{
+		ID: "01900000-0000-7000-8000-0000000e0002", Title: "E2E Article", Content: "content",
+		UrlOriginal: "https://e2e-article.example.com", Keywords: "[]", SourceID: "01900000-0000-7000-8000-0000000e0001",
+	})
+	require.NoError(t, err)
+	_, err = queries.CreateArticleFeed(context.Background(), db.CreateArticleFeedParams{
+		ID: "01900000-0000-7000-8000-0000000e0003", ArticleID: "01900000-0000-7000-8000-0000000e0002", FeedID: feedID,
+	})
+	require.NoError(t, err)
+
+	// Fetch the feed's articles: the seeded article shows up, unread.
+	req, _ := http.NewRequest(http.MethodGet, "/v1/feeds/"+feedID+"/articles", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	docs := decodePage(t, resp)
+	require.Len(t, docs, 1)
+	assert.Equal(t, "E2E Article", docs[0]["title"])
+	assert.Equal(t, false, docs[0]["is_read"])
+
+	// The unread filter includes it; the read filter excludes it.
+	readReq, _ := http.NewRequest(http.MethodGet, "/v1/feeds/"+feedID+"/articles?is_read=true", nil)
+	readReq.Header.Set("Authorization", "Bearer "+token)
+	readResp, err := app.Test(readReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, readResp.StatusCode)
+	assert.Empty(t, decodePage(t, readResp))
+}
+
 func TestE2E_Feeds_LimitEnforced(t *testing.T) {
 	requireNotProduction(t)
 
@@ -217,6 +265,7 @@ func TestE2E_Feeds_RequiresAuth(t *testing.T) {
 		{http.MethodPost, "/v1/feeds/create", `{"name":"F","keywords":["a","b","c","d","e"]}`},
 		{http.MethodGet, "/v1/feeds", ""},
 		{http.MethodGet, "/v1/feeds/some-id", ""},
+		{http.MethodGet, "/v1/feeds/some-id/articles", ""},
 		{http.MethodPut, "/v1/feeds/some-id", `{"name":"F","keywords":["a","b","c","d","e"]}`},
 		{http.MethodDelete, "/v1/feeds/some-id", ""},
 	} {

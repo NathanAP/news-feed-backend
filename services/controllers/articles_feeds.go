@@ -51,6 +51,26 @@ func (c *ArticleFeedController) FindByArticleAndUser(ctx context.Context, q db.Q
 	return records, nil
 }
 
+// ListArticlesByFeedForUser returns the active articles of a feed (each with its is_read state for
+// that feed), scoped to the requesting user. It does not distinguish a feed that is empty from one
+// that does not belong to the user — both yield an empty slice — so the caller must check feed
+// ownership first (via FeedController.FindByID) to answer 404 vs 200. is_read / date filtering and
+// pagination are applied by the caller over this base set (same in-memory pattern as the other
+// list endpoints).
+func (c *ArticleFeedController) ListArticlesByFeedForUser(ctx context.Context, q db.Querier, feedID, userID string) ([]db.ListArticlesByFeedForUserRow, error) {
+	rows, err := q.ListArticlesByFeedForUser(ctx, db.ListArticlesByFeedForUserParams{
+		UserID: userID,
+		FeedID: feedID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list articles by feed: %w", err)
+	}
+	if rows == nil {
+		return []db.ListArticlesByFeedForUserRow{}, nil
+	}
+	return rows, nil
+}
+
 // MarkAsRead marks is_read = 1 on all unread articles_feeds records for the given article
 // and user. Idempotent: already-read records are not touched. Returns whether any records
 // were found (true = user has at least one feed containing the article).

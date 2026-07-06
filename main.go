@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -148,6 +149,11 @@ func main() {
 		AppName: os.Getenv("PROJECT_NAME"),
 	})
 
+	// CORS is mounted first, before every route and guard, so it also covers the preflight OPTIONS
+	// and the maintenance/health responses. The web client lives on a different origin, so without
+	// this the browser blocks all cross-origin calls.
+	app.Use(middlewares.NewCORSMiddleware())
+
 	apiVersion := os.Getenv("API_VERSION")
 	api := app.Group("/" + apiVersion)
 
@@ -160,9 +166,11 @@ func main() {
 	// off. The two routes above are registered earlier and therefore stay reachable.
 	api.Use(middlewares.NewAppStatusMiddleware(systemCtrl, runTx))
 
+	oauthRedirectAllowlist := parseCSV(os.Getenv("OAUTH_ALLOWED_REDIRECT_URIS"))
+
 	auth := api.Group("/auth")
-	auth.Get("/google", authendpoints.GoogleLogin(oauth2Config))
-	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl))
+	auth.Get("/google", authendpoints.GoogleLogin(oauth2Config, jwtSecret, oauthRedirectAllowlist))
+	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl, jwtSecret))
 	auth.Post("/refresh", authendpoints.RefreshToken(authCtrl))
 	auth.Post("/logout", append(authMiddleware, authendpoints.Logout(refreshTokenCtrl, runTx))...)
 	auth.Delete("/invalidate", authendpoints.Invalidate(refreshTokenCtrl, runTx))
@@ -204,6 +212,7 @@ func main() {
 
 	feeds := api.Group("/feeds")
 	feeds.Post("/create", append(authMiddleware, feedendpoints.CreateFeed(feedCtrl, runTx))...)
+	feeds.Get("/:id/articles", append(authMiddleware, feedendpoints.FeedArticles(feedCtrl, afCtrl, runTx))...)
 	feeds.Get("/:id", append(authMiddleware, feedendpoints.GetFeed(feedCtrl, runTx))...)
 	feeds.Get("", append(authMiddleware, feedendpoints.ListFeeds(feedCtrl, runTx))...)
 	feeds.Put("/:id", append(authMiddleware, feedendpoints.UpdateFeed(feedCtrl, runTx))...)
@@ -329,6 +338,23 @@ func parseThreshold(s string) int {
 		return defaultJudgementThreshold
 	}
 	return n
+}
+
+// parseCSV splits a comma-separated env value into a trimmed, non-empty slice. Used for the OAuth
+// redirect allowlist (OAUTH_ALLOWED_REDIRECT_URIS). An empty/blank value yields nil, which makes the
+// login endpoint reject every redirect_uri until it is configured.
+func parseCSV(s string) []string {
+	if strings.TrimSpace(s) == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if trimmed := strings.TrimSpace(p); trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
 }
 
 // buildProvider wires an AI provider for a task from its configured provider/model. Supported

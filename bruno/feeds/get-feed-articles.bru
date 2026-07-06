@@ -1,0 +1,48 @@
+meta {
+  name: Get Feed Articles
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/v1/feeds/:id/articles
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:path {
+  id: {{feedId}}
+}
+
+params:query {
+  ~is_read: true
+  ~period_starting_at: 2026-06-01T00:00:00Z
+  ~period_ending_at: 2026-07-01T00:00:00Z
+  ~page: 1
+  ~page_size: 20
+}
+
+docs {
+  Traz as notícias que caíram em um feed do usuário do token, cada uma com o seu estado
+  is_read para aquele feed. É a rota central do produto (a tela do feed).
+
+  Só retorna se o feed pertencer ao usuário do token. Feed de outro usuário (ou inexistente)
+  retorna 404. Feed do próprio usuário sem notícias retorna 200 com docs vazio.
+
+  Filtros opcionais (query):
+  - is_read: true ou false (apenas lidas ou não lidas)
+  - period_starting_at / period_ending_at: janela sobre created_at da notícia, em RFC3339 UTC
+    (ambos os limites inclusivos e independentes — a partir de, até, ou entre duas datas)
+
+  Paginação: page (mín/padrão 1) e page_size (mín 1, máx 100, padrão 20). Resposta paginada:
+  { docs: [...], pagination: {...} }. Ver PROJECT.md.
+
+  Exemplos:
+  - /v1/feeds/:id/articles
+  - /v1/feeds/:id/articles?is_read=false
+  - /v1/feeds/:id/articles?period_starting_at=2026-06-01T00:00:00Z&page=1&page_size=10
+}

@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+	"database/sql"
+	"time"
 )
 
 const createArticleFeed = `-- name: CreateArticleFeed :one
@@ -70,6 +72,75 @@ func (q *Queries) FindArticleFeedsByArticleAndUser(ctx context.Context, arg Find
 			&i.IsRead,
 			&i.CreatedAt,
 			&i.ModifiedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listArticlesByFeedForUser = `-- name: ListArticlesByFeedForUser :many
+SELECT a.id, a.status, a.title, a.content, a.url_original, a.keywords, a.source_id, a.language_original, a.created_at, a.modified_at, af.is_read
+FROM articles_feeds af
+JOIN feeds f ON f.id = af.feed_id
+    AND f.user_id = ?
+    AND f.status = 1
+    AND f.removed_at IS NULL
+JOIN articles a ON a.id = af.article_id
+    AND a.status = 1
+    AND a.removed_at IS NULL
+WHERE af.feed_id = ?
+ORDER BY a.created_at DESC
+`
+
+type ListArticlesByFeedForUserParams struct {
+	UserID string `json:"user_id"`
+	FeedID string `json:"feed_id"`
+}
+
+type ListArticlesByFeedForUserRow struct {
+	ID               string         `json:"id"`
+	Status           int64          `json:"status"`
+	Title            string         `json:"title"`
+	Content          string         `json:"content"`
+	UrlOriginal      string         `json:"url_original"`
+	Keywords         string         `json:"keywords"`
+	SourceID         string         `json:"source_id"`
+	LanguageOriginal sql.NullString `json:"language_original"`
+	CreatedAt        time.Time      `json:"created_at"`
+	ModifiedAt       sql.NullTime   `json:"modified_at"`
+	IsRead           int64          `json:"is_read"`
+}
+
+func (q *Queries) ListArticlesByFeedForUser(ctx context.Context, arg ListArticlesByFeedForUserParams) ([]ListArticlesByFeedForUserRow, error) {
+	rows, err := q.db.QueryContext(ctx, listArticlesByFeedForUser, arg.UserID, arg.FeedID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []ListArticlesByFeedForUserRow
+	for rows.Next() {
+		var i ListArticlesByFeedForUserRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Status,
+			&i.Title,
+			&i.Content,
+			&i.UrlOriginal,
+			&i.Keywords,
+			&i.SourceID,
+			&i.LanguageOriginal,
+			&i.CreatedAt,
+			&i.ModifiedAt,
+			&i.IsRead,
 		); err != nil {
 			return nil, err
 		}

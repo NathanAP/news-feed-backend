@@ -2,6 +2,7 @@ package auth_test
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -42,12 +43,26 @@ func TestE2E_Callback_MissingCode(t *testing.T) {
 
 	app, _, _ := setupE2EApp(t, external.MockGoogleOAuth{})
 
-	req, err := http.NewRequest(http.MethodGet, "/v1/auth/google/callback", nil)
+	// Valid state but no code → authentication cannot proceed (401).
+	req, err := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?state="+url.QueryEscape(validState(t)), nil)
 	require.NoError(t, err)
 
 	resp, err := app.Test(req)
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+}
+
+func TestE2E_Callback_MissingState(t *testing.T) {
+	requireNotProduction(t)
+
+	app, _, _ := setupE2EApp(t, external.MockGoogleOAuth{})
+
+	req, err := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?code=any-code", nil)
+	require.NoError(t, err)
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 }
 
 func TestE2E_Callback_OAuthFailure(t *testing.T) {
@@ -57,12 +72,12 @@ func TestE2E_Callback_OAuthFailure(t *testing.T) {
 		ExchangeError: assert.AnError,
 	})
 
-	req, err := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?code=bad", nil)
+	req, err := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?code=bad&state="+url.QueryEscape(validState(t)), nil)
 	require.NoError(t, err)
 
 	resp, err := app.Test(req)
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 }
 
 // ── Full auth flow ───────────────────────────────────────────────────────────
@@ -133,22 +148,14 @@ func TestE2E_FullFlow_SingleSessionPolicy(t *testing.T) {
 			ID: "e2e-single-1", Email: "single@example.com", Name: "Single User",
 		},
 	}
-	app, _, _ := setupE2EApp(t, oauth)
+	app, queries, _ := setupE2EApp(t, oauth)
 
-	// First login
-	req1, _ := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?code=code1", nil)
-	resp1, err := app.Test(req1)
-	require.NoError(t, err)
-	var body1 map[string]interface{}
-	require.NoError(t, readJSON(resp1, &body1))
-	firstRefreshToken := body1["refresh_token"].(string)
+	// First login through the real flow.
+	_, firstRT, _ := loginViaCallback(t, app, queries)
+	firstRefreshToken := firstRT.ID
 
-	// Second login — invalidates first session
-	req2, _ := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?code=code2", nil)
-	resp2, err := app.Test(req2)
-	require.NoError(t, err)
-	assert.Equal(t, http.StatusOK, resp2.StatusCode)
-	readJSON(resp2, &map[string]interface{}{})
+	// Second login — invalidates the first session.
+	loginViaCallback(t, app, queries)
 
 	// First refresh token should now be invalid
 	refreshReq, err := http.NewRequest(http.MethodPost, "/v1/auth/refresh",

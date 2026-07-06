@@ -19,6 +19,24 @@ JOIN articles a ON a.id = af.article_id
     AND a.removed_at IS NULL
 WHERE af.article_id = ?;
 
+-- name: ListArticlesByFeedForUser :many
+-- Returns the active articles associated with a feed, each with its is_read state for that feed.
+-- Both sides of the junction must be active (the feed and the article) and the feed must belong to
+-- the requesting user — so another user's feed yields no rows. The caller checks feed ownership
+-- separately to distinguish "feed not found / not yours" (404) from "feed has no articles" (200).
+-- Ordered newest-first; is_read / date filtering and pagination are applied by the caller.
+SELECT a.id, a.status, a.title, a.content, a.url_original, a.keywords, a.source_id, a.language_original, a.created_at, a.modified_at, af.is_read
+FROM articles_feeds af
+JOIN feeds f ON f.id = af.feed_id
+    AND f.user_id = ?
+    AND f.status = 1
+    AND f.removed_at IS NULL
+JOIN articles a ON a.id = af.article_id
+    AND a.status = 1
+    AND a.removed_at IS NULL
+WHERE af.feed_id = ?
+ORDER BY a.created_at DESC;
+
 -- name: MarkArticleAsReadForUser :exec
 -- Marks is_read = 1 on all unread articles_feeds records for a given article and user.
 -- Idempotent: already-read records (is_read = 1) are not touched. Both related rows must

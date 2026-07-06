@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.28.1.0
+0.29.0.0
 
 ## Versão 0.1.0.0
 
@@ -449,7 +449,8 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.29.0.0
 
-- [ ] Criar uma rota para buscar notícias dos feeds
+- [x] Criar uma rota para buscar notícias dos feeds
+    - `GET /v1/feeds/{id}/articles`; filtros `is_read` + `period_starting_at`/`period_ending_at` (UTC) em Go, paginação padrão; `is_read` na resposta (reusa `ArticleResponse`); 404 vs 200-vazio
     - Pode ser debaixo de `GET base_url/v1/feeds/{id}/articles`
     - Possibilitar filtragem através da query:
         - `is_read`: apenas lidos ou não lidos
@@ -458,20 +459,22 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Lembrete: apenas do usuário da requisição (relacionado ao `access_token`)
     - Lembrete: trazer também o estado da notícia (por enquanto é o campo da tabela relacional `is_read`)
     - Lembrete: paginação necessária
-- [ ] Configurar CORS
+- [x] Configurar CORS
+    - Middleware `middlewares/cors.go` lendo `CORS_ALLOWED_ORIGINS`; sem `AllowCredentials` (Bearer); vazio = fail-closed
     - Utilizaremos React + Vite pro nosso client web
     - Preparar tanto para dev quanto para homologação e produção
-- [ ] Alterar o callback do `OAuth2` para ir de volta ao frontend
+- [x] Alterar o callback do `OAuth2` para ir de volta ao frontend
+    - `redirect_uri` validado por allowlist (`OAUTH_ALLOWED_REDIRECT_URIS`), `state` assinado (pacote `services/oauthstate`), callback redireciona ao client com tokens no `fragment`
 
 ## Futuro
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 
 - Aumentar o verbose mode (+++++++++++++++++++++ logs)
-- Resumo de notícias
-    - Acrescentar cache de resumo e de tradução via redis
-- TlDraw do banco de dados
 - Trocar para Postgres
+- Filtragens estão acontecendo via Go (ao invés de SQL)
+- Paginações estão acontecendo via Go (ao invés de SQL)
+- TlDraw do banco de dados
 - Preparar ambiente staging + production
 - Multi feed
 - Editar informações básicas do usuário
@@ -507,6 +510,8 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
 - Machine Learning: aprender com leitura/descarte do usuário
 - CI/CD
 - Backup
+- Resumo de notícias
+    - Acrescentar cache de resumo e de tradução via redis
 
 ## Escalabilidade futura: fila distribuída + workers (pós-Postgres)
 

@@ -3,11 +3,13 @@ package auth_test
 import (
 	"errors"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	testutils "github.com/nathanap/news-feed-backend/tests/utils"
 	"github.com/nathanap/news-feed-backend/tests/mocks/external"
 )
 
@@ -22,19 +24,16 @@ func TestCallback_Integration_CreatesNewUser(t *testing.T) {
 	}
 	app, _, _ := setupIntegrationApp(t, oauth)
 
-	req, err := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?code=valid-code", nil)
+	req, err := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?code=valid-code&state="+url.QueryEscape(validState(t)), nil)
 	require.NoError(t, err)
 
 	resp, err := app.Test(req)
 	require.NoError(t, err)
 
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-
-	var body map[string]interface{}
-	require.NoError(t, readJSON(resp, &body))
-	assert.NotEmpty(t, body["access_token"])
-	assert.NotEmpty(t, body["refresh_token"])
-	assert.NotZero(t, body["expires_in"])
+	require.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode)
+	access, refresh := testutils.ParseTokensFromRedirect(t, resp.Header.Get("Location"))
+	assert.NotEmpty(t, access)
+	assert.NotEmpty(t, refresh)
 }
 
 func TestCallback_Integration_ExistingUser_UpdatesLastLogin(t *testing.T) {
@@ -48,32 +47,43 @@ func TestCallback_Integration_ExistingUser_UpdatesLastLogin(t *testing.T) {
 	}
 	app, _, _ := setupIntegrationApp(t, oauth)
 
-	// First login — creates user
-	req1, _ := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?code=code1", nil)
+	// First login — creates user.
+	req1, _ := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?code=code1&state="+url.QueryEscape(validState(t)), nil)
 	resp1, err := app.Test(req1)
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusOK, resp1.StatusCode)
-	readJSON(resp1, &map[string]interface{}{})
+	assert.Equal(t, http.StatusTemporaryRedirect, resp1.StatusCode)
 
-	// Second login — updates last_login_at
-	req2, _ := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?code=code2", nil)
+	// Second login — updates last_login_at.
+	req2, _ := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?code=code2&state="+url.QueryEscape(validState(t)), nil)
 	resp2, err := app.Test(req2)
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusOK, resp2.StatusCode)
+	assert.Equal(t, http.StatusTemporaryRedirect, resp2.StatusCode)
+}
+
+func TestCallback_Integration_MissingState(t *testing.T) {
+	requireNotProduction(t)
+
+	app, _, _ := setupIntegrationApp(t, external.MockGoogleOAuth{})
+
+	req, err := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?code=valid-code", nil)
+	require.NoError(t, err)
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 }
 
 func TestCallback_Integration_MissingCode(t *testing.T) {
 	requireNotProduction(t)
 
-	oauth := external.MockGoogleOAuth{}
-	app, _, _ := setupIntegrationApp(t, oauth)
+	app, _, _ := setupIntegrationApp(t, external.MockGoogleOAuth{})
 
-	req, err := http.NewRequest(http.MethodGet, "/v1/auth/google/callback", nil)
+	req, err := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?state="+url.QueryEscape(validState(t)), nil)
 	require.NoError(t, err)
 
 	resp, err := app.Test(req)
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 }
 
 func TestCallback_Integration_OAuthExchangeFailure(t *testing.T) {
@@ -82,10 +92,10 @@ func TestCallback_Integration_OAuthExchangeFailure(t *testing.T) {
 	oauth := external.MockGoogleOAuth{ExchangeError: errors.New("google refused")}
 	app, _, _ := setupIntegrationApp(t, oauth)
 
-	req, err := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?code=bad", nil)
+	req, err := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?code=bad&state="+url.QueryEscape(validState(t)), nil)
 	require.NoError(t, err)
 
 	resp, err := app.Test(req)
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 }

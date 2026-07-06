@@ -17,6 +17,7 @@ import (
 	"github.com/nathanap/news-feed-backend/middlewares"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	authendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/auth"
+	"github.com/nathanap/news-feed-backend/services/oauthstate"
 	"github.com/nathanap/news-feed-backend/tests/mocks/external"
 	jwtmock "github.com/nathanap/news-feed-backend/tests/mocks/services"
 	testutils "github.com/nathanap/news-feed-backend/tests/utils"
@@ -47,8 +48,8 @@ func setupIntegrationApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.A
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	auth := app.Group("/v1/auth")
-	auth.Get("/google", authendpoints.GoogleLogin(testOAuth2Config()))
-	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl))
+	auth.Get("/google", authendpoints.GoogleLogin(testOAuth2Config(), []byte(jwtmock.TestJWTSecret), []string{testutils.TestOAuthRedirectURI}))
+	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl, []byte(jwtmock.TestJWTSecret)))
 	auth.Post("/refresh", authendpoints.RefreshToken(authCtrl))
 	auth.Post("/logout", append(authMiddleware, authendpoints.Logout(refreshTokenCtrl, runTx))...)
 	auth.Delete("/invalidate", authendpoints.Invalidate(refreshTokenCtrl, runTx))
@@ -95,21 +96,13 @@ func extractUserIDFromToken(t *testing.T, tokenString string) string {
 
 func loginAndGetTokens(t *testing.T, app *fiber.App) (accessToken, refreshToken string) {
 	t.Helper()
-	req, err := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?code=valid-code", nil)
+	return testutils.CompleteOAuthLogin(t, app, []byte(jwtmock.TestJWTSecret))
+}
+
+// validState mints a state token for the test redirect URI, as GET /auth/google would.
+func validState(t *testing.T) string {
+	t.Helper()
+	state, err := oauthstate.Generate([]byte(jwtmock.TestJWTSecret), testutils.TestOAuthRedirectURI)
 	require.NoError(t, err)
-
-	resp, err := app.Test(req)
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-
-	var body map[string]interface{}
-	require.NoError(t, readJSON(resp, &body))
-
-	access, ok := body["access_token"].(string)
-	require.True(t, ok && access != "", "access_token missing from response")
-
-	refresh, ok := body["refresh_token"].(string)
-	require.True(t, ok && refresh != "", "refresh_token missing from response")
-
-	return access, refresh
+	return state
 }

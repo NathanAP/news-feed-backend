@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	authendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/auth"
 	userendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/users"
+	"github.com/nathanap/news-feed-backend/services/oauthstate"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 	"github.com/nathanap/news-feed-backend/tests/mocks/external"
 	jwtmock "github.com/nathanap/news-feed-backend/tests/mocks/services"
@@ -55,8 +57,8 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 
 	auth := app.Group("/v1/auth")
-	auth.Get("/google", authendpoints.GoogleLogin(testOAuth2Config()))
-	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl))
+	auth.Get("/google", authendpoints.GoogleLogin(testOAuth2Config(), []byte(jwtmock.TestJWTSecret), []string{testutils.TestOAuthRedirectURI}))
+	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl, []byte(jwtmock.TestJWTSecret)))
 	auth.Post("/refresh", authendpoints.RefreshToken(authCtrl))
 	auth.Post("/logout", append(authMiddleware, authendpoints.Logout(refreshTokenCtrl, runTx))...)
 	auth.Delete("/invalidate", authendpoints.Invalidate(refreshTokenCtrl, runTx))
@@ -80,27 +82,30 @@ func testOAuth2Config() *oauth2.Config {
 	}
 }
 
-// loginViaCallback performs a full Google OAuth2 login through the real callback endpoint
-// using MockGoogleOAuth. Verifies that the user and refresh_token were persisted in the DB
-// and returns both records along with the access_token. Use this fixture in tests that need
-// an authenticated session created through the real login flow.
+// loginViaCallback performs a full Google OAuth2 login through the real two-step flow (start →
+// callback) using MockGoogleOAuth: GET /auth/google issues a signed state, then the callback
+// consumes it and redirects back with the tokens in the fragment. It verifies that the user and
+// refresh_token were persisted and returns both records along with the access_token.
 func loginViaCallback(t *testing.T, app *fiber.App, queries db.Querier) (user db.User, rt db.RefreshToken, accessToken string) {
 	t.Helper()
 
-	req, err := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?code=any-code", nil)
+	// Step 1: start the login — the server issues a signed state inside the Google auth URL.
+	startReq, err := http.NewRequest(http.MethodGet, "/v1/auth/google?redirect_uri="+url.QueryEscape(testutils.TestOAuthRedirectURI), nil)
 	require.NoError(t, err)
-
-	resp, err := app.Test(req)
+	startResp, err := app.Test(startReq)
 	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, resp.StatusCode, "callback should return 200")
+	require.Equal(t, http.StatusTemporaryRedirect, startResp.StatusCode, "login should redirect to Google")
+	state := extractStateFromGoogleURL(t, startResp.Header.Get("Location"))
 
-	var body map[string]interface{}
-	require.NoError(t, readJSON(resp, &body))
+	// Step 2: Google redirects to our callback with a code + the same state → client redirect + fragment.
+	cbReq, err := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?code=any-code&state="+url.QueryEscape(state), nil)
+	require.NoError(t, err)
+	cbResp, err := app.Test(cbReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusTemporaryRedirect, cbResp.StatusCode, "callback should redirect to the client")
 
-	accessToken, _ = body["access_token"].(string)
-	refreshTokenID, _ := body["refresh_token"].(string)
-	require.NotEmpty(t, accessToken, "access_token missing from callback response")
-	require.NotEmpty(t, refreshTokenID, "refresh_token missing from callback response")
+	var refreshTokenID string
+	accessToken, refreshTokenID = testutils.ParseTokensFromRedirect(t, cbResp.Header.Get("Location"))
 
 	ctx := context.Background()
 
@@ -111,6 +116,26 @@ func loginViaCallback(t *testing.T, app *fiber.App, queries db.Querier) (user db
 	require.NoError(t, err, "user should be persisted in DB after login")
 
 	return user, rt, accessToken
+}
+
+// validState mints a state token for the test redirect URI, as GET /auth/google would.
+func validState(t *testing.T) string {
+	t.Helper()
+	state, err := oauthstate.Generate([]byte(jwtmock.TestJWTSecret), testutils.TestOAuthRedirectURI)
+	require.NoError(t, err)
+	return state
+}
+
+// extractStateFromGoogleURL pulls the state parameter out of the Google auth URL the login endpoint
+// redirects to.
+func extractStateFromGoogleURL(t *testing.T, location string) string {
+	t.Helper()
+	require.NotEmpty(t, location, "expected a redirect to Google")
+	u, err := url.Parse(location)
+	require.NoError(t, err)
+	state := u.Query().Get("state")
+	require.NotEmpty(t, state, "state missing from Google auth URL")
+	return state
 }
 
 func readJSON(resp *http.Response, target any) error {

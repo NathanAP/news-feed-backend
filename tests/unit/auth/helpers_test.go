@@ -19,6 +19,7 @@ import (
 	db "github.com/nathanap/news-feed-backend/sqlc"
 	"github.com/nathanap/news-feed-backend/tests/fixtures"
 	jwtmock "github.com/nathanap/news-feed-backend/tests/mocks/services"
+	testutils "github.com/nathanap/news-feed-backend/tests/utils"
 )
 
 func requireNotProduction(t *testing.T) {
@@ -143,8 +144,8 @@ func setupApp(authCtrl *mockAuthCtrl, rtCtrl *mockRefreshTokenCtrl) *fiber.App {
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), rtCtrl, fakeTxRunner)
 
 	auth := app.Group("/v1/auth")
-	auth.Get("/google", authendpoints.GoogleLogin(testOAuth2Config()))
-	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl))
+	auth.Get("/google", authendpoints.GoogleLogin(testOAuth2Config(), []byte(jwtmock.TestJWTSecret), []string{testutils.TestOAuthRedirectURI}))
+	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl, []byte(jwtmock.TestJWTSecret)))
 	auth.Post("/refresh", authendpoints.RefreshToken(authCtrl))
 	auth.Post("/logout", append(authMiddleware, authendpoints.Logout(rtCtrl, fakeTxRunner))...)
 	auth.Delete("/invalidate", authendpoints.Invalidate(rtCtrl, fakeTxRunner))

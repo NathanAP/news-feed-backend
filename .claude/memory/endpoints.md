@@ -21,8 +21,13 @@
   Liga/desliga a aplicação globalmente; isenta do guard para nunca trancar o religamento.
 
 ## Auth (`/v1/auth`)
-- `GET /auth/google` — **sem auth**. Redireciona para o Google.
-- `GET /auth/google/callback` — **sem auth**. Retorna `{ access_token, refresh_token, expires_in }`.
+- `GET /auth/google?redirect_uri=` — **sem auth**. Valida o `redirect_uri` contra a allowlist
+  (`OAUTH_ALLOWED_REDIRECT_URIS`, match exato; 400 se ausente/fora dela) e redireciona ao Google com um
+  `state` assinado (CSRF + carrega o `redirect_uri` pela ida-e-volta).
+- `GET /auth/google/callback` — **sem auth**. Valida o `state` (401 se inválido/expirado), troca o
+  `code` e **redireciona ao `redirect_uri`** com os tokens no **fragment**
+  (`#access_token=...&refresh_token=...&expires_in=...`) — não devolve JSON. Cancelamento no Google →
+  redirect com `?error=`. Troca de `code` falha → 401. (fluxo completo em `PROJECT.md`)
 - `POST /auth/refresh` — **sem auth**. Body `{ refresh_token }`. Renova o `access_token` e
   estende o `refresh_token`. 401 se inválido/expirado.
 - `POST /auth/logout` — **auth**. Soft-remove do refresh token atual. 204.
@@ -67,6 +72,10 @@
 - Acesso restrito ao dono: feed de outro usuário responde **404** (não 403), sem vazar existência.
 - `POST /feeds/create` — `{ name (≤120), keywords[5..20] }` → 201 / 400 / 409 (limite de 5 feeds ativos) / 500.
 - `GET /feeds/:id` → 200 / 404 (inexistente ou de outro usuário).
+- `GET /feeds/:id/articles` — as notícias que caíram no feed (do dono), cada uma com `is_read` (aqui
+  sempre definido — a notícia está no feed). Filtros opcionais: `is_read` (`true`|`false`) e janela
+  `period_starting_at`/`period_ending_at` (RFC3339 UTC, sobre `created_at`, inclusivos). → 200
+  (paginada, ver "Paginação") / 404 (feed inexistente ou de outro usuário) / 400 (filtro inválido).
 - `GET /feeds?name=` — só os próprios feeds, filtro por substring no nome → 200 (paginada, ver "Paginação").
 - `PUT /feeds/:id` — `{ name, keywords }` (sem `user_id`, imutável) → 200 / 400 / 404.
 - `DELETE /feeds/:id` — soft delete (permanente, sem reativação) → 204 / 404.
@@ -83,7 +92,7 @@
   `RSS_FEED_CRON_VERBOSE_MODE`.
 
 ## Paginação
-- Toda rota de busca de coleção (`GET /v1/articles`, `/v1/sources`, `/v1/feeds`) é **paginada**.
+- Toda rota de busca de coleção (`GET /v1/articles`, `/v1/sources`, `/v1/feeds`, `/v1/feeds/:id/articles`) é **paginada**.
   Query: `?page=` (mín/padrão 1) e `?page_size=` (mín 1, máx 100, padrão 20). Resposta:
   `{ docs: [...], pagination: { actual_page, total_pages, actual_count, total_count, has_next_page,
   has_previous_page } }`. Página fora do range → `docs` vazio (sem erro), `actual_page` fica no valor
@@ -91,4 +100,7 @@
 
 ## Notas
 - Todo endpoint dispara log de início/fim quando `VERBOSE_MODE=true`.
+- **CORS**: origens liberadas via `CORS_ALLOWED_ORIGINS` (lista separada por vírgula, origins
+  completas com esquema). Sem cookie/credentials (auth é Bearer). Vazio = nenhuma origem cross-origin
+  liberada (fail-closed).
 - A coleção Bruno em `bruno/` espelha todas essas rotas.

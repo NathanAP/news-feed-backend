@@ -76,7 +76,7 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 	api.Use(middlewares.NewAppStatusMiddleware(systemCtrl, runTx))
 
 	auth := api.Group("/auth")
-	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl))
+	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl, []byte(jwtmock.TestJWTSecret)))
 
 	s := api.Group("/sources")
 	s.Post("/create", append(authMiddleware, sourceendpoints.CreateSource(sourceCtrl, runTx))...)
@@ -88,18 +88,9 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 func loginViaCallback(t *testing.T, app *fiber.App, queries db.Querier) string {
 	t.Helper()
 
-	req, err := http.NewRequest(http.MethodGet, "/v1/auth/google/callback?code=any-code", nil)
-	require.NoError(t, err)
-	resp, err := app.Test(req)
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	token, refreshTokenID := testutils.CompleteOAuthLogin(t, app, []byte(jwtmock.TestJWTSecret))
 
-	var body map[string]any
-	require.NoError(t, readJSON(resp, &body))
-	token, _ := body["access_token"].(string)
-	require.NotEmpty(t, token)
-
-	refreshTokenID, _ := body["refresh_token"].(string)
+	// Sanity-check that the login persisted the session and user.
 	rt, err := queries.FindRefreshTokenByID(context.Background(), refreshTokenID)
 	require.NoError(t, err)
 	_, err = queries.FindUserByID(context.Background(), rt.UserID)

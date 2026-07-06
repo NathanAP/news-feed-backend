@@ -31,6 +31,7 @@ type Querier interface {
 	FindUserPreferencesByUserID(ctx context.Context, userID string) (UserPreference, error)
 	GetSystem(ctx context.Context) (System, error)
 	ListArticles(ctx context.Context) ([]Article, error)
+	ListArticlesByFeedForUser(ctx context.Context, arg ListArticlesByFeedForUserParams) ([]ListArticlesByFeedForUserRow, error)
 	MarkArticleAsReadForUser(ctx context.Context, arg MarkArticleAsReadForUserParams) error
 	ListFeedsByUser(ctx context.Context, userID string) ([]Feed, error)
 	ListSources(ctx context.Context) ([]Source, error)

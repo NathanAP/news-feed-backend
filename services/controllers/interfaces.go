@@ -75,6 +75,7 @@ type FeedControllerInterface interface {
 type ArticleFeedControllerInterface interface {
 	Create(ctx context.Context, q db.Querier, articleID, feedID string) (db.ArticleFeed, error)
 	FindByArticleAndUser(ctx context.Context, q db.Querier, articleID, userID string) ([]db.ArticleFeed, error)
+	ListArticlesByFeedForUser(ctx context.Context, q db.Querier, feedID, userID string) ([]db.ListArticlesByFeedForUserRow, error)
 	MarkAsRead(ctx context.Context, q db.Querier, articleID, userID string) (bool, error)
 }
 
