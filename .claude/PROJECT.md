@@ -509,7 +509,7 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
 
 ## CORS
 
-- As CORS são tratadas através da variável de ambiente `CORS_ALLOWD_ORIGINS` e deve ser uma lista separada por vírgula.
+- As CORS são tratadas através da variável de ambiente `CORS_ALLOWED_ORIGINS` e deve ser uma lista separada por vírgula.
     - Em ambiente de desenvolvimento deve liberar `localhost` enquanto em produção e homologação apenas os domínios reais.
 
 ## CI/CD
