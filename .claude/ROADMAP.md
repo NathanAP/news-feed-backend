@@ -511,7 +511,8 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
 - CI/CD
 - Backup
 - Resumo de notícias
-    - Acrescentar cache de resumo e de tradução via redis
+    - Acrescentar cache de resumo via redis
+    - Tradução já existe mas precisa de cache também
 
 ## Escalabilidade futura: fila distribuída + workers (pós-Postgres)
 
