@@ -74,8 +74,8 @@ Você tem liberdade para acessar qualquer arquivo da pasta `.claude`.
 - `PROJECT.md`: contém um resumo de como o projeto funciona (filosofia, fluxos, features, restrições, etc).
 - `ROADMAP.md`: contém o roadmap do projeto, que também pode ser visto como uma lista de TODO.
 - `agents/`: contém os agentes que dão suporte e estão presentes no desenvolvimento do projeto.
-- `rules/`: contém um conjunto de regras para ajudar no desenvolvimento do projeto.
 - `memory/`: contém um conjunto de resumos criados por você mesmo para ajudar a sua memória ser mais enxuta e não depender de ler todo o projeto toda vez.
+- `rules/`: contém um conjunto de regras para ajudar no desenvolvimento do projeto.
 - `versions/`: contém um conjunto de arquivos especificando o que foi feito por você em cada versão do projeto.
 
 ## Stack

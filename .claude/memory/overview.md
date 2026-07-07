@@ -6,7 +6,7 @@
 ## O que é
 
 API REST em Go para um **feed de notícias hiper personalizado** baseado em RSS. O usuário
-cria *feeds* com palavras-chave; o sistema descobre notícias das fontes RSS, trata/tagueia
+cria _feeds_ com palavras-chave; o sistema descobre notícias das fontes RSS, trata/tagueia
 via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usuário.
 
 ## Stack
@@ -44,8 +44,8 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
   `ParseKeywords`/`ParseScore`/`ParseTranslation` compartilhadas. Impls: `gemini/`
   (LLM) e `openaicompat/` (Ollama local, Groq, ou qualquer endpoint OpenAI-compatible; API key
   opcional). Tratamento via `TREATMENT_*`; keywords via `KEYWORDS_MODE`; julgamento via `JUDGEMENT_MODE`
-  + `JUDGEMENT_THRESHOLD` — modos `local`/`groq`/`gemini` pré-montados no boot (`buildModeClients`,
-  compartilhado) e trocáveis por chamada nos dry-runs. `services/prompts/` — `.yaml` (`go:embed`).
+    - `JUDGEMENT_THRESHOLD` — modos `local`/`groq`/`gemini` pré-montados no boot (`buildModeClients`,
+      compartilhado) e trocáveis por chamada nos dry-runs. `services/prompts/` — `.yaml` (`go:embed`).
 - `services/judgement/` — camada 2 do julgamento: `Evaluator` (um `ai.Judger` + threshold) pontua uma
   notícia contra feeds candidatos. Sem I/O além da IA; buscar candidatos (camada 1, SQL `json_each`
   via `FeedController.FindCandidatesByKeywords`) e gravar `articles_feeds` é do chamador, então serve
@@ -64,15 +64,15 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
 
 ## Domínios já implementados
 
-| Domínio | Tabela(s) | Resumo |
-|---------|-----------|--------|
-| Usuários/Auth | `users`, `refresh_tokens` | Login só via Google + JWT |
-| Preferências | `user_preferences` | 1:1 com usuário; tema, idioma, tradução, personalidade IA |
-| Fontes | `sources` | Globais; CRUD + descoberta de RSS |
-| Notícias | `articles` | Globais; ligadas a uma `source`; CRUD (criação manual/admin por ora) |
-| Feeds | `feeds` | Por usuário; palavras-chave; máx. 5 ativos |
-| Feed × Notícia | `articles_feeds` | Junction com `is_read` |
-| Sistema | `system` | Singleton; `app_status` (chave de manutenção global) + `last_article_discovery_at` |
+| Domínio        | Tabela(s)                 | Resumo                                                                             |
+| -------------- | ------------------------- | ---------------------------------------------------------------------------------- |
+| Usuários/Auth  | `users`, `refresh_tokens` | Login só via Google + JWT                                                          |
+| Preferências   | `user_preferences`        | 1:1 com usuário; tema, idioma, tradução, personalidade IA                          |
+| Fontes         | `sources`                 | Globais; CRUD + descoberta de RSS                                                  |
+| Notícias       | `articles`                | Globais; ligadas a uma `source`; CRUD (criação manual/admin por ora)               |
+| Feeds          | `feeds`                   | Por usuário; palavras-chave; máx. 5 ativos                                         |
+| Feed × Notícia | `articles_feeds`          | Junction com `is_read`                                                             |
+| Sistema        | `system`                  | Singleton; `app_status` (chave de manutenção global) + `last_article_discovery_at` |
 
 Descoberta via CRON (0.19) + **tratamento por IA e persistência** (0.20/0.21) + **julgamento**
 (0.22): a CRON descobre, deduplica por `url_original`, trata o conteúdo com uma **LLM** (`TREATMENT_*`,

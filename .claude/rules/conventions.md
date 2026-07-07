@@ -3,7 +3,7 @@
 Aqui estão as convenções de código que devem ser seguidas para garantir um código limpo, consistente e de fácil manutenção:
 
 - Código estrito, altamente tipado.
-- Garanta sempre estar o mais próximo da orientação à objetos.
+- Garanta sempre estar seguindo a filosofia da orientação à objetos.
 - Variáveis, comentários e mensagens finais sempre em inglês.
 - Garanta que variáveis tenham nomes claros.
 - Nunca use IDs numéricos, sempre utilize UUID.

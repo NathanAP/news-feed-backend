@@ -22,22 +22,27 @@
 ## Tabelas
 
 ### users
+
 `id`, `google_id` (UNIQUE), `email` (UNIQUE), `name`, `picture` (nullable), `status`,
 `last_login_at` (nullable), `created_at`, `modified_at`, `removed_at`.
 
 ### user_preferences (1:1 com users)
+
 `id`, `user_id` (UNIQUE, FK users), `status`, `theme` (`light`|`dark`),
 `language` (`pt`|`en`|`es`|...), `translate_content` (0/1), `ai_personality`
 (`fun`|`informative`|`mixed`), timestamps. Defaults: dark, pt, translate=1, mixed.
 
 ### refresh_tokens (N:1 com users)
+
 `id`, `user_id` (FK users), `status`, `expires_at`, timestamps. O `id` do token É o valor
 usado no fluxo de refresh.
 
 ### sources (globais)
+
 `id`, `status`, `url`, `url_rss`, timestamps. Índices únicos parciais em `url` e `url_rss`.
 
 ### articles (globais)
+
 `id`, `status`, `title`, `content` (HTML básico, sanitizado por bluemonday), `url_original`, `keywords` (JSON array TEXT),
 `source_id` (**NOT NULL**, FK sources, **imutável**), `language_original` (**nullable**, código do enum
 de idiomas), timestamps. Índice único parcial em `url_original`. Keywords: 5–20 itens, geradas **em
@@ -46,10 +51,12 @@ inglês** (canônico, pra matching entre fontes de qualquer idioma no julgamento
 manual é obrigatório no payload. Usado pela tradução para saber a origem.
 
 ### feeds (por usuário)
+
 `id`, `status`, `name`, `keywords` (JSON array TEXT, 5–20), `user_id` (FK users), timestamps.
 Sem unicidade (nomes duplicados permitidos). Máx. **5 feeds ativos** por usuário.
 
 ### articles_feeds (junction feed × notícia)
+
 `id`, `article_id` (FK articles), `feed_id` (FK feeds), `is_read` (0/1), `created_at`,
 `modified_at`. **Sem** `status`/`removed_at`. `user_id` é obtido via JOIN com `feeds` (sem
 desnormalização). Hard delete quando um pai sofre hard remove; no soft remove de um pai o
@@ -60,6 +67,7 @@ gravado (artefato transitório; julgamento não-retroativo). Camada 1 do julgame
 (feeds ativos de qualquer usuário, `DISTINCT`).
 
 ### system (singleton — painel de controle)
+
 `id` (UUID v7), `app_status` (0/1), `last_article_discovery_at` (DATETIME nullable),
 `created_at`, `modified_at`. **Exceção de convenção:** sem `status`/`removed_at` — é um painel
 de controle, não um registro soft-deletável. **Linha única**: semeada na migração e **só sofre

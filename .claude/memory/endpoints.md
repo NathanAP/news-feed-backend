@@ -6,21 +6,25 @@
 > inexistente → 404.
 
 ## Guard de manutenção (global)
+
 - Middleware global lê `system.app_status` a cada request. Quando `false`, **toda rota retorna
   503** — exceto as duas isentas: `GET /v1/health` e `PUT /v1/system/app-status` (registradas
   antes do guard). O guard roda **antes da auth**, então em manutenção uma rota protegida sem
   token responde 503 (não 401). Sem cache: o toggle reflete no próximo request.
 
 ## Health
+
 - `GET /v1/health` — **sem auth**, isenta do guard. Retorna `{ status, version, app_status,
-  server_time }` (`app_status` = estado global; `server_time` = hora do servidor em UTC).
+server_time }` (`app_status` = estado global; `server_time` = hora do servidor em UTC).
 
 ## System (`/v1/system`)
+
 - `PUT /system/app-status` — **aberta** (admin-futuro), isenta do guard. Body
   `{ app_status: bool }` (obrigatório) → 200 `SystemResponse` / 400 (campo ausente) / 500.
   Liga/desliga a aplicação globalmente; isenta do guard para nunca trancar o religamento.
 
 ## Auth (`/v1/auth`)
+
 - `GET /auth/google?redirect_uri=` — **sem auth**. Valida o `redirect_uri` contra a allowlist
   (`OAUTH_ALLOWED_REDIRECT_URIS`, match exato; 400 se ausente/fora dela) e redireciona ao Google com um
   `state` assinado (CSRF + carrega o `redirect_uri` pela ida-e-volta).
@@ -35,6 +39,7 @@
 - `DELETE /auth/invalidate-all` — **aberta** (admin-futuro). Query `user_id`. Derruba todas as sessões.
 
 ## Users (`/v1/users`) — com auth (exceto dev-login)
+
 - `GET /users/me` — dados do usuário (lidos do JWT).
 - `GET /users/me/preferences` — preferências (lidas do JWT).
 - `PUT /users/me/preferences` — atualiza preferências. Retorna `{ access_token, expires_in, preferences }`
@@ -45,6 +50,7 @@
   ao `task sdl` no CLI.
 
 ## Sources (`/v1/sources`) — auth (semântica admin; hoje aberta a qualquer autenticado)
+
 - `POST /sources/create` — `{ url, url_rss }` → 201 / 400 / 409 (url duplicada entre ativas) / 500.
 - `GET /sources/rss-discovery?url=` — descobre feeds RSS da URL → 200 `{ feeds: [...] }` (lista pode ser vazia) / 400.
 - `GET /sources/:id/article-discovery` — **dry-run** da descoberta de notícias de 1 source (espelha a CRON: parsing RSS + dedup por `url_original`). Não grava nada. Query opcional `last_article_discovery_at` (RFC3339 UTC) adiciona limite inferior por data. → 200 `{ articles: [...] }` (pode ser vazia) / 400 (data inválida) / 404 (source inexistente). Aberta (admin-futuro).
@@ -54,6 +60,7 @@
 - `DELETE /sources/:id` — soft delete → 204 / 404. Cascata: soft-remove das `articles` da fonte.
 
 ## Articles (`/v1/articles`) — auth (criação/edição/remoção = admin-futuro; hoje abertas)
+
 - `POST /articles/create` — `{ title, content, url_original, keywords[5..20], source_id, language_original }` →
   201 / 400 (inclui `source_id` ausente/fonte inativa e `language_original` ausente/inválido) / 409 (url_original duplicada) / 500.
   `language_original` é um código do enum de idiomas (`pt|en|es|fr|de|it`) e é obrigatório na criação manual (na CRON é detectado).
@@ -69,6 +76,7 @@
 - `DELETE /articles/:id` — soft delete → 204 / 404.
 
 ## Feeds (`/v1/feeds`) — auth, **recurso por-usuário**
+
 - Acesso restrito ao dono: feed de outro usuário responde **404** (não 403), sem vazar existência.
 - `POST /feeds/create` — `{ name (≤120), keywords[5..20] }` → 201 / 400 / 409 (limite de 5 feeds ativos) / 500.
 - `GET /feeds/:id` → 200 / 404 (inexistente ou de outro usuário).
@@ -81,6 +89,7 @@
 - `DELETE /feeds/:id` — soft delete (permanente, sem reativação) → 204 / 404.
 
 ## Descoberta automática (CRON, sem rota)
+
 - CRON interna (`services/cron`, `robfig/cron/v3`) varre as sources ativas em `RSS_FEED_CRON_SCHEDULE`,
   ativa por `RSS_FEED_CRON_ACTIVE`. Lê o RSS de cada source (gofeed), **deduplica por `url_original`**,
   **trata** as novas (detecta o idioma com lingua-go + LLM limpa o conteúdo + SLM nomeia keywords),
@@ -92,13 +101,15 @@
   `RSS_FEED_CRON_VERBOSE_MODE`.
 
 ## Paginação
+
 - Toda rota de busca de coleção (`GET /v1/articles`, `/v1/sources`, `/v1/feeds`, `/v1/feeds/:id/articles`) é **paginada**.
   Query: `?page=` (mín/padrão 1) e `?page_size=` (mín 1, máx 100, padrão 20). Resposta:
   `{ docs: [...], pagination: { actual_page, total_pages, actual_count, total_count, has_next_page,
-  has_previous_page } }`. Página fora do range → `docs` vazio (sem erro), `actual_page` fica no valor
+has_previous_page } }`. Página fora do range → `docs` vazio (sem erro), `actual_page` fica no valor
   pedido. Helper global em `services/pagination` (paginação em memória sobre a lista já filtrada).
 
 ## Notas
+
 - Todo endpoint dispara log de início/fim quando `VERBOSE_MODE=true`.
 - **CORS**: origens liberadas via `CORS_ALLOWED_ORIGINS` (lista separada por vírgula, origins
   completas com esquema). Sem cookie/credentials (auth é Bearer). Vazio = nenhuma origem cross-origin
