@@ -466,6 +466,11 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [x] Alterar o callback do `OAuth2` para ir de volta ao frontend
     - `redirect_uri` validado por allowlist (`OAUTH_ALLOWED_REDIRECT_URIS`), `state` assinado (pacote `services/oauthstate`), callback redireciona ao client com tokens no `fragment`
 
+## Versão 0.30.0.0
+
+- [ ] Permitir que a fonte da notícia venha também na rota de notícias do feed
+    - No endpoint `GET /v1/feeds/{id}/articles` precisamos de um filtro que traga também a fonte daquela notícia, assim podemos preencher no client
+
 ## Futuro
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
