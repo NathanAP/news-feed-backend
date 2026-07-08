@@ -9,6 +9,18 @@ import (
 	"context"
 )
 
+const countActiveFeedsByUser = `-- name: CountActiveFeedsByUser :one
+SELECT COUNT(*) FROM feeds
+WHERE user_id = ? AND status = 1 AND removed_at IS NULL
+`
+
+func (q *Queries) CountActiveFeedsByUser(ctx context.Context, userID string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countActiveFeedsByUser, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createFeed = `-- name: CreateFeed :one
 INSERT INTO feeds (id, name, keywords, user_id)
 VALUES (?, ?, ?, ?)
@@ -41,6 +53,51 @@ func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, e
 		&i.RemovedAt,
 	)
 	return i, err
+}
+
+const findCandidateFeedsByKeywords = `-- name: FindCandidateFeedsByKeywords :many
+SELECT DISTINCT f.id, f.status, f.name, f.keywords, f.user_id, f.created_at, f.modified_at, f.removed_at
+FROM feeds f
+JOIN json_each(f.keywords) fk
+JOIN json_each(?) ak ON ak.value = fk.value
+WHERE f.status = 1 AND f.removed_at IS NULL
+`
+
+// Judgement layer 1 (keyword overlap): returns every active feed (of any user) that shares at
+// least one keyword with the article. Both sides are stored as JSON arrays of lowercase strings,
+// so json_each expands each into rows and the join matches on exact keyword equality. DISTINCT
+// collapses a feed that overlaps on several keywords into a single row. The parameter is the
+// article's keywords as a JSON array TEXT.
+func (q *Queries) FindCandidateFeedsByKeywords(ctx context.Context, jsonEach interface{}) ([]Feed, error) {
+	rows, err := q.db.QueryContext(ctx, findCandidateFeedsByKeywords, jsonEach)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Feed
+	for rows.Next() {
+		var i Feed
+		if err := rows.Scan(
+			&i.ID,
+			&i.Status,
+			&i.Name,
+			&i.Keywords,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.ModifiedAt,
+			&i.RemovedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const findFeedByIDAndUser = `-- name: FindFeedByIDAndUser :one
@@ -82,7 +139,6 @@ func (q *Queries) ListFeedsByUser(ctx context.Context, userID string) ([]Feed, e
 		return nil, err
 	}
 	defer rows.Close()
-
 	var items []Feed
 	for rows.Next() {
 		var i Feed
@@ -109,57 +165,31 @@ func (q *Queries) ListFeedsByUser(ctx context.Context, userID string) ([]Feed, e
 	return items, nil
 }
 
-const countActiveFeedsByUser = `-- name: CountActiveFeedsByUser :one
-SELECT COUNT(*) FROM feeds
-WHERE user_id = ? AND status = 1 AND removed_at IS NULL
+const softDeleteFeedByIDAndUser = `-- name: SoftDeleteFeedByIDAndUser :exec
+UPDATE feeds
+SET status = 0, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
+WHERE id = ? AND user_id = ? AND removed_at IS NULL
 `
 
-func (q *Queries) CountActiveFeedsByUser(ctx context.Context, userID string) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countActiveFeedsByUser, userID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
+type SoftDeleteFeedByIDAndUserParams struct {
+	ID     string `json:"id"`
+	UserID string `json:"user_id"`
 }
 
-const findCandidateFeedsByKeywords = `-- name: FindCandidateFeedsByKeywords :many
-SELECT DISTINCT f.id, f.status, f.name, f.keywords, f.user_id, f.created_at, f.modified_at, f.removed_at
-FROM feeds f
-JOIN json_each(f.keywords) fk
-JOIN json_each(?) ak ON ak.value = fk.value
-WHERE f.status = 1 AND f.removed_at IS NULL
+func (q *Queries) SoftDeleteFeedByIDAndUser(ctx context.Context, arg SoftDeleteFeedByIDAndUserParams) error {
+	_, err := q.db.ExecContext(ctx, softDeleteFeedByIDAndUser, arg.ID, arg.UserID)
+	return err
+}
+
+const softDeleteFeedsByUser = `-- name: SoftDeleteFeedsByUser :exec
+UPDATE feeds
+SET status = 0, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
+WHERE user_id = ? AND removed_at IS NULL
 `
 
-func (q *Queries) FindCandidateFeedsByKeywords(ctx context.Context, articleKeywords string) ([]Feed, error) {
-	rows, err := q.db.QueryContext(ctx, findCandidateFeedsByKeywords, articleKeywords)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var items []Feed
-	for rows.Next() {
-		var i Feed
-		if err := rows.Scan(
-			&i.ID,
-			&i.Status,
-			&i.Name,
-			&i.Keywords,
-			&i.UserID,
-			&i.CreatedAt,
-			&i.ModifiedAt,
-			&i.RemovedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+func (q *Queries) SoftDeleteFeedsByUser(ctx context.Context, userID string) error {
+	_, err := q.db.ExecContext(ctx, softDeleteFeedsByUser, userID)
+	return err
 }
 
 const updateFeedByIDAndUser = `-- name: UpdateFeedByIDAndUser :one
@@ -195,31 +225,4 @@ func (q *Queries) UpdateFeedByIDAndUser(ctx context.Context, arg UpdateFeedByIDA
 		&i.RemovedAt,
 	)
 	return i, err
-}
-
-const softDeleteFeedByIDAndUser = `-- name: SoftDeleteFeedByIDAndUser :exec
-UPDATE feeds
-SET status = 0, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
-WHERE id = ? AND user_id = ? AND removed_at IS NULL
-`
-
-type SoftDeleteFeedByIDAndUserParams struct {
-	ID     string `json:"id"`
-	UserID string `json:"user_id"`
-}
-
-func (q *Queries) SoftDeleteFeedByIDAndUser(ctx context.Context, arg SoftDeleteFeedByIDAndUserParams) error {
-	_, err := q.db.ExecContext(ctx, softDeleteFeedByIDAndUser, arg.ID, arg.UserID)
-	return err
-}
-
-const softDeleteFeedsByUser = `-- name: SoftDeleteFeedsByUser :exec
-UPDATE feeds
-SET status = 0, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
-WHERE user_id = ? AND removed_at IS NULL
-`
-
-func (q *Queries) SoftDeleteFeedsByUser(ctx context.Context, userID string) error {
-	_, err := q.db.ExecContext(ctx, softDeleteFeedsByUser, userID)
-	return err
 }

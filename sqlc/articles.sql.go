@@ -115,7 +115,6 @@ func (q *Queries) ListArticles(ctx context.Context) ([]Article, error) {
 		return nil, err
 	}
 	defer rows.Close()
-
 	var items []Article
 	for rows.Next() {
 		var i Article
@@ -143,6 +142,28 @@ func (q *Queries) ListArticles(ctx context.Context) ([]Article, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const softDeleteArticle = `-- name: SoftDeleteArticle :exec
+UPDATE articles
+SET status = 0, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
+WHERE id = ? AND removed_at IS NULL
+`
+
+func (q *Queries) SoftDeleteArticle(ctx context.Context, id string) error {
+	_, err := q.db.ExecContext(ctx, softDeleteArticle, id)
+	return err
+}
+
+const softDeleteArticlesBySourceID = `-- name: SoftDeleteArticlesBySourceID :exec
+UPDATE articles
+SET status = 0, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
+WHERE source_id = ? AND removed_at IS NULL
+`
+
+func (q *Queries) SoftDeleteArticlesBySourceID(ctx context.Context, sourceID string) error {
+	_, err := q.db.ExecContext(ctx, softDeleteArticlesBySourceID, sourceID)
+	return err
 }
 
 const updateArticle = `-- name: UpdateArticle :one
@@ -185,26 +206,4 @@ func (q *Queries) UpdateArticle(ctx context.Context, arg UpdateArticleParams) (A
 		&i.RemovedAt,
 	)
 	return i, err
-}
-
-const softDeleteArticle = `-- name: SoftDeleteArticle :exec
-UPDATE articles
-SET status = 0, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
-WHERE id = ? AND removed_at IS NULL
-`
-
-func (q *Queries) SoftDeleteArticle(ctx context.Context, id string) error {
-	_, err := q.db.ExecContext(ctx, softDeleteArticle, id)
-	return err
-}
-
-const softDeleteArticlesBySourceID = `-- name: SoftDeleteArticlesBySourceID :exec
-UPDATE articles
-SET status = 0, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
-WHERE source_id = ? AND removed_at IS NULL
-`
-
-func (q *Queries) SoftDeleteArticlesBySourceID(ctx context.Context, sourceID string) error {
-	_, err := q.db.ExecContext(ctx, softDeleteArticlesBySourceID, sourceID)
-	return err
 }

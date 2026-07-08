@@ -16,6 +16,7 @@ auth:bearer {
 
 body:json {
   {
+    "name": "Wikimetal",
     "url": "https://www.wikimetal.com.br/",
     "url_rss": "https://www.wikimetal.com.br/feed/"
   }
@@ -23,9 +24,10 @@ body:json {
 
 docs {
   Campos obrigatórios:
+  - name: nome de exibição da fonte (máx. 120 caracteres)
   - url: URL base da fonte (deve ser http ou https)
   - url_rss: URL do feed RSS/Atom (deve ser http ou https)
-  
+
   Retorna 409 se a URL já estiver cadastrada.
   Use GET /v1/sources/rss_discovery para tentar descobrir o url_rss automaticamente.
 }

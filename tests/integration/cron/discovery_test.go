@@ -47,6 +47,7 @@ func seedSource(t *testing.T, queries db.Querier, id, urlRss string) {
 	t.Helper()
 	_, err := queries.CreateSource(t.Context(), db.CreateSourceParams{
 		ID:     id,
+		Name:   "Cron Feed",
 		Url:    "https://cron-feed.com",
 		UrlRss: urlRss,
 	})
@@ -120,7 +121,7 @@ func TestIntegration_DiscoveryRunner_ConcurrentFetchCollectsAllSources(t *testin
 	for i, id := range sourceIDs {
 		urlRss := fmt.Sprintf("https://cron-feed.com/rss-%d.xml", i)
 		_, err := queries.CreateSource(t.Context(), db.CreateSourceParams{
-			ID: id, Url: fmt.Sprintf("https://cron-feed-%d.com", i), UrlRss: urlRss,
+			ID: id, Name: fmt.Sprintf("Cron Feed %d", i), Url: fmt.Sprintf("https://cron-feed-%d.com", i), UrlRss: urlRss,
 		})
 		require.NoError(t, err)
 		feeds[urlRss] = external.MockRSSResponse{StatusCode: http.StatusOK, Body: external.SampleRSSFeed}

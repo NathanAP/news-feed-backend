@@ -39,7 +39,8 @@ usado no fluxo de refresh.
 
 ### sources (globais)
 
-`id`, `status`, `url`, `url_rss`, timestamps. Índices únicos parciais em `url` e `url_rss`.
+`id`, `status`, `name` (**NOT NULL**, nome de exibição, ex. "G1"), `url`, `url_rss`, timestamps.
+Índices únicos parciais em `url` e `url_rss` (não em `name` — sem unicidade).
 
 ### articles (globais)
 

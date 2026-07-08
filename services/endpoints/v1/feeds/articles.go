@@ -19,8 +19,9 @@ import (
 // The feed must belong to the caller — another user's (or a missing) feed returns 404, never leaking
 // its existence; a feed the user owns but with no matching articles returns 200 with an empty list.
 // Optional query filters: is_read (true|false) and a created_at window (period_starting_at /
-// period_ending_at, RFC3339 UTC, both bounds inclusive and independent). The response follows the
-// standard paginated envelope ({ docs, pagination }).
+// period_ending_at, RFC3339 UTC, both bounds inclusive and independent). with_sources=true also
+// populates each article's source (conventions.md: any value other than "true" is ignored, never an
+// error). The response follows the standard paginated envelope ({ docs, pagination }).
 func FeedArticles(feedCtrl controllers.FeedControllerInterface, afCtrl controllers.ArticleFeedControllerInterface, runTx controllers.TransactionRunner) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		logger.RouteStart(c.Path())
@@ -45,6 +46,7 @@ func FeedArticles(feedCtrl controllers.FeedControllerInterface, afCtrl controlle
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "period_ending_at must be an RFC3339 UTC date"})
 		}
+		withSources := c.Query("with_sources") == "true"
 
 		var rows []db.ListArticlesByFeedForUserRow
 		err = runTx(c.Context(), func(q db.Querier) error {
@@ -76,7 +78,7 @@ func FeedArticles(feedCtrl controllers.FeedControllerInterface, afCtrl controlle
 				continue
 			}
 
-			response, err := rowToArticleResponse(row)
+			response, err := rowToArticleResponse(row, withSources)
 			if err != nil {
 				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to build article response"})
 			}
@@ -122,8 +124,11 @@ func parseUTCTime(raw string) (*time.Time, error) {
 
 // rowToArticleResponse maps a feed-article row to the shared ArticleResponse. is_read is always
 // resolved here (the article is in this feed, so the state is definite — never nil, unlike the
-// single-article endpoint where the article may be in none of the user's feeds).
-func rowToArticleResponse(row db.ListArticlesByFeedForUserRow) (schemas.ArticleResponse, error) {
+// single-article endpoint where the article may be in none of the user's feeds). Source is mapped
+// only when withSources is true, even though the row always carries it (the query always joins
+// sources, per conventions.md's with_{related_table_name} pattern): the join is cheap, so the same
+// base query serves both cases, and only the response shaping differs.
+func rowToArticleResponse(row db.ListArticlesByFeedForUserRow, withSources bool) (schemas.ArticleResponse, error) {
 	keywords, err := controllers.DecodeKeywords(row.Keywords)
 	if err != nil {
 		return schemas.ArticleResponse{}, err
@@ -149,5 +154,21 @@ func rowToArticleResponse(row db.ListArticlesByFeedForUserRow) (schemas.ArticleR
 	}
 	isRead := row.IsRead == 1
 	resp.IsRead = &isRead
+
+	if withSources {
+		source := schemas.SourceResponse{
+			ID:        row.SourceID,
+			Status:    row.SourceStatus == 1,
+			Name:      row.SourceName,
+			URL:       row.SourceUrl,
+			URLRss:    row.SourceUrlRss,
+			CreatedAt: row.SourceCreatedAt,
+		}
+		if row.SourceModifiedAt.Valid {
+			t := row.SourceModifiedAt.Time
+			source.ModifiedAt = &t
+		}
+		resp.Source = &source
+	}
 	return resp, nil
 }

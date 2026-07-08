@@ -12,7 +12,7 @@ import (
 type Querier interface {
 	CountActiveFeedsByUser(ctx context.Context, userID string) (int64, error)
 	CreateArticle(ctx context.Context, arg CreateArticleParams) (Article, error)
-	CreateArticleFeed(ctx context.Context, arg CreateArticleFeedParams) (ArticleFeed, error)
+	CreateArticleFeed(ctx context.Context, arg CreateArticleFeedParams) (ArticlesFeed, error)
 	CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, error)
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error)
 	CreateSource(ctx context.Context, arg CreateSourceParams) (Source, error)
@@ -21,8 +21,17 @@ type Querier interface {
 	ExtendRefreshToken(ctx context.Context, arg ExtendRefreshTokenParams) error
 	FindArticleByID(ctx context.Context, id string) (Article, error)
 	FindArticleByURLOriginal(ctx context.Context, urlOriginal string) (Article, error)
-	FindArticleFeedsByArticleAndUser(ctx context.Context, arg FindArticleFeedsByArticleAndUserParams) ([]ArticleFeed, error)
-	FindCandidateFeedsByKeywords(ctx context.Context, articleKeywords string) ([]Feed, error)
+	// Returns all valid articles_feeds records for an article that belong to the requesting
+	// user. A junction record is only valid when BOTH related rows are active, so the joins
+	// filter inactive feeds AND inactive articles (soft-deleted). is_read state is preserved
+	// on the rows themselves; they just become invisible while a related side is inactive.
+	FindArticleFeedsByArticleAndUser(ctx context.Context, arg FindArticleFeedsByArticleAndUserParams) ([]ArticlesFeed, error)
+	// Judgement layer 1 (keyword overlap): returns every active feed (of any user) that shares at
+	// least one keyword with the article. Both sides are stored as JSON arrays of lowercase strings,
+	// so json_each expands each into rows and the join matches on exact keyword equality. DISTINCT
+	// collapses a feed that overlaps on several keywords into a single row. The parameter is the
+	// article's keywords as a JSON array TEXT.
+	FindCandidateFeedsByKeywords(ctx context.Context, jsonEach interface{}) ([]Feed, error)
 	FindFeedByIDAndUser(ctx context.Context, arg FindFeedByIDAndUserParams) (Feed, error)
 	FindRefreshTokenByID(ctx context.Context, id string) (RefreshToken, error)
 	FindSourceByID(ctx context.Context, id string) (Source, error)
@@ -31,10 +40,21 @@ type Querier interface {
 	FindUserPreferencesByUserID(ctx context.Context, userID string) (UserPreference, error)
 	GetSystem(ctx context.Context) (System, error)
 	ListArticles(ctx context.Context) ([]Article, error)
+	// Returns the active articles associated with a feed, each with its is_read state for that feed
+	// and its source's data (always joined, cheap PK lookup, but only mapped into the response when
+	// ?with_sources=true, per conventions.md). The article's source is guaranteed active: soft-deleting
+	// a source cascades to soft-delete its articles, so an active article always has an active source.
+	// Both the feed and the article sides of the junction must be active, and the feed must belong to
+	// the requesting user, so another user's feed yields no rows. The caller checks feed ownership
+	// separately to distinguish "feed not found / not yours" (404) from "feed has no articles" (200).
+	// Ordered newest-first; is_read / date filtering and pagination are applied by the caller.
 	ListArticlesByFeedForUser(ctx context.Context, arg ListArticlesByFeedForUserParams) ([]ListArticlesByFeedForUserRow, error)
-	MarkArticleAsReadForUser(ctx context.Context, arg MarkArticleAsReadForUserParams) error
 	ListFeedsByUser(ctx context.Context, userID string) ([]Feed, error)
 	ListSources(ctx context.Context) ([]Source, error)
+	// Marks is_read = 1 on all unread articles_feeds records for a given article and user.
+	// Idempotent: already-read records (is_read = 1) are not touched. Both related rows must
+	// be active: the article and the feed.
+	MarkArticleAsReadForUser(ctx context.Context, arg MarkArticleAsReadForUserParams) error
 	RevokeAllRefreshTokensByUserID(ctx context.Context, userID string) error
 	RevokeRefreshToken(ctx context.Context, id string) error
 	SoftDeleteArticle(ctx context.Context, id string) error

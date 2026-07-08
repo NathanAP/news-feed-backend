@@ -103,7 +103,7 @@ func TestIntegration_CreateSource_Success(t *testing.T) {
 	app, queries := setupIntegrationApp(t, http.DefaultClient)
 	_, token := seedUser(t, queries)
 
-	body := `{"url":"https://example.com","url_rss":"https://example.com/rss.xml"}`
+	body := `{"name":"Example News","url":"https://example.com","url_rss":"https://example.com/rss.xml"}`
 	req, err := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -124,7 +124,7 @@ func TestIntegration_CreateSource_DuplicateURL(t *testing.T) {
 	app, queries := setupIntegrationApp(t, http.DefaultClient)
 	_, token := seedUser(t, queries)
 
-	body := `{"url":"https://dup.com","url_rss":"https://dup.com/rss.xml"}`
+	body := `{"name":"Dup News","url":"https://dup.com","url_rss":"https://dup.com/rss.xml"}`
 
 	req1, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
 	req1.Header.Set("Content-Type", "application/json")
@@ -151,7 +151,7 @@ func TestIntegration_CreateSource_AfterSoftDelete(t *testing.T) {
 	app, queries := setupIntegrationApp(t, http.DefaultClient)
 	_, token := seedUser(t, queries)
 
-	body := `{"url":"https://reused.com","url_rss":"https://reused.com/rss.xml"}`
+	body := `{"name":"Reused News","url":"https://reused.com","url_rss":"https://reused.com/rss.xml"}`
 
 	// Create the source
 	create1, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
@@ -200,7 +200,7 @@ func TestIntegration_CreateSource_DuplicateActiveStillRejected(t *testing.T) {
 	app, queries := setupIntegrationApp(t, http.DefaultClient)
 	_, token := seedUser(t, queries)
 
-	body := `{"url":"https://active-dup.com","url_rss":"https://active-dup.com/rss.xml"}`
+	body := `{"name":"Active Dup News","url":"https://active-dup.com","url_rss":"https://active-dup.com/rss.xml"}`
 
 	create1, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
 	create1.Header.Set("Content-Type", "application/json")
@@ -223,7 +223,7 @@ func TestIntegration_CreateSource_Unauthenticated(t *testing.T) {
 	requireNotProduction(t)
 
 	app, _ := setupIntegrationApp(t, http.DefaultClient)
-	body := `{"url":"https://example.com","url_rss":"https://example.com/rss.xml"}`
+	body := `{"name":"Example News","url":"https://example.com","url_rss":"https://example.com/rss.xml"}`
 	req, err := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -242,7 +242,7 @@ func TestIntegration_GetSource_Success(t *testing.T) {
 	_, token := seedUser(t, queries)
 
 	// Create a source first
-	createBody := `{"url":"https://get-test.com","url_rss":"https://get-test.com/rss.xml"}`
+	createBody := `{"name":"Get Test News","url":"https://get-test.com","url_rss":"https://get-test.com/rss.xml"}`
 	createReq, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(createBody))
 	createReq.Header.Set("Content-Type", "application/json")
 	createReq.Header.Set("Authorization", "Bearer "+token)
@@ -295,7 +295,7 @@ func TestIntegration_ListSources_ReturnsAll(t *testing.T) {
 		{"https://a.com", "https://a.com/rss.xml"},
 		{"https://b.com", "https://b.com/feed.xml"},
 	} {
-		b := strings.NewReader(`{"url":"` + pair[0] + `","url_rss":"` + pair[1] + `"}`)
+		b := strings.NewReader(`{"name":"Source ` + pair[0] + `","url":"` + pair[0] + `","url_rss":"` + pair[1] + `"}`)
 		r, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", b)
 		r.Header.Set("Content-Type", "application/json")
 		r.Header.Set("Authorization", "Bearer "+token)
@@ -343,7 +343,7 @@ func TestIntegration_ListSources_ExcludesSoftDeleted(t *testing.T) {
 	_, token := seedUser(t, queries)
 
 	createSource := func(url, urlRss string) string {
-		b := strings.NewReader(`{"url":"` + url + `","url_rss":"` + urlRss + `"}`)
+		b := strings.NewReader(`{"name":"Source ` + url + `","url":"` + url + `","url_rss":"` + urlRss + `"}`)
 		r, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", b)
 		r.Header.Set("Content-Type", "application/json")
 		r.Header.Set("Authorization", "Bearer "+token)
@@ -386,7 +386,7 @@ func TestIntegration_UpdateSource_Success(t *testing.T) {
 	app, queries := setupIntegrationApp(t, http.DefaultClient)
 	_, token := seedUser(t, queries)
 
-	createBody := `{"url":"https://upd.com","url_rss":"https://upd.com/rss.xml"}`
+	createBody := `{"name":"Upd News","url":"https://upd.com","url_rss":"https://upd.com/rss.xml"}`
 	createReq, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(createBody))
 	createReq.Header.Set("Content-Type", "application/json")
 	createReq.Header.Set("Authorization", "Bearer "+token)
@@ -397,7 +397,7 @@ func TestIntegration_UpdateSource_Success(t *testing.T) {
 	require.NoError(t, readJSON(createResp, &created))
 	id := created["id"].(string)
 
-	updateBody := `{"url":"https://updated.com","url_rss":"https://updated.com/rss.xml"}`
+	updateBody := `{"name":"Updated News","url":"https://updated.com","url_rss":"https://updated.com/rss.xml"}`
 	req, err := http.NewRequest(http.MethodPut, "/v1/sources/"+id, strings.NewReader(updateBody))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -418,7 +418,7 @@ func TestIntegration_UpdateSource_NotFound(t *testing.T) {
 	app, queries := setupIntegrationApp(t, http.DefaultClient)
 	_, token := seedUser(t, queries)
 
-	body := `{"url":"https://example.com","url_rss":"https://example.com/rss.xml"}`
+	body := `{"name":"Example News","url":"https://example.com","url_rss":"https://example.com/rss.xml"}`
 	req, err := http.NewRequest(http.MethodPut, "/v1/sources/non-existent", strings.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -437,7 +437,7 @@ func TestIntegration_DeleteSource_Success(t *testing.T) {
 	app, queries := setupIntegrationApp(t, http.DefaultClient)
 	_, token := seedUser(t, queries)
 
-	createBody := `{"url":"https://del.com","url_rss":"https://del.com/rss.xml"}`
+	createBody := `{"name":"Del News","url":"https://del.com","url_rss":"https://del.com/rss.xml"}`
 	createReq, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(createBody))
 	createReq.Header.Set("Content-Type", "application/json")
 	createReq.Header.Set("Authorization", "Bearer "+token)
@@ -595,7 +595,7 @@ func TestIntegration_DeleteSource_CascadesToArticles(t *testing.T) {
 // createSourceReturningID creates a source through the API and returns its id.
 func createSourceReturningID(t *testing.T, app *fiber.App, token, url, urlRss string) string {
 	t.Helper()
-	body := `{"url":"` + url + `","url_rss":"` + urlRss + `"}`
+	body := `{"name":"Source ` + url + `","url":"` + url + `","url_rss":"` + urlRss + `"}`
 	req, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)

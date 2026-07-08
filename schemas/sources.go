@@ -2,12 +2,16 @@ package schemas
 
 import "time"
 
+const SourceNameMaxLength = 120
+
 type CreateSourceRequest struct {
+	Name   string `json:"name"`
 	URL    string `json:"url"`
 	URLRss string `json:"url_rss"`
 }
 
 type UpdateSourceRequest struct {
+	Name   string `json:"name"`
 	URL    string `json:"url"`
 	URLRss string `json:"url_rss"`
 }
@@ -15,6 +19,7 @@ type UpdateSourceRequest struct {
 type SourceResponse struct {
 	ID         string     `json:"id"`
 	Status     bool       `json:"status"`
+	Name       string     `json:"name"`
 	URL        string     `json:"url"`
 	URLRss     string     `json:"url_rss"`
 	CreatedAt  time.Time  `json:"created_at"`

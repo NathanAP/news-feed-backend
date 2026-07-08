@@ -95,8 +95,8 @@ func TestGetArticle_IsReadFalseWhenUnread(t *testing.T) {
 	requireNotProduction(t)
 
 	afCtrl := &mockArticleFeedCtrl{
-		findByArticleAndUserFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ArticleFeed, error) {
-			return []db.ArticleFeed{
+		findByArticleAndUserFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ArticlesFeed, error) {
+			return []db.ArticlesFeed{
 				{ID: "af-1", ArticleID: "a1", FeedID: "f1", IsRead: 0, CreatedAt: time.Now()},
 			}, nil
 		},
@@ -114,8 +114,8 @@ func TestGetArticle_IsReadTrueWhenAllRead(t *testing.T) {
 	requireNotProduction(t)
 
 	afCtrl := &mockArticleFeedCtrl{
-		findByArticleAndUserFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ArticleFeed, error) {
-			return []db.ArticleFeed{
+		findByArticleAndUserFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ArticlesFeed, error) {
+			return []db.ArticlesFeed{
 				{ID: "af-1", IsRead: 1, CreatedAt: time.Now()},
 				{ID: "af-2", IsRead: 1, CreatedAt: time.Now(), ModifiedAt: sql.NullTime{Valid: true, Time: time.Now()}},
 			}, nil
@@ -135,8 +135,8 @@ func TestGetArticle_IsReadFalseWhenMixedReadState(t *testing.T) {
 
 	// One feed read, another unread → result should be false (not fully read)
 	afCtrl := &mockArticleFeedCtrl{
-		findByArticleAndUserFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ArticleFeed, error) {
-			return []db.ArticleFeed{
+		findByArticleAndUserFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ArticlesFeed, error) {
+			return []db.ArticlesFeed{
 				{ID: "af-1", IsRead: 1, CreatedAt: time.Now()},
 				{ID: "af-2", IsRead: 0, CreatedAt: time.Now()},
 			}, nil

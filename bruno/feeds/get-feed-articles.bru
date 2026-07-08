@@ -22,6 +22,7 @@ params:query {
   ~is_read: true
   ~period_starting_at: 2026-06-01T00:00:00Z
   ~period_ending_at: 2026-07-01T00:00:00Z
+  ~with_sources: true
   ~page: 1
   ~page_size: 20
 }
@@ -37,6 +38,9 @@ docs {
   - is_read: true ou false (apenas lidas ou não lidas)
   - period_starting_at / period_ending_at: janela sobre created_at da notícia, em RFC3339 UTC
     (ambos os limites inclusivos e independentes — a partir de, até, ou entre duas datas)
+  - with_sources: quando "true", cada notícia vem com o objeto `source` (id, name, url, url_rss,
+    status, created_at, modified_at) preenchido. Qualquer outro valor (ou ausência) é ignorado
+    silenciosamente e o campo source não aparece — conforme convenção with_{tabela_relacionada}.
 
   Paginação: page (mín/padrão 1) e page_size (mín 1, máx 100, padrão 20). Resposta paginada:
   { docs: [...], pagination: {...} }. Ver PROJECT.md.
@@ -44,5 +48,6 @@ docs {
   Exemplos:
   - /v1/feeds/:id/articles
   - /v1/feeds/:id/articles?is_read=false
+  - /v1/feeds/:id/articles?with_sources=true
   - /v1/feeds/:id/articles?period_starting_at=2026-06-01T00:00:00Z&page=1&page_size=10
 }

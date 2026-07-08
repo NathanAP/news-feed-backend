@@ -105,6 +105,9 @@ type ArticleResponse struct {
 	// IsRead is null when the article is not in any of the requesting user's feeds,
 	// false when it is in at least one feed and unread, true when all are read.
 	IsRead *bool `json:"is_read"`
+	// Source is populated only by GET /feeds/:id/articles when ?with_sources=true (conventions.md);
+	// omitted/null on every other article endpoint and on this one without the flag.
+	Source *SourceResponse `json:"source,omitempty"`
 }
 
 // ArticleTranslationResponse is the result of the translation endpoint: the title and content

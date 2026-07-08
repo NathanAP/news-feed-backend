@@ -23,11 +23,11 @@ type mockAFCtrl struct {
 	listByFeedFn func(ctx context.Context, q db.Querier, feedID, userID string) ([]db.ListArticlesByFeedForUserRow, error)
 }
 
-func (m *mockAFCtrl) Create(_ context.Context, _ db.Querier, _, _ string) (db.ArticleFeed, error) {
-	return db.ArticleFeed{}, nil
+func (m *mockAFCtrl) Create(_ context.Context, _ db.Querier, _, _ string) (db.ArticlesFeed, error) {
+	return db.ArticlesFeed{}, nil
 }
-func (m *mockAFCtrl) FindByArticleAndUser(_ context.Context, _ db.Querier, _, _ string) ([]db.ArticleFeed, error) {
-	return []db.ArticleFeed{}, nil
+func (m *mockAFCtrl) FindByArticleAndUser(_ context.Context, _ db.Querier, _, _ string) ([]db.ArticlesFeed, error) {
+	return []db.ArticlesFeed{}, nil
 }
 func (m *mockAFCtrl) ListArticlesByFeedForUser(ctx context.Context, q db.Querier, feedID, userID string) ([]db.ListArticlesByFeedForUserRow, error) {
 	if m.listByFeedFn != nil {
@@ -51,15 +51,20 @@ func buildFeedArticlesApp(feedCtrl controllers.FeedControllerInterface, afCtrl c
 
 func afRow(id, title string, createdAt time.Time, isRead int64) db.ListArticlesByFeedForUserRow {
 	return db.ListArticlesByFeedForUserRow{
-		ID:          id,
-		Status:      1,
-		Title:       title,
-		Content:     "content",
-		UrlOriginal: "https://example.com/" + id,
-		Keywords:    "[]",
-		SourceID:    "01900000-0000-7000-8000-000000000010",
-		CreatedAt:   createdAt,
-		IsRead:      isRead,
+		ID:              id,
+		Status:          1,
+		Title:           title,
+		Content:         "content",
+		UrlOriginal:     "https://example.com/" + id,
+		Keywords:        "[]",
+		SourceID:        "01900000-0000-7000-8000-000000000010",
+		CreatedAt:       createdAt,
+		IsRead:          isRead,
+		SourceName:      "Example News",
+		SourceStatus:    1,
+		SourceUrl:       "https://source.example.com",
+		SourceUrlRss:    "https://source.example.com/rss",
+		SourceCreatedAt: createdAt,
 	}
 }
 
@@ -165,6 +170,44 @@ func TestUnit_FeedArticles_EnvelopeAndIsRead(t *testing.T) {
 	require.Len(t, env.Docs, 1)
 	assert.Equal(t, false, env.Docs[0]["is_read"])
 	assert.Equal(t, float64(1), env.Pagination["total_count"])
+}
+
+func TestUnit_FeedArticles_WithSourcesTrue_PopulatesSource(t *testing.T) {
+	requireNotProduction(t)
+
+	afCtrl := &mockAFCtrl{listByFeedFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ListArticlesByFeedForUserRow, error) {
+		return []db.ListArticlesByFeedForUserRow{afRow("a-1", "One", time.Now().UTC(), 0)}, nil
+	}}
+	app := buildFeedArticlesApp(&mockFeedCtrl{}, afCtrl)
+
+	docs := decodePage(t, getFeedArticles(t, app, "?with_sources=true"))
+	require.Len(t, docs, 1)
+	source, ok := docs[0]["source"].(map[string]any)
+	require.True(t, ok, "expected source to be populated")
+	assert.Equal(t, "01900000-0000-7000-8000-000000000010", source["id"])
+	assert.Equal(t, "Example News", source["name"])
+	assert.Equal(t, "https://source.example.com", source["url"])
+}
+
+// Per conventions.md, with_{related_table_name} only populates on the literal value "true"; any
+// other value (including absent) is silently ignored — never an error.
+func TestUnit_FeedArticles_WithSourcesNotTrue_OmitsSource(t *testing.T) {
+	requireNotProduction(t)
+
+	afCtrl := &mockAFCtrl{listByFeedFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ListArticlesByFeedForUserRow, error) {
+		return []db.ListArticlesByFeedForUserRow{afRow("a-1", "One", time.Now().UTC(), 0)}, nil
+	}}
+	app := buildFeedArticlesApp(&mockFeedCtrl{}, afCtrl)
+
+	absentDocs := decodePage(t, getFeedArticles(t, app, ""))
+	require.Len(t, absentDocs, 1)
+	assert.Nil(t, absentDocs[0]["source"])
+
+	garbageResp := getFeedArticles(t, app, "?with_sources=nope")
+	assert.Equal(t, http.StatusOK, garbageResp.StatusCode)
+	garbageDocs := decodePage(t, garbageResp)
+	require.Len(t, garbageDocs, 1)
+	assert.Nil(t, garbageDocs[0]["source"])
 }
 
 func TestUnit_FeedArticles_ControllerError_500(t *testing.T) {

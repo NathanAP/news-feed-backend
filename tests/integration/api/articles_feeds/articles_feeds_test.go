@@ -76,7 +76,7 @@ func seedAll(t *testing.T, queries db.Querier) (token, articleID, feedID, afID s
 
 	source := fixtures.NewTestSource()
 	_, err = queries.CreateSource(t.Context(), db.CreateSourceParams{
-		ID: source.ID, Url: source.Url, UrlRss: source.UrlRss,
+		ID: source.ID, Name: source.Name, Url: source.Url, UrlRss: source.UrlRss,
 	})
 	require.NoError(t, err)
 
@@ -140,7 +140,7 @@ func TestIntegration_MarkAsRead_Returns204_WhenNotInFeed(t *testing.T) {
 
 	source := fixtures.NewTestSource()
 	_, err = queries.CreateSource(t.Context(), db.CreateSourceParams{
-		ID: source.ID, Url: source.Url, UrlRss: source.UrlRss,
+		ID: source.ID, Name: source.Name, Url: source.Url, UrlRss: source.UrlRss,
 	})
 	require.NoError(t, err)
 	article := fixtures.NewTestArticle()
@@ -232,7 +232,7 @@ func TestIntegration_GetArticle_IsReadNull_WhenNotInFeed(t *testing.T) {
 
 	source := fixtures.NewTestSource()
 	_, err = queries.CreateSource(t.Context(), db.CreateSourceParams{
-		ID: source.ID, Url: source.Url, UrlRss: source.UrlRss,
+		ID: source.ID, Name: source.Name, Url: source.Url, UrlRss: source.UrlRss,
 	})
 	require.NoError(t, err)
 	article := fixtures.NewTestArticle()

@@ -188,7 +188,7 @@ func TestE2E_Feeds_FetchArticles(t *testing.T) {
 
 	// Seed a source + article and link the article to the feed (the discovery pipeline's output).
 	_, err = queries.CreateSource(context.Background(), db.CreateSourceParams{
-		ID: "01900000-0000-7000-8000-0000000e0001", Url: "https://e2e-src.example.com", UrlRss: "https://e2e-src.example.com/rss",
+		ID: "01900000-0000-7000-8000-0000000e0001", Name: "E2E Source", Url: "https://e2e-src.example.com", UrlRss: "https://e2e-src.example.com/rss",
 	})
 	require.NoError(t, err)
 	_, err = queries.CreateArticle(context.Background(), db.CreateArticleParams{

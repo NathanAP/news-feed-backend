@@ -22,6 +22,12 @@ func CreateSource(ctrl controllers.SourceControllerInterface, runTx controllers.
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
 		}
 
+		if req.Name == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "name is required"})
+		}
+		if len(req.Name) > schemas.SourceNameMaxLength {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "name must be at most 120 characters"})
+		}
 		if req.URL == "" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "url is required"})
 		}
@@ -38,7 +44,7 @@ func CreateSource(ctrl controllers.SourceControllerInterface, runTx controllers.
 		var source db.Source
 		err := runTx(c.Context(), func(q db.Querier) error {
 			var err error
-			source, err = ctrl.Create(c.Context(), q, req.URL, req.URLRss)
+			source, err = ctrl.Create(c.Context(), q, req.Name, req.URL, req.URLRss)
 			return err
 		})
 		if err != nil {
@@ -64,6 +70,7 @@ func toSourceResponse(s db.Source) schemas.SourceResponse {
 	resp := schemas.SourceResponse{
 		ID:        s.ID,
 		Status:    s.Status == 1,
+		Name:      s.Name,
 		URL:       s.Url,
 		URLRss:    s.UrlRss,
 		CreatedAt: s.CreatedAt,

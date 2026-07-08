@@ -89,7 +89,7 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 // Articles require an active source; E2E seeds it through the API rather than the DB.
 func createSourceViaAPI(t *testing.T, app *fiber.App, token, url, urlRss string) string {
 	t.Helper()
-	body := `{"url":"` + url + `","url_rss":"` + urlRss + `"}`
+	body := `{"name":"Source ` + url + `","url":"` + url + `","url_rss":"` + urlRss + `"}`
 	req, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)

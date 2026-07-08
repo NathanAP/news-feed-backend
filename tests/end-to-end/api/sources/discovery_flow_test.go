@@ -31,7 +31,7 @@ func TestE2E_SourceDiscovery_DryRun(t *testing.T) {
 	token := loginViaCallback(t, app, queries)
 
 	// Create the source through the API.
-	createBody := `{"url":"https://e2e-disc.com","url_rss":"` + feedURL + `"}`
+	createBody := `{"name":"E2E Disc News","url":"https://e2e-disc.com","url_rss":"` + feedURL + `"}`
 	createReq, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(createBody))
 	createReq.Header.Set("Content-Type", "application/json")
 	createReq.Header.Set("Authorization", "Bearer "+token)

@@ -25,7 +25,7 @@ func runDevSources(sc *seedCtx) (*report, error) {
 				rep.skip("source " + s.URL + " (already exists)")
 				continue
 			}
-			if _, err := sc.sourceCtrl.Create(sc.ctx, q, s.URL, s.URLRss); err != nil {
+			if _, err := sc.sourceCtrl.Create(sc.ctx, q, s.Name, s.URL, s.URLRss); err != nil {
 				return err
 			}
 			rep.add("source " + s.URL)

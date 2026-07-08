@@ -15,8 +15,8 @@ Todo **erro** responde `{ error: string }` com o status apropriado. Datas em UTC
 - **UserPreferencesResponse** — `{ theme, language, translate_content, ai_personality }`.
 - **UpdatePreferencesResponse** — `{ access_token, expires_in, preferences: UserPreferencesResponse }`.
 - **SystemResponse** — `{ id, app_status, last_article_discovery_at?, created_at, modified_at? }`.
-- **SourceResponse** — `{ id, status, url, url_rss, created_at, modified_at? }`.
-- **ArticleResponse** — `{ id, status, title, content, url_original, keywords[], source_id, language_original?, created_at, modified_at?, is_read? }` (`is_read`: `null`|`false`|`true`).
+- **SourceResponse** — `{ id, status, name, url, url_rss, created_at, modified_at? }`.
+- **ArticleResponse** — `{ id, status, title, content, url_original, keywords[], source_id, language_original?, created_at, modified_at?, is_read?, source? }` (`is_read`: `null`|`false`|`true`; `source` é `SourceResponse` — só aparece quando a rota o preenche, ver `GET /feeds/:id/articles`).
 - **FeedResponse** — `{ id, status, name, keywords[], user_id, created_at, modified_at? }`.
 - **Envelope paginado** — `{ docs: [T], pagination }` (ver "Paginação"); usado por toda rota de lista.
 - Respostas específicas de dry-run/discovery/tradução estão descritas na própria rota.
@@ -68,12 +68,12 @@ Todo **erro** responde `{ error: string }` com o status apropriado. Datas em UTC
 
 ## Sources (`/v1/sources`) — auth (semântica admin; hoje aberta a qualquer autenticado)
 
-- `POST /sources/create` — `{ url, url_rss }` → 201 **SourceResponse** / 400 / 409 (url duplicada entre ativas) / 500.
+- `POST /sources/create` — `{ name (≤120), url, url_rss }` → 201 **SourceResponse** / 400 / 409 (url duplicada entre ativas) / 500.
 - `GET /sources/rss-discovery?url=` — descobre feeds RSS da URL → 200 `{ feeds: [string] }` (lista pode ser vazia) / 400.
 - `GET /sources/:id/article-discovery` — **dry-run** da descoberta de notícias de 1 source (espelha a CRON: parsing RSS + dedup por `url_original`). Não grava nada. Query opcional `last_article_discovery_at` (RFC3339 UTC) adiciona limite inferior por data. → 200 `{ articles: [{ title, content, url_original, published_at?, source_id }] }` (pode ser vazia) / 400 (data inválida) / 404 (source inexistente). Aberta (admin-futuro).
 - `GET /sources/:id` → 200 **SourceResponse** / 404.
 - `GET /sources?url=` — filtro por substring na url → 200 **envelope paginado de SourceResponse** (ver "Paginação").
-- `PUT /sources/:id` — `{ url, url_rss }` → 200 **SourceResponse** / 400 / 404 / 409.
+- `PUT /sources/:id` — `{ name (≤120), url, url_rss }` → 200 **SourceResponse** / 400 / 404 / 409.
 - `DELETE /sources/:id` — soft delete → 204 (sem body) / 404. Cascata: soft-remove das `articles` da fonte.
 
 ## Articles (`/v1/articles`) — auth (criação/edição/remoção = admin-futuro; hoje abertas)
@@ -98,8 +98,10 @@ Todo **erro** responde `{ error: string }` com o status apropriado. Datas em UTC
 - `POST /feeds/create` — `{ name (≤120), keywords[5..20] }` → 201 **FeedResponse** / 400 / 409 (limite de 5 feeds ativos) / 500.
 - `GET /feeds/:id` → 200 **FeedResponse** / 404 (inexistente ou de outro usuário).
 - `GET /feeds/:id/articles` — as notícias que caíram no feed (do dono), cada uma **ArticleResponse** com
-  `is_read` sempre definido (a notícia está no feed). Filtros opcionais: `is_read` (`true`|`false`) e janela
-  `period_starting_at`/`period_ending_at` (RFC3339 UTC, sobre `created_at`, inclusivos). → 200
+  `is_read` sempre definido (a notícia está no feed). Filtros opcionais: `is_read` (`true`|`false`), janela
+  `period_starting_at`/`period_ending_at` (RFC3339 UTC, sobre `created_at`, inclusivos), e `with_sources=true`
+  (preenche `source` em cada item; qualquer outro valor/ausência é ignorado silenciosamente — convenção
+  `with_{tabela_relacionada}=true` em `conventions.md`). → 200
   **envelope paginado de ArticleResponse** (ver "Paginação") / 404 (feed inexistente ou de outro usuário) / 400 (filtro inválido).
 - `GET /feeds?name=` — só os próprios feeds, filtro por substring no nome → 200 **envelope paginado de FeedResponse** (ver "Paginação").
 - `PUT /feeds/:id` — `{ name, keywords }` (sem `user_id`, imutável) → 200 **FeedResponse** / 400 / 404.

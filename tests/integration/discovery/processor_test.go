@@ -44,7 +44,7 @@ func setupWithConcurrency(t *testing.T, aiClient ai.Client, concurrency int) (co
 	runTx := controllers.NewTransactionRunner(database)
 
 	_, err := queries.CreateSource(t.Context(), db.CreateSourceParams{
-		ID: sourceID, Url: "https://src.com", UrlRss: "https://src.com/rss",
+		ID: sourceID, Name: "Test Source", Url: "https://src.com", UrlRss: "https://src.com/rss",
 	})
 	require.NoError(t, err)
 
@@ -110,7 +110,7 @@ func TestIntegration_Processor_NullLanguageOnDetectionFailure(t *testing.T) {
 	database := testutils.SetupTestDB(t)
 	queries := db.New(database)
 	runTx := controllers.NewTransactionRunner(database)
-	_, err := queries.CreateSource(t.Context(), db.CreateSourceParams{ID: sourceID, Url: "https://src.com", UrlRss: "https://src.com/rss"})
+	_, err := queries.CreateSource(t.Context(), db.CreateSourceParams{ID: sourceID, Name: "Test Source", Url: "https://src.com", UrlRss: "https://src.com/rss"})
 	require.NoError(t, err)
 
 	aiClient := &external.MockAIClient{}
@@ -161,7 +161,7 @@ func TestIntegration_Processor_JudgesIntoMatchingFeed(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, articles, 1)
 
-	var associations []db.ArticleFeed
+	var associations []db.ArticlesFeed
 	require.NoError(t, runTx(t.Context(), func(q db.Querier) error {
 		var e error
 		associations, e = q.FindArticleFeedsByArticleAndUser(t.Context(), db.FindArticleFeedsByArticleAndUserParams{
@@ -191,7 +191,7 @@ func TestIntegration_Processor_SkipsFeedBelowThreshold(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, articles, 1)
 
-	var associations []db.ArticleFeed
+	var associations []db.ArticlesFeed
 	require.NoError(t, runTx(t.Context(), func(q db.Querier) error {
 		var e error
 		associations, e = q.FindArticleFeedsByArticleAndUser(t.Context(), db.FindArticleFeedsByArticleAndUserParams{

@@ -9,6 +9,40 @@ import (
 	"time"
 )
 
+type Article struct {
+	ID               string         `json:"id"`
+	Status           int64          `json:"status"`
+	Title            string         `json:"title"`
+	Content          string         `json:"content"`
+	UrlOriginal      string         `json:"url_original"`
+	Keywords         string         `json:"keywords"`
+	SourceID         string         `json:"source_id"`
+	LanguageOriginal sql.NullString `json:"language_original"`
+	CreatedAt        time.Time      `json:"created_at"`
+	ModifiedAt       sql.NullTime   `json:"modified_at"`
+	RemovedAt        sql.NullTime   `json:"removed_at"`
+}
+
+type ArticlesFeed struct {
+	ID         string       `json:"id"`
+	ArticleID  string       `json:"article_id"`
+	FeedID     string       `json:"feed_id"`
+	IsRead     int64        `json:"is_read"`
+	CreatedAt  time.Time    `json:"created_at"`
+	ModifiedAt sql.NullTime `json:"modified_at"`
+}
+
+type Feed struct {
+	ID         string       `json:"id"`
+	Status     int64        `json:"status"`
+	Name       string       `json:"name"`
+	Keywords   string       `json:"keywords"`
+	UserID     string       `json:"user_id"`
+	CreatedAt  time.Time    `json:"created_at"`
+	ModifiedAt sql.NullTime `json:"modified_at"`
+	RemovedAt  sql.NullTime `json:"removed_at"`
+}
+
 type RefreshToken struct {
 	ID         string       `json:"id"`
 	UserID     string       `json:"user_id"`
@@ -17,6 +51,25 @@ type RefreshToken struct {
 	CreatedAt  time.Time    `json:"created_at"`
 	ModifiedAt sql.NullTime `json:"modified_at"`
 	RemovedAt  sql.NullTime `json:"removed_at"`
+}
+
+type Source struct {
+	ID         string       `json:"id"`
+	Status     int64        `json:"status"`
+	Name       string       `json:"name"`
+	Url        string       `json:"url"`
+	UrlRss     string       `json:"url_rss"`
+	CreatedAt  time.Time    `json:"created_at"`
+	ModifiedAt sql.NullTime `json:"modified_at"`
+	RemovedAt  sql.NullTime `json:"removed_at"`
+}
+
+type System struct {
+	ID                     string       `json:"id"`
+	AppStatus              int64        `json:"app_status"`
+	LastArticleDiscoveryAt sql.NullTime `json:"last_article_discovery_at"`
+	CreatedAt              time.Time    `json:"created_at"`
+	ModifiedAt             sql.NullTime `json:"modified_at"`
 }
 
 type User struct {
@@ -43,56 +96,4 @@ type UserPreference struct {
 	CreatedAt        time.Time    `json:"created_at"`
 	ModifiedAt       sql.NullTime `json:"modified_at"`
 	RemovedAt        sql.NullTime `json:"removed_at"`
-}
-
-type Source struct {
-	ID         string       `json:"id"`
-	Status     int64        `json:"status"`
-	Url        string       `json:"url"`
-	UrlRss     string       `json:"url_rss"`
-	CreatedAt  time.Time    `json:"created_at"`
-	ModifiedAt sql.NullTime `json:"modified_at"`
-	RemovedAt  sql.NullTime `json:"removed_at"`
-}
-
-type Article struct {
-	ID               string         `json:"id"`
-	Status           int64          `json:"status"`
-	Title            string         `json:"title"`
-	Content          string         `json:"content"`
-	UrlOriginal      string         `json:"url_original"`
-	Keywords         string         `json:"keywords"`
-	SourceID         string         `json:"source_id"`
-	LanguageOriginal sql.NullString `json:"language_original"`
-	CreatedAt        time.Time      `json:"created_at"`
-	ModifiedAt       sql.NullTime   `json:"modified_at"`
-	RemovedAt        sql.NullTime   `json:"removed_at"`
-}
-
-type Feed struct {
-	ID         string       `json:"id"`
-	Status     int64        `json:"status"`
-	Name       string       `json:"name"`
-	Keywords   string       `json:"keywords"`
-	UserID     string       `json:"user_id"`
-	CreatedAt  time.Time    `json:"created_at"`
-	ModifiedAt sql.NullTime `json:"modified_at"`
-	RemovedAt  sql.NullTime `json:"removed_at"`
-}
-
-type ArticleFeed struct {
-	ID         string       `json:"id"`
-	ArticleID  string       `json:"article_id"`
-	FeedID     string       `json:"feed_id"`
-	IsRead     int64        `json:"is_read"`
-	CreatedAt  time.Time    `json:"created_at"`
-	ModifiedAt sql.NullTime `json:"modified_at"`
-}
-
-type System struct {
-	ID                     string       `json:"id"`
-	AppStatus              int64        `json:"app_status"`
-	LastArticleDiscoveryAt sql.NullTime `json:"last_article_discovery_at"`
-	CreatedAt              time.Time    `json:"created_at"`
-	ModifiedAt             sql.NullTime `json:"modified_at"`
 }

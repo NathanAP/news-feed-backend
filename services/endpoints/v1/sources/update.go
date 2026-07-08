@@ -26,6 +26,12 @@ func UpdateSource(ctrl controllers.SourceControllerInterface, runTx controllers.
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
 		}
 
+		if req.Name == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "name is required"})
+		}
+		if len(req.Name) > schemas.SourceNameMaxLength {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "name must be at most 120 characters"})
+		}
 		if req.URL == "" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "url is required"})
 		}
@@ -42,7 +48,7 @@ func UpdateSource(ctrl controllers.SourceControllerInterface, runTx controllers.
 		var source db.Source
 		err := runTx(c.Context(), func(q db.Querier) error {
 			var err error
-			source, err = ctrl.Update(c.Context(), q, id, req.URL, req.URLRss)
+			source, err = ctrl.Update(c.Context(), q, id, req.Name, req.URL, req.URLRss)
 			return err
 		})
 		if err != nil {

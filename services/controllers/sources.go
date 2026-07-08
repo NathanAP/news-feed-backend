@@ -21,7 +21,7 @@ func NewSourceController() *SourceController {
 	return &SourceController{}
 }
 
-func (c *SourceController) Create(ctx context.Context, q db.Querier, url, urlRss string) (db.Source, error) {
+func (c *SourceController) Create(ctx context.Context, q db.Querier, name, url, urlRss string) (db.Source, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return db.Source{}, fmt.Errorf("failed to generate source ID: %w", err)
@@ -29,6 +29,7 @@ func (c *SourceController) Create(ctx context.Context, q db.Querier, url, urlRss
 
 	source, err := q.CreateSource(ctx, db.CreateSourceParams{
 		ID:     id.String(),
+		Name:   name,
 		Url:    url,
 		UrlRss: urlRss,
 	})
@@ -64,9 +65,10 @@ func (c *SourceController) List(ctx context.Context, q db.Querier) ([]db.Source,
 	return sources, nil
 }
 
-func (c *SourceController) Update(ctx context.Context, q db.Querier, id, url, urlRss string) (db.Source, error) {
+func (c *SourceController) Update(ctx context.Context, q db.Querier, id, name, url, urlRss string) (db.Source, error) {
 	source, err := q.UpdateSource(ctx, db.UpdateSourceParams{
 		ID:     id,
+		Name:   name,
 		Url:    url,
 		UrlRss: urlRss,
 	})

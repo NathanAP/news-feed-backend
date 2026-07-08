@@ -22,6 +22,7 @@ func seedSource(t *testing.T, queries db.Querier, suffix string) string {
 	id := "01900000-0000-7000-8000-0000000030" + suffix
 	_, err := queries.CreateSource(t.Context(), db.CreateSourceParams{
 		ID:     id,
+		Name:   "Source " + suffix,
 		Url:    "https://src-" + suffix + ".example.com",
 		UrlRss: "https://src-" + suffix + ".example.com/rss",
 	})
@@ -94,6 +95,58 @@ func TestIntegration_FeedArticles_ReturnsWithIsReadAndFilters(t *testing.T) {
 	unreadDocs := decodePage(t, getFeedArticles(t, app, token, feedID, "?is_read=false"))
 	require.Len(t, unreadDocs, 1)
 	assert.Equal(t, false, unreadDocs[0]["is_read"])
+}
+
+func TestIntegration_FeedArticles_WithSourcesTrue_PopulatesSource(t *testing.T) {
+	requireNotProduction(t)
+
+	app, queries := setupIntegrationApp(t)
+	token := seedUserVariant(t, queries, "25")
+	feedID := createFeed(t, app, token, "Sourced Feed")
+
+	sourceID := seedSource(t, queries, "25")
+	seedArticleInFeed(t, queries, "c1", sourceID, feedID)
+
+	docs := decodePage(t, getFeedArticles(t, app, token, feedID, "?with_sources=true"))
+	require.Len(t, docs, 1)
+	source, ok := docs[0]["source"].(map[string]any)
+	require.True(t, ok, "expected source to be populated")
+	assert.Equal(t, sourceID, source["id"])
+	assert.Equal(t, "Source 25", source["name"])
+	assert.Equal(t, "https://src-25.example.com", source["url"])
+	assert.Equal(t, "https://src-25.example.com/rss", source["url_rss"])
+	assert.Equal(t, true, source["status"])
+}
+
+// Per conventions.md, with_{related_table_name} only populates on the literal value "true"; any
+// other value (including absent) is silently ignored — never an error.
+func TestIntegration_FeedArticles_WithSourcesNotTrue_OmitsSource(t *testing.T) {
+	requireNotProduction(t)
+
+	app, queries := setupIntegrationApp(t)
+	token := seedUserVariant(t, queries, "26")
+	feedID := createFeed(t, app, token, "Unsourced Feed")
+
+	sourceID := seedSource(t, queries, "26")
+	seedArticleInFeed(t, queries, "d1", sourceID, feedID)
+
+	absentResp := getFeedArticles(t, app, token, feedID, "")
+	require.Equal(t, http.StatusOK, absentResp.StatusCode)
+	absentDocs := decodePage(t, absentResp)
+	require.Len(t, absentDocs, 1)
+	assert.Nil(t, absentDocs[0]["source"])
+
+	falseResp := getFeedArticles(t, app, token, feedID, "?with_sources=false")
+	require.Equal(t, http.StatusOK, falseResp.StatusCode)
+	falseDocs := decodePage(t, falseResp)
+	require.Len(t, falseDocs, 1)
+	assert.Nil(t, falseDocs[0]["source"])
+
+	garbageResp := getFeedArticles(t, app, token, feedID, "?with_sources=yes")
+	require.Equal(t, http.StatusOK, garbageResp.StatusCode)
+	garbageDocs := decodePage(t, garbageResp)
+	require.Len(t, garbageDocs, 1)
+	assert.Nil(t, garbageDocs[0]["source"])
 }
 
 func TestIntegration_FeedArticles_OtherUsersFeed_404(t *testing.T) {

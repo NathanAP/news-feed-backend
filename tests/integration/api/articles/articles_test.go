@@ -100,6 +100,7 @@ func seedSource(t *testing.T, queries db.Querier) string {
 	source := fixtures.NewTestSource()
 	_, err := queries.CreateSource(t.Context(), db.CreateSourceParams{
 		ID:     source.ID,
+		Name:   source.Name,
 		Url:    source.Url,
 		UrlRss: source.UrlRss,
 	})

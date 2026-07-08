@@ -45,6 +45,7 @@ CREATE TABLE refresh_tokens (
 CREATE TABLE sources (
     id TEXT NOT NULL,
     status INTEGER NOT NULL DEFAULT 1,
+    name TEXT NOT NULL,
     url TEXT NOT NULL,
     url_rss TEXT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -143,7 +143,7 @@ func TestE2E_System_MaintenanceFlow(t *testing.T) {
 
 	// Business route works while on.
 	create := do(t, app, http.MethodPost, "/v1/sources/create", token,
-		`{"url":"https://e2e-sys.com","url_rss":"https://e2e-sys.com/rss.xml"}`)
+		`{"name":"E2E Sys News","url":"https://e2e-sys.com","url_rss":"https://e2e-sys.com/rss.xml"}`)
 	assert.Equal(t, http.StatusCreated, create.StatusCode)
 
 	// Switch the application off.
@@ -159,7 +159,7 @@ func TestE2E_System_MaintenanceFlow(t *testing.T) {
 
 	// Business routes are blocked with 503.
 	blockedCreate := do(t, app, http.MethodPost, "/v1/sources/create", token,
-		`{"url":"https://blocked.com","url_rss":"https://blocked.com/rss.xml"}`)
+		`{"name":"Blocked News","url":"https://blocked.com","url_rss":"https://blocked.com/rss.xml"}`)
 	assert.Equal(t, http.StatusServiceUnavailable, blockedCreate.StatusCode)
 
 	blockedList := do(t, app, http.MethodGet, "/v1/sources", token, "")

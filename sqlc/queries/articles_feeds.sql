@@ -20,12 +20,17 @@ JOIN articles a ON a.id = af.article_id
 WHERE af.article_id = ?;
 
 -- name: ListArticlesByFeedForUser :many
--- Returns the active articles associated with a feed, each with its is_read state for that feed.
--- Both sides of the junction must be active (the feed and the article) and the feed must belong to
--- the requesting user — so another user's feed yields no rows. The caller checks feed ownership
+-- Returns the active articles associated with a feed, each with its is_read state for that feed
+-- and its source's data (always joined, cheap PK lookup, but only mapped into the response when
+-- ?with_sources=true, per conventions.md). The article's source is guaranteed active: soft-deleting
+-- a source cascades to soft-delete its articles, so an active article always has an active source.
+-- Both the feed and the article sides of the junction must be active, and the feed must belong to
+-- the requesting user, so another user's feed yields no rows. The caller checks feed ownership
 -- separately to distinguish "feed not found / not yours" (404) from "feed has no articles" (200).
 -- Ordered newest-first; is_read / date filtering and pagination are applied by the caller.
-SELECT a.id, a.status, a.title, a.content, a.url_original, a.keywords, a.source_id, a.language_original, a.created_at, a.modified_at, af.is_read
+SELECT a.id, a.status, a.title, a.content, a.url_original, a.keywords, a.source_id, a.language_original, a.created_at, a.modified_at, af.is_read,
+    s.name AS source_name, s.status AS source_status, s.url AS source_url, s.url_rss AS source_url_rss,
+    s.created_at AS source_created_at, s.modified_at AS source_modified_at
 FROM articles_feeds af
 JOIN feeds f ON f.id = af.feed_id
     AND f.user_id = ?
@@ -34,6 +39,9 @@ JOIN feeds f ON f.id = af.feed_id
 JOIN articles a ON a.id = af.article_id
     AND a.status = 1
     AND a.removed_at IS NULL
+JOIN sources s ON s.id = a.source_id
+    AND s.status = 1
+    AND s.removed_at IS NULL
 WHERE af.feed_id = ?
 ORDER BY a.created_at DESC;
 

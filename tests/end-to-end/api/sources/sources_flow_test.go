@@ -121,7 +121,7 @@ func TestE2E_Sources_FullCRUDFlow(t *testing.T) {
 	token := loginViaCallback(t, app, queries)
 
 	// Create
-	createBody := `{"url":"https://e2e-source.com","url_rss":"https://e2e-source.com/rss.xml"}`
+	createBody := `{"name":"E2E Source News","url":"https://e2e-source.com","url_rss":"https://e2e-source.com/rss.xml"}`
 	createReq, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(createBody))
 	createReq.Header.Set("Content-Type", "application/json")
 	createReq.Header.Set("Authorization", "Bearer "+token)
@@ -157,7 +157,7 @@ func TestE2E_Sources_FullCRUDFlow(t *testing.T) {
 	assert.Len(t, listed, 1)
 
 	// Update
-	updateBody := `{"url":"https://e2e-updated.com","url_rss":"https://e2e-updated.com/feed.xml"}`
+	updateBody := `{"name":"E2E Updated News","url":"https://e2e-updated.com","url_rss":"https://e2e-updated.com/feed.xml"}`
 	updateReq, _ := http.NewRequest(http.MethodPut, "/v1/sources/"+id, strings.NewReader(updateBody))
 	updateReq.Header.Set("Content-Type", "application/json")
 	updateReq.Header.Set("Authorization", "Bearer "+token)
@@ -198,7 +198,7 @@ func TestE2E_Sources_DuplicateURLRejected(t *testing.T) {
 	app, queries := setupE2EApp(t, oauth, http.DefaultClient)
 	token := loginViaCallback(t, app, queries)
 
-	body := `{"url":"https://dup.com","url_rss":"https://dup.com/rss.xml"}`
+	body := `{"name":"Dup News","url":"https://dup.com","url_rss":"https://dup.com/rss.xml"}`
 
 	req1, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
 	req1.Header.Set("Content-Type", "application/json")
@@ -229,7 +229,7 @@ func TestE2E_Sources_RecreateAfterSoftDelete(t *testing.T) {
 	app, queries := setupE2EApp(t, oauth, http.DefaultClient)
 	token := loginViaCallback(t, app, queries)
 
-	body := `{"url":"https://recreate.com","url_rss":"https://recreate.com/rss.xml"}`
+	body := `{"name":"Recreate News","url":"https://recreate.com","url_rss":"https://recreate.com/rss.xml"}`
 
 	// Create
 	c1, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
@@ -372,9 +372,10 @@ func TestE2E_Sources_ValidationErrors(t *testing.T) {
 		body       string
 		wantStatus int
 	}{
-		{"missing url", `{"url_rss":"https://x.com/rss"}`, http.StatusBadRequest},
-		{"missing url_rss", `{"url":"https://x.com"}`, http.StatusBadRequest},
-		{"invalid url scheme", `{"url":"ftp://x.com","url_rss":"https://x.com/rss"}`, http.StatusBadRequest},
+		{"missing name", `{"url":"https://x.com","url_rss":"https://x.com/rss"}`, http.StatusBadRequest},
+		{"missing url", `{"name":"Test","url_rss":"https://x.com/rss"}`, http.StatusBadRequest},
+		{"missing url_rss", `{"name":"Test","url":"https://x.com"}`, http.StatusBadRequest},
+		{"invalid url scheme", `{"name":"Test","url":"ftp://x.com","url_rss":"https://x.com/rss"}`, http.StatusBadRequest},
 		{"empty body", `{}`, http.StatusBadRequest},
 	}
 

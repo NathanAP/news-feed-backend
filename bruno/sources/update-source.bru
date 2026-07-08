@@ -20,11 +20,12 @@ params:path {
 
 body:json {
   {
+    "name": "G1",
     "url": "https://g1.globo.com",
     "url_rss": "https://g1.globo.com/rss/g1/index.xml"
   }
 }
 
 docs {
-  Ambos os campos são obrigatórios. Retorna 409 em caso de conflito de URL.
+  Todos os campos (name, url, url_rss) são obrigatórios. Retorna 409 em caso de conflito de URL.
 }

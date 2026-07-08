@@ -18,7 +18,7 @@ func TestCreateSource_Success(t *testing.T) {
 	requireNotProduction(t)
 
 	app := defaultApp()
-	body := `{"url":"https://example.com","url_rss":"https://example.com/rss.xml"}`
+	body := `{"name":"Test Source","url":"https://example.com","url_rss":"https://example.com/rss.xml"}`
 	req, err := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -31,6 +31,7 @@ func TestCreateSource_Success(t *testing.T) {
 	var result map[string]any
 	require.NoError(t, readJSON(resp, &result))
 	assert.NotEmpty(t, result["id"])
+	assert.Equal(t, "Test Source", result["name"])
 	assert.Equal(t, "https://example.com", result["url"])
 	assert.Equal(t, "https://example.com/rss.xml", result["url_rss"])
 }
@@ -39,7 +40,7 @@ func TestCreateSource_Unauthenticated(t *testing.T) {
 	requireNotProduction(t)
 
 	app := defaultApp()
-	body := `{"url":"https://example.com","url_rss":"https://example.com/rss.xml"}`
+	body := `{"name":"Example News","url":"https://example.com","url_rss":"https://example.com/rss.xml"}`
 	req, err := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -49,11 +50,41 @@ func TestCreateSource_Unauthenticated(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 }
 
+func TestCreateSource_MissingName(t *testing.T) {
+	requireNotProduction(t)
+
+	app := defaultApp()
+	body := `{"url":"https://example.com","url_rss":"https://example.com/rss.xml"}`
+	req, err := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", authHeader(t))
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+func TestCreateSource_NameTooLong(t *testing.T) {
+	requireNotProduction(t)
+
+	app := defaultApp()
+	body := `{"name":"` + strings.Repeat("a", 121) + `","url":"https://example.com","url_rss":"https://example.com/rss.xml"}`
+	req, err := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", authHeader(t))
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
 func TestCreateSource_MissingURL(t *testing.T) {
 	requireNotProduction(t)
 
 	app := defaultApp()
-	body := `{"url_rss":"https://example.com/rss.xml"}`
+	body := `{"name":"Example News","url_rss":"https://example.com/rss.xml"}`
 	req, err := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -68,7 +99,7 @@ func TestCreateSource_MissingURLRss(t *testing.T) {
 	requireNotProduction(t)
 
 	app := defaultApp()
-	body := `{"url":"https://example.com"}`
+	body := `{"name":"Example News","url":"https://example.com"}`
 	req, err := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -83,7 +114,7 @@ func TestCreateSource_InvalidURL(t *testing.T) {
 	requireNotProduction(t)
 
 	app := defaultApp()
-	body := `{"url":"not-a-url","url_rss":"https://example.com/rss.xml"}`
+	body := `{"name":"Example News","url":"not-a-url","url_rss":"https://example.com/rss.xml"}`
 	req, err := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -98,7 +129,7 @@ func TestCreateSource_InvalidURLRss(t *testing.T) {
 	requireNotProduction(t)
 
 	app := defaultApp()
-	body := `{"url":"https://example.com","url_rss":"ftp://example.com/rss"}`
+	body := `{"name":"Example News","url":"https://example.com","url_rss":"ftp://example.com/rss"}`
 	req, err := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -113,12 +144,12 @@ func TestCreateSource_Conflict(t *testing.T) {
 	requireNotProduction(t)
 
 	ctrl := &mockSourceCtrl{
-		createFn: func(_ context.Context, _ db.Querier, _, _ string) (db.Source, error) {
+		createFn: func(_ context.Context, _ db.Querier, _, _, _ string) (db.Source, error) {
 			return db.Source{}, controllers.ErrSourceAlreadyExists
 		},
 	}
 	app := buildApp(ctrl, http.DefaultClient)
-	body := `{"url":"https://example.com","url_rss":"https://example.com/rss.xml"}`
+	body := `{"name":"Example News","url":"https://example.com","url_rss":"https://example.com/rss.xml"}`
 	req, err := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -133,12 +164,12 @@ func TestCreateSource_DBError(t *testing.T) {
 	requireNotProduction(t)
 
 	ctrl := &mockSourceCtrl{
-		createFn: func(_ context.Context, _ db.Querier, _, _ string) (db.Source, error) {
+		createFn: func(_ context.Context, _ db.Querier, _, _, _ string) (db.Source, error) {
 			return db.Source{}, assert.AnError
 		},
 	}
 	app := buildApp(ctrl, http.DefaultClient)
-	body := `{"url":"https://example.com","url_rss":"https://example.com/rss.xml"}`
+	body := `{"name":"Example News","url":"https://example.com","url_rss":"https://example.com/rss.xml"}`
 	req, err := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")

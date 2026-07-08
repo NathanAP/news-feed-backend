@@ -23,9 +23,9 @@ type CreateArticleFeedParams struct {
 	FeedID    string `json:"feed_id"`
 }
 
-func (q *Queries) CreateArticleFeed(ctx context.Context, arg CreateArticleFeedParams) (ArticleFeed, error) {
+func (q *Queries) CreateArticleFeed(ctx context.Context, arg CreateArticleFeedParams) (ArticlesFeed, error) {
 	row := q.db.QueryRowContext(ctx, createArticleFeed, arg.ID, arg.ArticleID, arg.FeedID)
-	var i ArticleFeed
+	var i ArticlesFeed
 	err := row.Scan(
 		&i.ID,
 		&i.ArticleID,
@@ -55,16 +55,19 @@ type FindArticleFeedsByArticleAndUserParams struct {
 	ArticleID string `json:"article_id"`
 }
 
-func (q *Queries) FindArticleFeedsByArticleAndUser(ctx context.Context, arg FindArticleFeedsByArticleAndUserParams) ([]ArticleFeed, error) {
+// Returns all valid articles_feeds records for an article that belong to the requesting
+// user. A junction record is only valid when BOTH related rows are active, so the joins
+// filter inactive feeds AND inactive articles (soft-deleted). is_read state is preserved
+// on the rows themselves; they just become invisible while a related side is inactive.
+func (q *Queries) FindArticleFeedsByArticleAndUser(ctx context.Context, arg FindArticleFeedsByArticleAndUserParams) ([]ArticlesFeed, error) {
 	rows, err := q.db.QueryContext(ctx, findArticleFeedsByArticleAndUser, arg.UserID, arg.ArticleID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
-	var items []ArticleFeed
+	var items []ArticlesFeed
 	for rows.Next() {
-		var i ArticleFeed
+		var i ArticlesFeed
 		if err := rows.Scan(
 			&i.ID,
 			&i.ArticleID,
@@ -87,7 +90,9 @@ func (q *Queries) FindArticleFeedsByArticleAndUser(ctx context.Context, arg Find
 }
 
 const listArticlesByFeedForUser = `-- name: ListArticlesByFeedForUser :many
-SELECT a.id, a.status, a.title, a.content, a.url_original, a.keywords, a.source_id, a.language_original, a.created_at, a.modified_at, af.is_read
+SELECT a.id, a.status, a.title, a.content, a.url_original, a.keywords, a.source_id, a.language_original, a.created_at, a.modified_at, af.is_read,
+    s.name AS source_name, s.status AS source_status, s.url AS source_url, s.url_rss AS source_url_rss,
+    s.created_at AS source_created_at, s.modified_at AS source_modified_at
 FROM articles_feeds af
 JOIN feeds f ON f.id = af.feed_id
     AND f.user_id = ?
@@ -96,6 +101,9 @@ JOIN feeds f ON f.id = af.feed_id
 JOIN articles a ON a.id = af.article_id
     AND a.status = 1
     AND a.removed_at IS NULL
+JOIN sources s ON s.id = a.source_id
+    AND s.status = 1
+    AND s.removed_at IS NULL
 WHERE af.feed_id = ?
 ORDER BY a.created_at DESC
 `
@@ -117,15 +125,28 @@ type ListArticlesByFeedForUserRow struct {
 	CreatedAt        time.Time      `json:"created_at"`
 	ModifiedAt       sql.NullTime   `json:"modified_at"`
 	IsRead           int64          `json:"is_read"`
+	SourceName       string         `json:"source_name"`
+	SourceStatus     int64          `json:"source_status"`
+	SourceUrl        string         `json:"source_url"`
+	SourceUrlRss     string         `json:"source_url_rss"`
+	SourceCreatedAt  time.Time      `json:"source_created_at"`
+	SourceModifiedAt sql.NullTime   `json:"source_modified_at"`
 }
 
+// Returns the active articles associated with a feed, each with its is_read state for that feed
+// and its source's data (always joined, cheap PK lookup, but only mapped into the response when
+// ?with_sources=true, per conventions.md). The article's source is guaranteed active: soft-deleting
+// a source cascades to soft-delete its articles, so an active article always has an active source.
+// Both the feed and the article sides of the junction must be active, and the feed must belong to
+// the requesting user, so another user's feed yields no rows. The caller checks feed ownership
+// separately to distinguish "feed not found / not yours" (404) from "feed has no articles" (200).
+// Ordered newest-first; is_read / date filtering and pagination are applied by the caller.
 func (q *Queries) ListArticlesByFeedForUser(ctx context.Context, arg ListArticlesByFeedForUserParams) ([]ListArticlesByFeedForUserRow, error) {
 	rows, err := q.db.QueryContext(ctx, listArticlesByFeedForUser, arg.UserID, arg.FeedID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
 	var items []ListArticlesByFeedForUserRow
 	for rows.Next() {
 		var i ListArticlesByFeedForUserRow
@@ -141,6 +162,12 @@ func (q *Queries) ListArticlesByFeedForUser(ctx context.Context, arg ListArticle
 			&i.CreatedAt,
 			&i.ModifiedAt,
 			&i.IsRead,
+			&i.SourceName,
+			&i.SourceStatus,
+			&i.SourceUrl,
+			&i.SourceUrlRss,
+			&i.SourceCreatedAt,
+			&i.SourceModifiedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -175,6 +202,9 @@ type MarkArticleAsReadForUserParams struct {
 	UserID    string `json:"user_id"`
 }
 
+// Marks is_read = 1 on all unread articles_feeds records for a given article and user.
+// Idempotent: already-read records (is_read = 1) are not touched. Both related rows must
+// be active: the article and the feed.
 func (q *Queries) MarkArticleAsReadForUser(ctx context.Context, arg MarkArticleAsReadForUserParams) error {
 	_, err := q.db.ExecContext(ctx, markArticleAsReadForUser, arg.ArticleID, arg.UserID)
 	return err

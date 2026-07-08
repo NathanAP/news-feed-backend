@@ -1,6 +1,6 @@
 -- name: CreateSource :one
-INSERT INTO sources (id, url, url_rss)
-VALUES (?, ?, ?)
+INSERT INTO sources (id, name, url, url_rss)
+VALUES (?, ?, ?, ?)
 RETURNING *;
 
 -- name: FindSourceByID :one
@@ -15,7 +15,7 @@ ORDER BY created_at DESC;
 
 -- name: UpdateSource :one
 UPDATE sources
-SET url = ?, url_rss = ?, modified_at = CURRENT_TIMESTAMP
+SET name = ?, url = ?, url_rss = ?, modified_at = CURRENT_TIMESTAMP
 WHERE id = ? AND status = 1 AND removed_at IS NULL
 RETURNING *;
 

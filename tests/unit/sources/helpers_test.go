@@ -63,16 +63,16 @@ var _ controllers.RefreshTokenControllerInterface = (*mockRefreshTokenCtrl)(nil)
 
 // mockSourceCtrl holds optional function overrides for each method.
 type mockSourceCtrl struct {
-	createFn     func(ctx context.Context, q db.Querier, url, urlRss string) (db.Source, error)
+	createFn     func(ctx context.Context, q db.Querier, name, url, urlRss string) (db.Source, error)
 	findByIDFn   func(ctx context.Context, q db.Querier, id string) (db.Source, error)
 	listFn       func(ctx context.Context, q db.Querier) ([]db.Source, error)
-	updateFn     func(ctx context.Context, q db.Querier, id, url, urlRss string) (db.Source, error)
+	updateFn     func(ctx context.Context, q db.Querier, id, name, url, urlRss string) (db.Source, error)
 	softDeleteFn func(ctx context.Context, q db.Querier, id string) error
 }
 
-func (m *mockSourceCtrl) Create(ctx context.Context, q db.Querier, url, urlRss string) (db.Source, error) {
+func (m *mockSourceCtrl) Create(ctx context.Context, q db.Querier, name, url, urlRss string) (db.Source, error) {
 	if m.createFn != nil {
-		return m.createFn(ctx, q, url, urlRss)
+		return m.createFn(ctx, q, name, url, urlRss)
 	}
 	return fixtures.NewTestSource(), nil
 }
@@ -88,9 +88,9 @@ func (m *mockSourceCtrl) List(ctx context.Context, q db.Querier) ([]db.Source, e
 	}
 	return []db.Source{fixtures.NewTestSource()}, nil
 }
-func (m *mockSourceCtrl) Update(ctx context.Context, q db.Querier, id, url, urlRss string) (db.Source, error) {
+func (m *mockSourceCtrl) Update(ctx context.Context, q db.Querier, id, name, url, urlRss string) (db.Source, error) {
 	if m.updateFn != nil {
-		return m.updateFn(ctx, q, id, url, urlRss)
+		return m.updateFn(ctx, q, id, name, url, urlRss)
 	}
 	return fixtures.NewTestSource(), nil
 }

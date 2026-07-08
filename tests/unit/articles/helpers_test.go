@@ -110,23 +110,23 @@ var _ controllers.ArticleControllerInterface = (*mockArticleCtrl)(nil)
 
 // mockArticleFeedCtrl is a no-op by default — returns empty records (nil is_read state).
 type mockArticleFeedCtrl struct {
-	createFn               func(ctx context.Context, q db.Querier, articleID, feedID string) (db.ArticleFeed, error)
-	findByArticleAndUserFn func(ctx context.Context, q db.Querier, articleID, userID string) ([]db.ArticleFeed, error)
+	createFn               func(ctx context.Context, q db.Querier, articleID, feedID string) (db.ArticlesFeed, error)
+	findByArticleAndUserFn func(ctx context.Context, q db.Querier, articleID, userID string) ([]db.ArticlesFeed, error)
 	listByFeedFn           func(ctx context.Context, q db.Querier, feedID, userID string) ([]db.ListArticlesByFeedForUserRow, error)
 	markAsReadFn           func(ctx context.Context, q db.Querier, articleID, userID string) (bool, error)
 }
 
-func (m *mockArticleFeedCtrl) Create(ctx context.Context, q db.Querier, articleID, feedID string) (db.ArticleFeed, error) {
+func (m *mockArticleFeedCtrl) Create(ctx context.Context, q db.Querier, articleID, feedID string) (db.ArticlesFeed, error) {
 	if m.createFn != nil {
 		return m.createFn(ctx, q, articleID, feedID)
 	}
-	return db.ArticleFeed{}, nil
+	return db.ArticlesFeed{}, nil
 }
-func (m *mockArticleFeedCtrl) FindByArticleAndUser(ctx context.Context, q db.Querier, articleID, userID string) ([]db.ArticleFeed, error) {
+func (m *mockArticleFeedCtrl) FindByArticleAndUser(ctx context.Context, q db.Querier, articleID, userID string) ([]db.ArticlesFeed, error) {
 	if m.findByArticleAndUserFn != nil {
 		return m.findByArticleAndUserFn(ctx, q, articleID, userID)
 	}
-	return []db.ArticleFeed{}, nil
+	return []db.ArticlesFeed{}, nil
 }
 func (m *mockArticleFeedCtrl) ListArticlesByFeedForUser(ctx context.Context, q db.Querier, feedID, userID string) ([]db.ListArticlesByFeedForUserRow, error) {
 	if m.listByFeedFn != nil {

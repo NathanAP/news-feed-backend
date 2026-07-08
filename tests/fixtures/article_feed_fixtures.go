@@ -7,8 +7,8 @@ import (
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
-func NewTestArticleFeed(articleID, feedID string) db.ArticleFeed {
-	return db.ArticleFeed{
+func NewTestArticleFeed(articleID, feedID string) db.ArticlesFeed {
+	return db.ArticlesFeed{
 		ID:         "01900000-0000-7000-8000-000000000050",
 		ArticleID:  articleID,
 		FeedID:     feedID,

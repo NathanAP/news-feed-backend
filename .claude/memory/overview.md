@@ -21,8 +21,10 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
 - `main.go` — bootstrap: carrega `.env`, abre o SQLite, roda migrações, instancia
   controllers e registra rotas.
 - `migrations/` — SQL goose (up/down). `schema.sql` — espelho do schema para o sqlc.
-- `sqlc/` — código gerado (models, querier, `*.sql.go`) + `queries/*.sql`. Gerado à mão
-  seguindo o padrão do sqlc (não há `sqlc generate` rodando no CI ainda).
+- `sqlc/` — código gerado (models, querier, `*.sql.go`) + `queries/*.sql`. Desde a 0.30, gerado
+  rodando o `sqlc` real (`task sg` / `sqlc generate`, binário `v1.31.1`) — não há `sqlc generate`
+  automático no CI ainda, mas o código deixou de ser escrito à mão. Gotcha do parser: evitar
+  caracteres não-ASCII (em-dash etc.) em comentários dos `.sql` de `queries/` — corrompe a geração.
 - `schemas/` — DTOs de request/response. Enums em `schemas/enums/` (fonte única, um arquivo por
   enum: `theme.go`, `language.go`, `ai_personality.go`), referenciados como `enums.X`.
 - `services/controllers/` — regras de negócio. **Stateless**, recebem `db.Querier`, nunca

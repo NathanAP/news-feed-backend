@@ -32,6 +32,7 @@ type exampleUserPreferences struct {
 }
 
 type exampleSource struct {
+	Name   string `json:"name"`
 	URL    string `json:"url"`
 	URLRss string `json:"url_rss"`
 }

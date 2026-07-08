@@ -24,7 +24,7 @@ func GetArticle(ctrl controllers.ArticleControllerInterface, afCtrl controllers.
 		}
 
 		var article db.Article
-		var afRecords []db.ArticleFeed
+		var afRecords []db.ArticlesFeed
 		err := runTx(c.Context(), func(q db.Querier) error {
 			var err error
 			article, err = ctrl.FindByID(c.Context(), q, id)

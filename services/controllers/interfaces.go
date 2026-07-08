@@ -47,10 +47,10 @@ type AuthControllerInterface interface {
 }
 
 type SourceControllerInterface interface {
-	Create(ctx context.Context, q db.Querier, url, urlRss string) (db.Source, error)
+	Create(ctx context.Context, q db.Querier, name, url, urlRss string) (db.Source, error)
 	FindByID(ctx context.Context, q db.Querier, id string) (db.Source, error)
 	List(ctx context.Context, q db.Querier) ([]db.Source, error)
-	Update(ctx context.Context, q db.Querier, id, url, urlRss string) (db.Source, error)
+	Update(ctx context.Context, q db.Querier, id, name, url, urlRss string) (db.Source, error)
 	SoftDelete(ctx context.Context, q db.Querier, id string) error
 }
 
@@ -73,8 +73,8 @@ type FeedControllerInterface interface {
 }
 
 type ArticleFeedControllerInterface interface {
-	Create(ctx context.Context, q db.Querier, articleID, feedID string) (db.ArticleFeed, error)
-	FindByArticleAndUser(ctx context.Context, q db.Querier, articleID, userID string) ([]db.ArticleFeed, error)
+	Create(ctx context.Context, q db.Querier, articleID, feedID string) (db.ArticlesFeed, error)
+	FindByArticleAndUser(ctx context.Context, q db.Querier, articleID, userID string) ([]db.ArticlesFeed, error)
 	ListArticlesByFeedForUser(ctx context.Context, q db.Querier, feedID, userID string) ([]db.ListArticlesByFeedForUserRow, error)
 	MarkAsRead(ctx context.Context, q db.Querier, articleID, userID string) (bool, error)
 }

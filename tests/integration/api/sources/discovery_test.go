@@ -18,7 +18,7 @@ func seedDiscoverySource(t *testing.T, app interface {
 	Test(*http.Request, ...int) (*http.Response, error)
 }, token string) string {
 	t.Helper()
-	body := `{"url":"https://disc.com","url_rss":"` + discoveryFeedURL + `"}`
+	body := `{"name":"Disc News","url":"https://disc.com","url_rss":"` + discoveryFeedURL + `"}`
 	req, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
