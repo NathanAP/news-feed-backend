@@ -76,21 +76,34 @@ Todo **erro** responde `{ error: string }` com o status apropriado. Datas em UTC
 - `PUT /sources/:id` — `{ name (≤120), url, url_rss }` → 200 **SourceResponse** / 400 / 404 / 409.
 - `DELETE /sources/:id` — soft delete → 204 (sem body) / 404. Cascata: soft-remove das `articles` da fonte.
 
-## Articles (`/v1/articles`) — auth (criação/edição/remoção = admin-futuro; hoje abertas)
+## Articles (`/v1/articles`) — toda rota exige `Authorization: Bearer` válido (401 sem token)
+
+Criação/edição/remoção ainda não são restritas a admin (admin-futuro). As rotas de **dry-run de IA**
+(`treatment`, `judgement`) são **exclusivas de desenvolvimento** — ver subseção no fim.
 
 - `POST /articles/create` — `{ title, content, url_original, keywords[5..20], source_id, language_original }` →
   201 **ArticleResponse** / 400 (inclui `source_id` ausente/fonte inativa e `language_original` ausente/inválido) / 409 (url_original duplicada) / 500.
   `language_original` é um código do enum de idiomas (`pt|en|es|fr|de|it`) e é obrigatório na criação manual (na CRON é detectado).
-- `POST /articles/treatment` — **dry-run** do tratamento por IA. Body `{ article: { title, content, ... }, keywords_mode? }`. Roda detecção de idioma (lingua-go) + tratamento (LLM) → keywords. → 200 `{ content, keywords, keywords_mode, language_original, treatment_ms, keywords_ms }` / 400 / 500. **Não persiste**, mas **chama a IA de verdade** (consome quota). O `keywords_mode` opcional (`local`|`groq`|`gemini`) troca o backend das keywords só nesta chamada (benchmark sem reiniciar; 400 se o modo não existe). Aberta (admin-futuro).
-- `GET /articles/:id/translate/:language` — **tradução personalizada** sob demanda (LLM apenas, `TRANSLATION_*`). Traduz título+conteúdo para `:language` (`pt|en|es|fr|de|it`), preservando o HTML e adaptando o tom à `ai_personality` (lida do JWT); re-sanitiza a saída (bluemonday). **Keywords não são traduzidas** (ficam canônicas em inglês). **Read-only** (não grava; client cacheia). → 200 `{ title, content, language, language_original }` / 403 (`translate_content` off) / 400 (idioma inválido, igual ao original, ou `language_original` null) / 404 / 500. Aberta.
-- `POST /articles/judgement` — **dry-run** do julgamento por IA. Body `{ article: { title, content, keywords }, judgement_mode? }` (notícia já tratada; sem `id`). Camada 1: feeds candidatos por sobreposição de keywords (SQL `json_each`, feeds ativos de qualquer usuário); camada 2: `score` 0–100 da IA por candidato vs `JUDGEMENT_THRESHOLD`. → 200 `{ judgement_mode, threshold, candidate_count, judgements: [{ feed_id, feed_name, score, passed }], judgement_ms }` / 400 / 500. **Não grava** (para na penúltima etapa), mas **chama a IA de verdade**. `judgement_mode` opcional (`local`|`groq`|`gemini`) troca o backend só nesta chamada (400 se inexistente). Aberta (admin-futuro).
+- `GET /articles/:id/translate/:language` — **tradução personalizada** sob demanda (LLM apenas, `TRANSLATION_*`). Traduz título+conteúdo para `:language` (`pt|en|es|fr|de|it`), preservando o HTML e adaptando o tom à `ai_personality` (lida do JWT); re-sanitiza a saída (bluemonday). **Keywords não são traduzidas** (ficam canônicas em inglês). **Read-only** (não grava; client cacheia). Como a leitura da notícia, é **aberta a qualquer usuário autenticado** (a notícia é global; não exige que ela esteja num feed do usuário), com a trava extra da preferência `translate_content`. → 200 `{ title, content, language, language_original }` / 403 (`translate_content` off) / 400 (idioma inválido, igual ao original, ou `language_original` null) / 404 / 500.
 - `PUT /articles/:id/read` — marca como lida nos feeds do usuário. Sem body na resposta → **200**
   (em ≥1 feed, ou já lida) / **204** (não está em nenhum feed do usuário) / 404 (notícia inexistente). Idempotente.
-- `GET /articles/:id` → 200 **ArticleResponse** / 404. O `is_read` vem enriquecido: `null` (não está em
-  feed do usuário) | `false` (em ≥1 feed, ao menos um não lido) | `true` (todos lidos).
+- `GET /articles/:id` → 200 **ArticleResponse** / 404. **Rota principal de visualização de uma notícia.**
+  Aberta a **qualquer usuário autenticado do sistema**, mesmo que a notícia não esteja em nenhum dos seus
+  feeds — a notícia é entidade **global**, não por-usuário como `feeds`. O `is_read` vem enriquecido:
+  `null` (não está em feed do usuário) | `false` (em ≥1 feed, ao menos um não lido) | `true` (todos lidos).
 - `GET /articles?url=` — filtro por substring em url_original → 200 **envelope paginado de ArticleResponse** (ver "Paginação").
 - `PUT /articles/:id` — `{ title, content, url_original, keywords, language_original }` (sem `source_id`, imutável) → 200 **ArticleResponse** / 400 / 404 / 409.
 - `DELETE /articles/:id` — soft delete → 204 (sem body) / 404.
+
+### Dry-run de IA — **exclusivas de `ENVIRONMENT=development`** (nunca para clientes)
+
+Registradas só em desenvolvimento (mesmo padrão do `dev-login`): a rota **não existe** em staging/
+produção — resposta **404** (a rota não está montada), não 401. São ferramentas internas de simulação
+do pipeline; **chamam a IA de verdade** (consomem quota), **não persistem** nada e expõem comportamento
+interno — por isso jamais devem ser alcançáveis por um client.
+
+- `POST /articles/treatment` — **dry-run** do tratamento por IA. Body `{ article: { title, content, ... }, keywords_mode? }`. Roda detecção de idioma (lingua-go) + tratamento (LLM) → keywords. → 200 `{ content, keywords, keywords_mode, language_original, treatment_ms, keywords_ms }` / 400 / 500. O `keywords_mode` opcional (`local`|`groq`|`gemini`) troca o backend das keywords só nesta chamada (benchmark sem reiniciar; 400 se o modo não existe).
+- `POST /articles/judgement` — **dry-run** do julgamento por IA. Body `{ article: { title, content, keywords }, judgement_mode? }` (notícia já tratada; sem `id`). Camada 1: feeds candidatos por sobreposição de keywords (SQL `json_each`, feeds ativos de qualquer usuário); camada 2: `score` 0–100 da IA por candidato vs `JUDGEMENT_THRESHOLD`. → 200 `{ judgement_mode, threshold, candidate_count, judgements: [{ feed_id, feed_name, score, passed }], judgement_ms }` / 400 / 500. `judgement_mode` opcional (`local`|`groq`|`gemini`) troca o backend só nesta chamada (400 se inexistente).
 
 ## Feeds (`/v1/feeds`) — auth, **recurso por-usuário**
 

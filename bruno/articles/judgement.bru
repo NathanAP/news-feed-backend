@@ -53,8 +53,11 @@ docs {
   `judgement_mode` (local | groq | gemini) troca o backend só nesta chamada, pra benchmark sem
   reiniciar (400 se o modo não existir). Retorna 200 com
   `{ judgement_mode, threshold, candidate_count, judgements: [{ feed_id, feed_name, score, passed }],
-  judgement_ms }`; 500 em falha de IA. Aberta por enquanto; futuramente restrita a administradores.
-  
+  judgement_ms }`; 500 em falha de IA.
+
+  EXCLUSIVA DO MODO DE DESENVOLVIMENTO: a rota só é registrada quando ENVIRONMENT=development. Em
+  staging/produção ela não existe (404) — é ferramenta interna, nunca para clientes.
+
   Observação: precisa existir pelo menos um feed ativo cujas keywords tenham interseção com as
   keywords do artigo, senão `candidate_count` será 0 e a IA nem chega a rodar.
 }

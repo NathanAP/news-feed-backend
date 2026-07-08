@@ -32,6 +32,8 @@ docs {
   Atenção: chama o provedor de IA de verdade (consome quota). `article.title` e `article.content`
   são obrigatórios (400). Campo opcional `keywords_mode` (local | groq | gemini) troca o backend das
   keywords só nesta chamada, pra benchmark sem reiniciar (400 se o modo não existir). Retorna 200 com
-  `{ content, keywords, keywords_mode, treatment_ms, keywords_ms }`; 500 em falha de IA. Aberta por
-  enquanto; futuramente restrita a administradores.
+  `{ content, keywords, keywords_mode, treatment_ms, keywords_ms }`; 500 em falha de IA.
+
+  EXCLUSIVA DO MODO DE DESENVOLVIMENTO: a rota só é registrada quando ENVIRONMENT=development. Em
+  staging/produção ela não existe (404) — é ferramenta interna, nunca para clientes.
 }

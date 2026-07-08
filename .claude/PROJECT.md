@@ -265,7 +265,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Um endpoint de teste para esse processo pode ser encontrado em `POST base_url/v1/articles/treatment`.
     - Deve simular os exatos mesmos processos que rodaria na CRON.
     - Deve permitir a troca de modo na etapa de nomeação de palavras-chave através de uma chave chamada `keywords_mode` no body, aceitando os valores disponibilizados na descrição da etapa.
-    - Esse endpoint deve ser exclusivo para administradores.
+    - Esse endpoint é **exclusivo do modo de desenvolvimento** (`ENVIRONMENT=development`): a rota nem sequer é registrada fora de dev (mesmo padrão do `dev-login`), pois é uma ferramenta interna que chama a IA de verdade e jamais deve ser alcançada por clientes.
     - Esse endpoint é considerada uma dry-run, ou seja, ela não cria ou altera nenhum registro do banco de dados.
     - O body deste endpoint deve aceitar:
         - `article`: um `json` contendo os dados de uma notícia, obtidos diretamente através da descoberta de notícias.
@@ -341,7 +341,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Um endpoint de teste para esse processo pode ser encontrado em `POST base_url/v1/articles/judgement`.
     - Deve simular os exatos mesmos processos que rodaria na CRON.
     - Deve permitir a troca de modo na etapa de julgamento através de uma chave chamada `judgement_mode` no body, aceitando os valores disponibilizados na descrição da etapa.
-    - Esse endpoint deve ser exclusivo para administradores.
+    - Esse endpoint é **exclusivo do modo de desenvolvimento** (`ENVIRONMENT=development`): a rota nem sequer é registrada fora de dev (mesmo padrão do `dev-login`), pois é uma ferramenta interna que chama a IA de verdade e jamais deve ser alcançada por clientes.
     - Esse endpoint é considerada uma dry-run, ou seja, ela não cria ou altera nenhum registro do banco de dados.
     - O body deste endpoint deve aceitar um `json` contendo os dados necessários para se fazer a simulação de um julgamento.
         - Evite a necessidade de passar um `id` de notícias válido, assim poderemos fazer simulações mais rapidamente.

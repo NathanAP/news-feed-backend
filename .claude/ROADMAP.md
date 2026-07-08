@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.30.0.0
+0.31.0.0
 
 ## Versão 0.1.0.0
 
@@ -474,6 +474,14 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [x] Permitir que a fonte da notícia venha também na rota de notícias do feed
     - No endpoint `GET /v1/feeds/{id}/articles` precisamos de um filtro que traga também a fonte daquela notícia, assim podemos preencher no client
     - Vamos fazer a opção via query para vir ou não com as sources populadas, a opção pode ser `with_sources=` e se for diferente de `true`, volta sem o preenchimento
+
+## Versão 0.31.0.0
+
+- [x] Fechar as rotas de dry-run `POST /v1/articles/treatment` e `POST /v1/articles/judgement` ao modo de desenvolvimento
+    - Estavam registradas incondicionalmente (só atrás de auth), acessíveis em produção por qualquer usuário autenticado
+    - Agora registradas só quando `ENVIRONMENT=development` (mesmo padrão do `dev-login`); fora de dev a rota não existe (404)
+    - Motivo: são ferramentas internas que chamam a IA de verdade (consomem quota) e expõem o pipeline — jamais para clientes
+    - Doc alinhada em `endpoints.md`, `PROJECT.md` e nos `.bru`; a nota de "notícia global, sem checagem de posse" foi movida do cabeçalho da seção Articles para a rota principal de visualização (`GET /articles/:id`) e mencionada na tradução
 
 ## Futuro
 

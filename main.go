@@ -201,14 +201,22 @@ func main() {
 
 	articles := api.Group("/articles")
 	articles.Post("/create", append(authMiddleware, articleendpoints.CreateArticle(articleCtrl, runTx))...)
-	articles.Post("/treatment", append(authMiddleware, articleendpoints.TreatArticle(treater, keyworders, keywordsDefaultMode, detector))...)
-	articles.Post("/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, judgementDefaultMode, judgementThreshold, runTx))...)
 	articles.Get("/:id/translate/:language", append(authMiddleware, articleendpoints.TranslateArticle(articleCtrl, translator, runTx))...)
 	articles.Put("/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(articleCtrl, afCtrl, runTx))...)
 	articles.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, runTx))...)
 	articles.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, runTx))...)
 	articles.Put("/:id", append(authMiddleware, articleendpoints.UpdateArticle(articleCtrl, runTx))...)
 	articles.Delete("/:id", append(authMiddleware, articleendpoints.DeleteArticle(articleCtrl, runTx))...)
+
+	// Development-only dry-run tools for the AI pipeline (treatment, judgement). They call the AI
+	// for real (consume quota) and expose internal pipeline behavior, so they must never be reachable
+	// by clients in staging/production. Registered conditionally, like /users/dev-login, so the routes
+	// literally do not exist outside development (defense in depth beyond any runtime check).
+	if os.Getenv("ENVIRONMENT") == "development" {
+		articles.Post("/treatment", append(authMiddleware, articleendpoints.TreatArticle(treater, keyworders, keywordsDefaultMode, detector))...)
+		articles.Post("/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, judgementDefaultMode, judgementThreshold, runTx))...)
+		log.Println("Development mode: POST /v1/articles/treatment and /v1/articles/judgement enabled")
+	}
 
 	feeds := api.Group("/feeds")
 	feeds.Post("/create", append(authMiddleware, feedendpoints.CreateFeed(feedCtrl, runTx))...)
