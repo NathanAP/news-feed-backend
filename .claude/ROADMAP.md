@@ -468,8 +468,11 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.30.0.0
 
+- [ ] Adicionar o campo `name` à fonte de notícias
+    - Não precisa se preocupar com bancos existentes, vou excluir o meu localmente aqui
 - [ ] Permitir que a fonte da notícia venha também na rota de notícias do feed
     - No endpoint `GET /v1/feeds/{id}/articles` precisamos de um filtro que traga também a fonte daquela notícia, assim podemos preencher no client
+    - Vamos fazer a opção via query para vir ou não com as sources populadas, a opção pode ser `with_sources=` e se for diferente de `true`, volta sem o preenchimento
 
 ## Futuro
 
