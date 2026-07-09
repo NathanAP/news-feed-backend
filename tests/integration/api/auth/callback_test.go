@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	testutils "github.com/nathanap/news-feed-backend/tests/utils"
 	"github.com/nathanap/news-feed-backend/tests/mocks/external"
+	testutils "github.com/nathanap/news-feed-backend/tests/utils"
 )
 
 func TestCallback_Integration_CreatesNewUser(t *testing.T) {

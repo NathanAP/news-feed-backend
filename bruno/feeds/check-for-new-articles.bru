@@ -1,0 +1,31 @@
+meta {
+  name: Check For New Articles
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/v1/feeds/check-for-new-articles
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  Rota leve de polling: diz quais feeds ativos do usuário do token possuem notícias não lidas,
+  e quantas. Serve para o client checar de tempos em tempos (no futuro pode virar SSE/WebSocket).
+
+  Não é paginada (é um indicador, não uma listagem). A resposta é um objeto JSON plano,
+  com o id do feed como chave e a contagem de não lidas como valor:
+
+  {
+    "0199...aaaa": 3,
+    "0199...bbbb": 1
+  }
+
+  Só aparecem feeds com pelo menos uma notícia não lida; quando não há nenhuma, a resposta é
+  um objeto vazio ({}). Tudo é escopado ao usuário do token e calculado em SQL.
+}

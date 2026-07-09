@@ -65,7 +65,9 @@ registro **permanece** mas fica invisível (filtrado pelo JOIN de ativos). Popul
 **julgamento** (0.22): cada feed aprovado vira um registro. O `score` do julgamento **não** é
 gravado (artefato transitório; julgamento não-retroativo). Camada 1 do julgamento:
 `FindCandidateFeedsByKeywords` compara keywords notícia↔feed inteiramente em SQL via `json_each`
-(feeds ativos de qualquer usuário, `DISTINCT`).
+(feeds ativos de qualquer usuário, `DISTINCT`). `CountUnreadArticlesByFeedForUser` (0.32) conta as
+não lidas (`is_read=0`) por feed ativo do usuário, agrupando em SQL — alimenta a rota de poll
+`GET /feeds/check-for-new-articles`.
 
 ### system (singleton — painel de controle)
 

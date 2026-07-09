@@ -102,13 +102,18 @@ produção — resposta **404** (a rota não está montada), não 401. São ferr
 do pipeline; **chamam a IA de verdade** (consomem quota), **não persistem** nada e expõem comportamento
 interno — por isso jamais devem ser alcançáveis por um client.
 
-- `POST /articles/treatment` — **dry-run** do tratamento por IA. Body `{ article: { title, content, ... }, keywords_mode? }`. Roda detecção de idioma (lingua-go) + tratamento (LLM) → keywords. → 200 `{ content, keywords, keywords_mode, language_original, treatment_ms, keywords_ms }` / 400 / 500. O `keywords_mode` opcional (`local`|`groq`|`gemini`) troca o backend das keywords só nesta chamada (benchmark sem reiniciar; 400 se o modo não existe).
+- `POST /articles/treatment` — **dry-run** do tratamento por IA. Body `{ article: { title, content, ... }, keywords_mode? }`. Roda detecção de idioma (lingua-go) + tratamento (LLM) → keywords. Reusa o mesmo `treater` da CRON, então honra `TREATMENT_AI_ACTIVE` (se `false`, o passo LLM é passthrough e só a sanitização roda). → 200 `{ content, keywords, keywords_mode, language_original, treatment_ms, keywords_ms }` / 400 / 500. O `keywords_mode` opcional (`local`|`groq`|`gemini`) troca o backend das keywords só nesta chamada (benchmark sem reiniciar; 400 se o modo não existe).
 - `POST /articles/judgement` — **dry-run** do julgamento por IA. Body `{ article: { title, content, keywords }, judgement_mode? }` (notícia já tratada; sem `id`). Camada 1: feeds candidatos por sobreposição de keywords (SQL `json_each`, feeds ativos de qualquer usuário); camada 2: `score` 0–100 da IA por candidato vs `JUDGEMENT_THRESHOLD`. → 200 `{ judgement_mode, threshold, candidate_count, judgements: [{ feed_id, feed_name, score, passed }], judgement_ms }` / 400 / 500. `judgement_mode` opcional (`local`|`groq`|`gemini`) troca o backend só nesta chamada (400 se inexistente).
 
 ## Feeds (`/v1/feeds`) — auth, **recurso por-usuário**
 
 - Acesso restrito ao dono: feed de outro usuário responde **404** (não 403), sem vazar existência.
 - `POST /feeds/create` — `{ name (≤120), keywords[5..20] }` → 201 **FeedResponse** / 400 / 409 (limite de 5 feeds ativos) / 500.
+- `GET /feeds/check-for-new-articles` — **poll leve** de "quais feeds do usuário têm notícias não lidas".
+  Rota estática (registrada **antes** de `/:id` para não ser capturada como id). **Não paginada** (é indicador,
+  não listagem; o usuário tem no máx. 5 feeds). Contagem feita **em SQL** (`CountUnreadArticlesByFeedForUser`:
+  junta feed+artigo ativos, conta `is_read=0`, agrupa por feed). Resposta é um **objeto plano** `{ "<feed_id>": <int>, ... }`
+  só com feeds que têm ≥1 não lida; nenhuma → `{}`. → 200 / 500. Futuro: candidata a virar SSE/WebSocket.
 - `GET /feeds/:id` → 200 **FeedResponse** / 404 (inexistente ou de outro usuário).
 - `GET /feeds/:id/articles` — as notícias que caíram no feed (do dono), cada uma **ArticleResponse** com
   `is_read` sempre definido (a notícia está no feed). Filtros opcionais: `is_read` (`true`|`false`), janela
@@ -124,7 +129,9 @@ interno — por isso jamais devem ser alcançáveis por um client.
 
 - CRON interna (`services/cron`, `robfig/cron/v3`) varre as sources ativas em `RSS_FEED_CRON_SCHEDULE`,
   ativa por `RSS_FEED_CRON_ACTIVE`. Lê o RSS de cada source (gofeed), **deduplica por `url_original`**,
-  **trata** as novas (detecta o idioma com lingua-go + LLM limpa o conteúdo + SLM nomeia keywords),
+  **trata** as novas (detecta o idioma com lingua-go + LLM limpa o conteúdo + SLM nomeia keywords;
+  com `TREATMENT_AI_ACTIVE=false` o passo da LLM é pulado — o conteúdo original do RSS segue via um
+  passthrough treater, mas a sanitização bluemonday continua rodando, então o whitelist de HTML é sempre aplicado),
   **persiste** o `article` (com `language_original`) e por fim **julga** (camada 1 SQL por keywords + camada 2 IA vs
   `JUDGEMENT_THRESHOLD`), gravando as associações aprovadas em `articles_feeds`; ao
   final grava `system.last_article_discovery_at` (informativo). Falha de IA no tratamento → não

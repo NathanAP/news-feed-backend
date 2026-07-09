@@ -72,6 +72,7 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 
 	f := app.Group("/v1/feeds")
 	f.Post("/create", append(authMiddleware, feedendpoints.CreateFeed(feedCtrl, runTx))...)
+	f.Get("/check-for-new-articles", append(authMiddleware, feedendpoints.CheckForNewArticles(afCtrl, runTx))...)
 	f.Get("/:id/articles", append(authMiddleware, feedendpoints.FeedArticles(feedCtrl, afCtrl, runTx))...)
 	f.Get("/:id", append(authMiddleware, feedendpoints.GetFeed(feedCtrl, runTx))...)
 	f.Get("", append(authMiddleware, feedendpoints.ListFeeds(feedCtrl, runTx))...)
@@ -221,6 +222,84 @@ func TestE2E_Feeds_FetchArticles(t *testing.T) {
 	assert.Empty(t, decodePage(t, readResp))
 }
 
+func TestE2E_Feeds_CheckForNewArticles(t *testing.T) {
+	requireNotProduction(t)
+
+	oauth := external.MockGoogleOAuth{
+		UserInfo: external.GoogleUserInfo{
+			ID: "e2e-feeds-check", Email: "check@example.com", Name: "Check User",
+		},
+	}
+	app, queries := setupE2EApp(t, oauth)
+	token := loginViaCallback(t, app, queries)
+
+	// No feeds yet: the poll returns an empty object.
+	emptyReq, _ := http.NewRequest(http.MethodGet, "/v1/feeds/check-for-new-articles", nil)
+	emptyReq.Header.Set("Authorization", "Bearer "+token)
+	emptyResp, err := app.Test(emptyReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, emptyResp.StatusCode)
+	var emptyBody map[string]int64
+	require.NoError(t, readJSON(emptyResp, &emptyBody))
+	assert.Empty(t, emptyBody)
+
+	// Create a feed and link an unread article to it (the discovery pipeline's output).
+	createBody := `{"name":"Check Feed","keywords":["a","b","c","d","e"]}`
+	createReq, _ := http.NewRequest(http.MethodPost, "/v1/feeds/create", strings.NewReader(createBody))
+	createReq.Header.Set("Content-Type", "application/json")
+	createReq.Header.Set("Authorization", "Bearer "+token)
+	createResp, err := app.Test(createReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, createResp.StatusCode)
+	var created map[string]any
+	require.NoError(t, readJSON(createResp, &created))
+	feedID := created["id"].(string)
+
+	_, err = queries.CreateSource(context.Background(), db.CreateSourceParams{
+		ID: "01900000-0000-7000-8000-0000000c0001", Name: "Check Source", Url: "https://check-src.example.com", UrlRss: "https://check-src.example.com/rss",
+	})
+	require.NoError(t, err)
+	_, err = queries.CreateArticle(context.Background(), db.CreateArticleParams{
+		ID: "01900000-0000-7000-8000-0000000c0002", Title: "Check Article", Content: "content",
+		UrlOriginal: "https://check-article.example.com", Keywords: "[]", SourceID: "01900000-0000-7000-8000-0000000c0001",
+	})
+	require.NoError(t, err)
+	_, err = queries.CreateArticleFeed(context.Background(), db.CreateArticleFeedParams{
+		ID: "01900000-0000-7000-8000-0000000c0003", ArticleID: "01900000-0000-7000-8000-0000000c0002", FeedID: feedID,
+	})
+	require.NoError(t, err)
+
+	// Now the feed reports exactly one unread article.
+	req, _ := http.NewRequest(http.MethodGet, "/v1/feeds/check-for-new-articles", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	var body map[string]int64
+	require.NoError(t, readJSON(resp, &body))
+	require.Len(t, body, 1)
+	assert.Equal(t, int64(1), body[feedID])
+
+	// Read the article; the feed then drops out of the poll entirely. The articles routes are not
+	// mounted in this feeds-only harness, so mark it read directly against the querier — the user id
+	// comes from the account the OAuth mock logged in.
+	user, err := queries.FindUserByGoogleID(context.Background(), "e2e-feeds-check")
+	require.NoError(t, err)
+	require.NoError(t, queries.MarkArticleAsReadForUser(context.Background(), db.MarkArticleAsReadForUserParams{
+		ArticleID: "01900000-0000-7000-8000-0000000c0002",
+		UserID:    user.ID,
+	}))
+
+	afterReq, _ := http.NewRequest(http.MethodGet, "/v1/feeds/check-for-new-articles", nil)
+	afterReq.Header.Set("Authorization", "Bearer "+token)
+	afterResp, err := app.Test(afterReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, afterResp.StatusCode)
+	var afterBody map[string]int64
+	require.NoError(t, readJSON(afterResp, &afterBody))
+	assert.Empty(t, afterBody)
+}
+
 func TestE2E_Feeds_LimitEnforced(t *testing.T) {
 	requireNotProduction(t)
 
@@ -264,6 +343,7 @@ func TestE2E_Feeds_RequiresAuth(t *testing.T) {
 	}{
 		{http.MethodPost, "/v1/feeds/create", `{"name":"F","keywords":["a","b","c","d","e"]}`},
 		{http.MethodGet, "/v1/feeds", ""},
+		{http.MethodGet, "/v1/feeds/check-for-new-articles", ""},
 		{http.MethodGet, "/v1/feeds/some-id", ""},
 		{http.MethodGet, "/v1/feeds/some-id/articles", ""},
 		{http.MethodPut, "/v1/feeds/some-id", `{"name":"F","keywords":["a","b","c","d","e"]}`},

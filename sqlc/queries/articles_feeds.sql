@@ -45,6 +45,25 @@ JOIN sources s ON s.id = a.source_id
 WHERE af.feed_id = ?
 ORDER BY a.created_at DESC;
 
+-- name: CountUnreadArticlesByFeedForUser :many
+-- Counts the unread articles of every active feed owned by the user, for the
+-- check-for-new-articles poll endpoint. A junction record only counts when BOTH sides are active
+-- (the feed and the article), matching junction-validity rules, and only unread rows (is_read = 0)
+-- are counted. The inner joins plus the is_read filter mean a feed with no unread articles produces
+-- no group and is simply absent from the result (the caller renders it as no news). NOTE: keep this
+-- comment ASCII only -- sqlc miscounts multibyte UTF-8 bytes here and truncates the tail of the SQL.
+SELECT f.id AS feed_id, COUNT(af.id) AS unread_count
+FROM feeds f
+JOIN articles_feeds af ON af.feed_id = f.id
+    AND af.is_read = 0
+JOIN articles a ON a.id = af.article_id
+    AND a.status = 1
+    AND a.removed_at IS NULL
+WHERE f.user_id = ?
+    AND f.status = 1
+    AND f.removed_at IS NULL
+GROUP BY f.id;
+
 -- name: MarkArticleAsReadForUser :exec
 -- Marks is_read = 1 on all unread articles_feeds records for a given article and user.
 -- Idempotent: already-read records (is_read = 1) are not touched. Both related rows must

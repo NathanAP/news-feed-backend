@@ -71,6 +71,21 @@ func (c *ArticleFeedController) ListArticlesByFeedForUser(ctx context.Context, q
 	return rows, nil
 }
 
+// CountUnreadByFeedForUser returns, per active feed owned by the user, how many unread articles it
+// has. Feeds with zero unread articles are omitted (the query only groups feeds that have at least
+// one), so the result is exactly the set of feeds that currently have new articles. The count is
+// computed entirely in SQL.
+func (c *ArticleFeedController) CountUnreadByFeedForUser(ctx context.Context, q db.Querier, userID string) ([]db.CountUnreadArticlesByFeedForUserRow, error) {
+	rows, err := q.CountUnreadArticlesByFeedForUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count unread articles by feed: %w", err)
+	}
+	if rows == nil {
+		return []db.CountUnreadArticlesByFeedForUserRow{}, nil
+	}
+	return rows, nil
+}
+
 // MarkAsRead marks is_read = 1 on all unread articles_feeds records for the given article
 // and user. Idempotent: already-read records are not touched. Returns whether any records
 // were found (true = user has at least one feed containing the article).

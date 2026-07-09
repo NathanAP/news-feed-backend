@@ -11,6 +11,54 @@ import (
 	"time"
 )
 
+const countUnreadArticlesByFeedForUser = `-- name: CountUnreadArticlesByFeedForUser :many
+SELECT f.id AS feed_id, COUNT(af.id) AS unread_count
+FROM feeds f
+JOIN articles_feeds af ON af.feed_id = f.id
+    AND af.is_read = 0
+JOIN articles a ON a.id = af.article_id
+    AND a.status = 1
+    AND a.removed_at IS NULL
+WHERE f.user_id = ?
+    AND f.status = 1
+    AND f.removed_at IS NULL
+GROUP BY f.id
+`
+
+type CountUnreadArticlesByFeedForUserRow struct {
+	FeedID      string `json:"feed_id"`
+	UnreadCount int64  `json:"unread_count"`
+}
+
+// Counts the unread articles of every active feed owned by the user, for the
+// check-for-new-articles poll endpoint. A junction record only counts when BOTH sides are active
+// (the feed and the article), matching junction-validity rules, and only unread rows (is_read = 0)
+// are counted. The inner joins plus the is_read filter mean a feed with no unread articles produces
+// no group and is simply absent from the result (the caller renders it as no news). NOTE: keep this
+// comment ASCII only -- sqlc miscounts multibyte UTF-8 bytes here and truncates the tail of the SQL.
+func (q *Queries) CountUnreadArticlesByFeedForUser(ctx context.Context, userID string) ([]CountUnreadArticlesByFeedForUserRow, error) {
+	rows, err := q.db.QueryContext(ctx, countUnreadArticlesByFeedForUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CountUnreadArticlesByFeedForUserRow
+	for rows.Next() {
+		var i CountUnreadArticlesByFeedForUserRow
+		if err := rows.Scan(&i.FeedID, &i.UnreadCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const createArticleFeed = `-- name: CreateArticleFeed :one
 INSERT INTO articles_feeds (id, article_id, feed_id)
 VALUES (?, ?, ?)

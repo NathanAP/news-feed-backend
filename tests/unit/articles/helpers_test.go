@@ -134,6 +134,9 @@ func (m *mockArticleFeedCtrl) ListArticlesByFeedForUser(ctx context.Context, q d
 	}
 	return []db.ListArticlesByFeedForUserRow{}, nil
 }
+func (m *mockArticleFeedCtrl) CountUnreadByFeedForUser(_ context.Context, _ db.Querier, _ string) ([]db.CountUnreadArticlesByFeedForUserRow, error) {
+	return []db.CountUnreadArticlesByFeedForUserRow{}, nil
+}
 func (m *mockArticleFeedCtrl) MarkAsRead(ctx context.Context, q db.Querier, articleID, userID string) (bool, error) {
 	if m.markAsReadFn != nil {
 		return m.markAsReadFn(ctx, q, articleID, userID)

@@ -20,7 +20,8 @@ import (
 // mockAFCtrl is a minimal ArticleFeedControllerInterface for the feed-articles handler: only the
 // list method is exercised here; the rest return zero values.
 type mockAFCtrl struct {
-	listByFeedFn func(ctx context.Context, q db.Querier, feedID, userID string) ([]db.ListArticlesByFeedForUserRow, error)
+	listByFeedFn  func(ctx context.Context, q db.Querier, feedID, userID string) ([]db.ListArticlesByFeedForUserRow, error)
+	countUnreadFn func(ctx context.Context, q db.Querier, userID string) ([]db.CountUnreadArticlesByFeedForUserRow, error)
 }
 
 func (m *mockAFCtrl) Create(_ context.Context, _ db.Querier, _, _ string) (db.ArticlesFeed, error) {
@@ -34,6 +35,12 @@ func (m *mockAFCtrl) ListArticlesByFeedForUser(ctx context.Context, q db.Querier
 		return m.listByFeedFn(ctx, q, feedID, userID)
 	}
 	return []db.ListArticlesByFeedForUserRow{}, nil
+}
+func (m *mockAFCtrl) CountUnreadByFeedForUser(ctx context.Context, q db.Querier, userID string) ([]db.CountUnreadArticlesByFeedForUserRow, error) {
+	if m.countUnreadFn != nil {
+		return m.countUnreadFn(ctx, q, userID)
+	}
+	return []db.CountUnreadArticlesByFeedForUserRow{}, nil
 }
 func (m *mockAFCtrl) MarkAsRead(_ context.Context, _ db.Querier, _, _ string) (bool, error) {
 	return false, nil

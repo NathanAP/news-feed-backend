@@ -114,10 +114,21 @@ func main() {
 	feedCtrl := controllers.NewFeedController()
 	systemCtrl := controllers.NewSystemController()
 
+	// TREATMENT_AI_ACTIVE=false skips only the LLM review step of treatment: the original RSS content
+	// flows forward via a passthrough treater. Sanitize still wraps it, so the HTML whitelist is
+	// enforced either way. The dev-only dry-run endpoint reuses this same `treater`, so it honors the
+	// flag automatically.
 	treatmentProvider, treatmentModel := os.Getenv("TREATMENT_PROVIDER"), os.Getenv("TREATMENT_MODEL")
-	var treater ai.Treater = buildProvider(treatmentProvider, treatmentModel)
-	treater = sanitize.NewTreater(treater) // enforce the basic-HTML whitelist on the model output
-	treater = ai.NewVerboseTreater(treater, fmt.Sprintf("%s/%s", treatmentProvider, treatmentModel), os.Getenv("TREATMENT_VERBOSE_MODE") == "true")
+	var treater ai.Treater
+	treatmentLabel := fmt.Sprintf("%s/%s", treatmentProvider, treatmentModel)
+	if os.Getenv("TREATMENT_AI_ACTIVE") == "true" {
+		treater = buildProvider(treatmentProvider, treatmentModel)
+	} else {
+		treater = ai.NewPassthroughTreater()
+		treatmentLabel = "passthrough (TREATMENT_AI_ACTIVE=false)"
+	}
+	treater = sanitize.NewTreater(treater) // enforce the basic-HTML whitelist on the treated output
+	treater = ai.NewVerboseTreater(treater, treatmentLabel, os.Getenv("TREATMENT_VERBOSE_MODE") == "true")
 
 	keyworders, keywordsDefaultMode := buildKeyworders()
 	defaultKeyworder := keyworders[keywordsDefaultMode]
@@ -220,6 +231,9 @@ func main() {
 
 	feeds := api.Group("/feeds")
 	feeds.Post("/create", append(authMiddleware, feedendpoints.CreateFeed(feedCtrl, runTx))...)
+	// Static route registered before "/:id" so "check-for-new-articles" is never swallowed as an id
+	// (Fiber prioritizes static over param, but keeping the order explicit matches sources/rss-discovery).
+	feeds.Get("/check-for-new-articles", append(authMiddleware, feedendpoints.CheckForNewArticles(afCtrl, runTx))...)
 	feeds.Get("/:id/articles", append(authMiddleware, feedendpoints.FeedArticles(feedCtrl, afCtrl, runTx))...)
 	feeds.Get("/:id", append(authMiddleware, feedendpoints.GetFeed(feedCtrl, runTx))...)
 	feeds.Get("", append(authMiddleware, feedendpoints.ListFeeds(feedCtrl, runTx))...)

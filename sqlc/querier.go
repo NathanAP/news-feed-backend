@@ -11,6 +11,13 @@ import (
 
 type Querier interface {
 	CountActiveFeedsByUser(ctx context.Context, userID string) (int64, error)
+	// Counts the unread articles of every active feed owned by the user, for the
+	// check-for-new-articles poll endpoint. A junction record only counts when BOTH sides are active
+	// (the feed and the article), matching junction-validity rules, and only unread rows (is_read = 0)
+	// are counted. The inner joins plus the is_read filter mean a feed with no unread articles produces
+	// no group and is simply absent from the result (the caller renders it as no news). NOTE: keep this
+	// comment ASCII only -- sqlc miscounts multibyte UTF-8 bytes here and truncates the tail of the SQL.
+	CountUnreadArticlesByFeedForUser(ctx context.Context, userID string) ([]CountUnreadArticlesByFeedForUserRow, error)
 	CreateArticle(ctx context.Context, arg CreateArticleParams) (Article, error)
 	CreateArticleFeed(ctx context.Context, arg CreateArticleFeedParams) (ArticlesFeed, error)
 	CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, error)
