@@ -539,6 +539,7 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
 - SSE ou Websocket
     - Novas notícias chegaram
     - Rota `GET base_url/v1/feeds/check-for-new-articles`
+    - Notificações
 - Machine Learning: aprender com leitura/descarte do usuário
 - CI/CD
 - Backup
