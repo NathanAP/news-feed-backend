@@ -306,6 +306,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - O objetivo é trazer mais dinamismo e organizar o conteúdo da notícia.
 - Não deve haver traduções, resumos ou alterações no conteúdo, contexto ou tom da notícia.
 - A variável de ambiente `TREATMENT_AI_ACTIVE` indica quando este passo especificamente deve ser ignorado. Enquanto estiver com o valor em `true`, ele deve ser seguido normalmente. Se não, o conteúdo original deve ser usado para seguir adiante.
+    - Dito isso, quando estiver inativo, esse campo permite que as notícias originais do RSS cheguem sem filtragem inicial de URLs e links.
 
 ### Sanitização do conteúdo
 

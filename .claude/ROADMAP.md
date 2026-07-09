@@ -489,6 +489,9 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Pensei em fazer uma rota só pra isso para que a gente pudesse pesquisar nela a cada pouco
     - Acredito que futuramente daria pra fazer um websocket ou um SSE disso?
     - Pode estar em `GET base_url/v1/feeds/check-for-new-articles`
+    - A reposta pode ser `{ "{feed_id}": quantidade_de_noticias_nao_lidas_deste_feed_em_int, ... }`
+    - Neste caso não precisa paginação
+    - Lembrando que apenas os feeds ativos devem participar desta chamada
 - [ ] Criar uma funcionalidade que dá skip na LLM durante o tratamento de notícias
     - Usar a variável `TREATMENT_AI_ACTIVE` da forma descrita no `PROJECT.md`
 
