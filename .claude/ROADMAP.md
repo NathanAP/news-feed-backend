@@ -483,6 +483,15 @@ Os níveis de tabulação indicam detalhes do assunto.
     - Motivo: são ferramentas internas que chamam a IA de verdade (consomem quota) e expõem o pipeline — jamais para clientes
     - Doc alinhada em `endpoints.md`, `PROJECT.md` e nos `.bru`; a nota de "notícia global, sem checagem de posse" foi movida do cabeçalho da seção Articles para a rota principal de visualização (`GET /articles/:id`) e mencionada na tradução
 
+## Versão 0.32.0.0
+
+- [ ] Criar um endpoint para saber quais feeds possuem notícias não lidas
+    - Pensei em fazer uma rota só pra isso para que a gente pudesse pesquisar nela a cada pouco
+    - Acredito que futuramente daria pra fazer um websocket ou um SSE disso?
+    - Pode estar em `GET base_url/v1/feeds/check-for-new-articles`
+- [ ] Criar uma funcionalidade que dá skip na LLM durante o tratamento de notícias
+    - Usar a variável `TREATMENT_AI_ACTIVE` da forma descrita no `PROJECT.md`
+
 ## Futuro
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
@@ -524,6 +533,9 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
 - Sistema de feedback de notícias
 - Descoberta automática de novas RSS feeds
 - Regras de administradores
+- SSE ou Websocket
+    - Novas notícias chegaram
+    - Rota `GET base_url/v1/feeds/check-for-new-articles`
 - Machine Learning: aprender com leitura/descarte do usuário
 - CI/CD
 - Backup

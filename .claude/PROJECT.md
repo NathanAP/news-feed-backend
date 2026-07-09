@@ -265,7 +265,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Um endpoint de teste para esse processo pode ser encontrado em `POST base_url/v1/articles/treatment`.
     - Deve simular os exatos mesmos processos que rodaria na CRON.
     - Deve permitir a troca de modo na etapa de nomeação de palavras-chave através de uma chave chamada `keywords_mode` no body, aceitando os valores disponibilizados na descrição da etapa.
-    - Esse endpoint é **exclusivo do modo de desenvolvimento** (`ENVIRONMENT=development`): a rota nem sequer é registrada fora de dev (mesmo padrão do `dev-login`), pois é uma ferramenta interna que chama a IA de verdade e jamais deve ser alcançada por clientes.
+    - Esse endpoint é exclusivo do modo de desenvolvimento (através da variável de ambiente `ENVIRONMENT`): o endpoint não deve ser registrado fora de dev (mesmo padrão do `dev-login`), pois é uma ferramenta interna que chama a IA de verdade e jamais deve ser alcançada por clientes.
     - Esse endpoint é considerada uma dry-run, ou seja, ela não cria ou altera nenhum registro do banco de dados.
     - O body deste endpoint deve aceitar:
         - `article`: um `json` contendo os dados de uma notícia, obtidos diretamente através da descoberta de notícias.
@@ -279,6 +279,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 ### Tratamento principal
 
 - A etapa de tratamento principal opera de acordo com as seguintes variáveis de ambiente:
+    - `TREATMENT_AI_ACTIVE`: indica se a etapa de tratamento por inteligência artificial está ativa ou não. Mais detalhes em `Revisando o conteúdo`.
     - `TREATMENT_PROVIDER`: o provedor do modelo para ser usado durante esta etapa.
     - `TREATMENT_MODEL`: o modelo em si para ser usado durante esta etapa.
     - `TREATMENT_VERBOSE_MODE`: `boolean` que decide se os logs são exibidos no terminal ou não durante esta etapa.
@@ -298,6 +299,13 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Estar em formato de texto (`string`) no formato HTML puro contendo apenas elementos HTML básicos e atributos simples.
         - Evitar ao máximo os atributos `class` e `style` neste momento.
         - A personalização dessa etapa está planejada para o futuro.
+
+### Revisando o conteúdo
+
+- Esta etapa utiliza uma LLM para revisar o texto da notícia.
+- O objetivo é trazer mais dinamismo e organizar o conteúdo da notícia.
+- Não deve haver traduções, resumos ou alterações no conteúdo, contexto ou tom da notícia.
+- A variável de ambiente `TREATMENT_AI_ACTIVE` indica quando este passo especificamente deve ser ignorado. Enquanto estiver com o valor em `true`, ele deve ser seguido normalmente. Se não, o conteúdo original deve ser usado para seguir adiante.
 
 ### Sanitização do conteúdo
 
