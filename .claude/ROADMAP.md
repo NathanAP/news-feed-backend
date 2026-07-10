@@ -495,6 +495,20 @@ Os níveis de tabulação indicam detalhes do assunto.
 - [x] Criar uma funcionalidade que dá skip na LLM durante o tratamento de notícias
     - Usar a variável `TREATMENT_AI_ACTIVE` da forma descrita no `PROJECT.md`
 
+## Versão 0.33.0.0
+
+- [ ] Alterar preferências do usuário
+    - Remover tema light/dark, isso vai ser gravado via localStorage no client mesmo. Esse controle não é nosso
+    - Ao invés de se chamar apenas "Language", vamos usar "TranslateToLanguage" com a possibilidade dele ser vazio/nulo
+        - Quando nulo a gente não mostra a opção de tradução no client
+    - A personalidade por enquanto pode deixar como está
+
+## Versão 0.34.0.0
+
+- [ ] Alterar o tratamento de notícias conforme o PROJECT.md
+    - A alteração é relativamente grande. Nosso pensamento inicial não vai funcionar e insistir em algo errado não é bom
+    - Preciso que me ajude a entender o novo papel do `bluemonday` agora...
+
 ## Futuro
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:

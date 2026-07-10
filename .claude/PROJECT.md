@@ -62,11 +62,16 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 ## Fluxo de tratamento
 
-0. Uma nova notícia descoberta entra em etapa de tratamento.
-1. Uma primeira chamada para a inteligência artificial faz a notícia ser revisada, corrigida e melhorada conforme as convenções da aplicação.
-2. Uma segunda chamada para a inteligência artificial faz a notícia receber palavras-chave correspondente ao seu conteúdo.
-3. A notícia é salva no banco de dados.
-4. A notícia segue para a etapa de julgamento.
+0. Uma nova notícia descoberta entra em etapa de tratamento de URLs.
+1. Todas as URLs do conteúdo da notícia são identificados.
+2. Para cada URL identificada verifica-se quais delas pertencem às fontes de notícias disponíveis.
+   2.1. Ao ser identificada como pertencente à uma fonte de notícias uma nova busca é realizada em nas notícias olhando pela `url_original` exata identificada.
+   2.1.1. Caso a notícia exista, altera-se aquela URL do conteúdo da notícia para apontar para a do client.
+   2.1.2. Caso contrário nada acontece.
+   2.1. Caso contrário nada acontece.
+3. Uma chamada para a inteligência artificial faz a notícia receber palavras-chave correspondente ao seu conteúdo.
+4. A notícia é salva no banco de dados.
+5. A notícia segue para a etapa de julgamento.
 
 ## Autenticação
 
@@ -127,18 +132,17 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Consequência atual: um usuário inativo (soft removed) não consegue logar atualmente pois o login busca apenas usuários ativos e a unicidade de `google_id`/`email` impediria um novo cadastro.
         - Isso é aceitável hoje porque não há endpoint de exclusão. Quando esse endpoint for criado, o comportamento (reativar o registro vs. recadastrar vs. tratar como LGPD/erasure) precisa ser decidido. Por ser uma decisão mais complexa do que parece vamos manter assim por enquanto.
 
-## Preferências do usuário (user preferences)
+## Preferências do usuário
 
 - Ao criar um usuário, suas preferências devem ser criadas automaticamente também.
     - Valores padrão:
-        - modo dark
-        - idioma português
-        - traduzir conteúdo em `true`
+        - idioma para tradução português
         - personalidade em `misto`
 - O usuário tem liberdade de alterar suas preferências para utilização do sistema da forma que preferir.
-- Usuários removidos (`status` em `false`) devem ficar com suas preferências excluídas também (`status` também deve ser setado para `false`)
-- O idioma preferido não afeta em nada das respostas da API.
 - Apenas os próprios usuários podem alterar suas preferências.
+- Usuários removidos (`status` em `false`) devem ficar com suas preferências excluídas também (`status` também deve ser setado para `false`)
+- O campo `language_to_translate` pode ser nulo, isso quer dizer que a pessoa nunca vai receber a opção de tradução no client.
+- O campo `language_to_translate` não afeta em nada das respostas da API.
 - Alterar as preferências do usuário faz com que um novo `access_token` seja gerado, retornando junto ao client, já com as novas informações atualizadas nele.
     - O `access_token` anterior (usado para ativar a atualização das preferências e agora possui dados desatualizados) vai continuar válido até bater o tempo de expiração. Esse comportamento é considerado normal aqui pois fazem parte de um trecho não crítico da aplicação. Se em algum momento houver dados críticos ligado ao `access_token` e preferências do usuário, isso terá que ser mudado.
 - Se o usuário sofrer soft remove, as suas preferências também devem sofrer soft remove.
@@ -176,7 +180,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 - As notícias são o principal motivo da aplicação existir e podem ser sub-entendidas com a nomenclatura "artigo" também.
 - As notícias são descobertas automaticamente através das fontes de notícias.
-- Para uma notícia ser descoberta e registrada, o RSS de cada fonte registrada é consultado de tempos em tempos. Ao notar uma nova notícia presente, tratamento de conteúdo também é acionado para fazer suas ações até gravar essa versão em nosso banco de dados.
+- Para uma notícia ser descoberta e registrada, o RSS de cada fonte registrada é consultado de tempos em tempos. Ao notar uma nova notícia presente, o tratamento também é acionado para fazer suas ações até gravar essa versão em nosso banco de dados.
 - Uma notícia do RSS é considerada nova quando a URL original dela não está presente na nossa lista de notícias.
     - Ou seja, outras notícias já existentes não devem ser passadas adiante para o tratamento e julgamento de notícias.
     - Dito isso, a `url_original` da notícia é única dentro das outras notícias ativas no banco de dados.
@@ -258,8 +262,8 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 - O tratamento de notícias ocorre em duas etapas principais:
     - Detecção de idioma: detecta automaticamente qual é o idioma original da notícia.
-    - Tratamento principal: traz dinamismo, organização e possíveis correções ao conteúdo da notícia.
-    - Sanatização do conteúdo: utiliza a biblioteca `bluemonday` para filtrar e sanatizar trechos indesejados no resultado do tratamento principal.
+    - Tratamento de URLs: busca URLs na notícia para tentar descobrir se ela está conectando à outra(s) notícia(s) existente(s) no nosso banco de dados.
+    - Sanatização do conteúdo: utiliza a biblioteca `bluemonday` para filtrar e sanatizar trechos indesejados da notícia.
     - Nomeação de palavras-chave: elenca palavras-chave para a notícia.
     - Gravação no banco de dados: forma um registro de notícia no banco de dados.
 - Os modelos de SLM e LLM disponibilizados durante todas as etapas devem estar na stack em `CLAUDE.md`.
@@ -278,36 +282,17 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - A etapa de detecção de idioma utiliza a biblioteca `lingua-go` para guardar o idioma original da notícia a ser gravado no campo `language_original` no banco de dados.
 - Em caso de falha, o campo `language_original` da notícia deve ficar `null`.
 
-### Tratamento principal
+### Tratamento de URLs
 
-- A etapa de tratamento principal opera de acordo com as seguintes variáveis de ambiente:
-    - `TREATMENT_AI_ACTIVE`: indica se a etapa de tratamento por inteligência artificial está ativa ou não. Mais detalhes em `Revisando o conteúdo`.
-    - `TREATMENT_PROVIDER`: o provedor do modelo para ser usado durante esta etapa.
-    - `TREATMENT_MODEL`: o modelo em si para ser usado durante esta etapa.
-    - `TREATMENT_VERBOSE_MODE`: `boolean` que decide se os logs são exibidos no terminal ou não durante esta etapa.
-- Esta etapa tem como objetivo:
-    - Trazer mais dinamismo ao conteúdo.
-    - Organizar conteúdo confuso ou mal escrito.
-    - Corrigir erros de ortografia.
-- Esta etapa não deve:
-    - Traduzir notícias: estritamente proibido fazer tradução neste momento. Melhores informações na sessão "traduzindo notícias".
-    - Resumir notícias: estritamente proibido fazer resumo neste momento. Melhores informações na sessão "resumindo notícias".
-    - Manter URLs e links: estritamente proibido manter URLs para links externos para outras notícias ou redes sociais.
-    - Manter chamadas entre notícias: estritamente proibido manter a chamada para outras notícias ou artigos como "leia mais", "saiba mais", "veja também" e afins.
-    - Alterar o sentido, sintaxe, ideia ou contexto do conteúdo da notícia.
-    - Personalizar a notícia: tentaremos manter a seriedade e tom de humor que a notícia tem originalmente.
-    - Trazer opinião própria.
-- A resposta da inteligência artificial nesta etapa deve:
-    - Estar em formato de texto (`string`) no formato HTML puro contendo apenas elementos HTML básicos e atributos simples.
-        - Evitar ao máximo os atributos `class` e `style` neste momento.
-        - A personalização dessa etapa está planejada para o futuro.
-
-### Revisando o conteúdo
-
-- Esta etapa utiliza uma LLM para revisar o texto da notícia.
-- O objetivo é trazer mais dinamismo e organizar o conteúdo da notícia.
-- Não deve haver traduções, resumos ou alterações no conteúdo, contexto ou tom da notícia.
-- A variável de ambiente `TREATMENT_AI_ACTIVE` indica quando este passo especificamente deve ser ignorado. Enquanto estiver com o valor em `true`, ele deve ser seguido normalmente. Se não, o conteúdo original deve ser usado para seguir adiante.
+- A etapa de tratamento de URLs opera de acordo com as seguintes variáveis de ambiente:
+    - `URLS_TREATMENT_VERBOSE_MODE`: `boolean` que decide se os logs são exibidos no terminal ou não durante esta etapa.
+- Esta etapa tem como objetivo identificar cada URL presente na notícia em tratamento para descobrir quais estão presentes na nossa lista de notícias no campo `url_original` e apontar para nossa própria URL ao invés da externa.
+- Exemplo de quando aplicar o tratamento de URL:
+    - A notícia `001` foi gravado em nosso banco de dados semana passada.
+    - A notícia `100` surge hoje e o tratamento de URL identifica que a notícia `001` está presente nela.
+    - O tratamento de URLs identifica a notícia `001` e substitui a referência pela nossa própria URL apontando para esta notícia.
+- Mais detalhes desse fluxo na sessão "Fluxo de tratamento".
+- A resposta desta etapa deve devolver a nova versão do conteúdo da notícia com tratamento realizado.
 
 ### Sanitização do conteúdo
 
