@@ -297,7 +297,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 ### Sanitização do conteúdo
 
 - Esta etapa utiliza a biblioteca `bluemonday` para forçar a whitelist de sanitização obtida na etapa anterior.
-- Usa uma política customizada: permite apenas as tags básicas de formatação, sem atributos, sem links, sem imagens.
+- Usa uma política customizada para permitir apenas tags básicas de formatação, atributos confiáveis e apenas links presentes na whitelist.
 
 ### Nomeação de palavras-chave
 
