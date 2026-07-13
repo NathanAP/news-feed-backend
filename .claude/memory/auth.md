@@ -29,6 +29,8 @@ Logout faz soft-remove do `refresh_token`; o `access_token` segue válido até e
 `language_to_translate` (anulável), `ai_personality`. Ou seja, as preferências viajam no token —
 alterar preferências regenera o token. Se um endpoint precisar de um dado do usuário que
 **não** está no token, é preciso reavaliar (renovar/invalidar tokens).
+A rota de tradução (`GET /articles/:id/translate`) usa o `language_to_translate` do token como
+idioma-alvo (nulo = sem alvo → 400); a `ai_personality` ajusta o tom.
 
 ## Middleware (`middlewares/auth.go`)
 

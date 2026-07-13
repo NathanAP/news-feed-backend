@@ -212,7 +212,7 @@ func main() {
 
 	articles := api.Group("/articles")
 	articles.Post("/create", append(authMiddleware, articleendpoints.CreateArticle(articleCtrl, runTx))...)
-	articles.Get("/:id/translate/:language", append(authMiddleware, articleendpoints.TranslateArticle(articleCtrl, translator, runTx))...)
+	articles.Get("/:id/translate", append(authMiddleware, articleendpoints.TranslateArticle(articleCtrl, translator, runTx))...)
 	articles.Put("/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(articleCtrl, afCtrl, runTx))...)
 	articles.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, runTx))...)
 	articles.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, runTx))...)

@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/v1/articles/:id/translate/:language
+  url: {{baseUrl}}/v1/articles/:id/translate
   body: none
   auth: bearer
 }
@@ -16,23 +16,20 @@ auth:bearer {
 
 params:path {
   id: {{articleId}}
-  language: en
 }
 
 docs {
   Tradução personalizada de uma notícia, sob demanda e apenas para exibição (read-only, não grava
-  nada). Traduz título e conteúdo (preservando o HTML) para o idioma do path `:language`, adaptando o
-  tom à personalidade (`ai_personality`) do usuário lida do JWT. A saída é re-sanitizada pelo mesmo
-  bluemonday do tratamento. As keywords NÃO são traduzidas (ficam canônicas em inglês).
+  nada). Traduz título e conteúdo (preservando o HTML), adaptando o tom à personalidade
+  (`ai_personality`) do usuário lida do JWT. A saída é re-sanitizada pelo mesmo bluemonday do
+  tratamento. As keywords NÃO são traduzidas (ficam canônicas em inglês).
 
-  `:language` deve ser um idioma suportado ("pt" | "en" | "es" | "fr" | "de" | "it"). O client é
-  responsável por cachear o resultado (Redis virá no futuro).
-
-  Capacidade read-only sem gate de preferência (desde 0.33): a preferência `language_to_translate` é
-  só dica de client e não afeta a API. Chama a IA de verdade (consome quota; LLM apenas —
+  O idioma-alvo vem da preferência `language_to_translate` do usuário (lida do JWT), NÃO da URL
+  (mudança 0.33.1). Configure-a via PUT /users/me/preferences. O client é responsável por cachear o
+  resultado (Redis virá no futuro). Chama a IA de verdade (consome quota; LLM apenas —
   `TRANSLATION_*`). Respostas:
   - 200 `{ title, content, language, language_original }`.
-  - 400 se o idioma-alvo for inválido, igual ao `language_original`, ou se o `language_original` da
-    notícia for desconhecido (null).
+  - 400 se `language_to_translate` for nulo (sem alvo), igual ao `language_original`, ou se o
+    `language_original` da notícia for desconhecido (null).
   - 404 se a notícia não existir; 500 em falha da IA.
 }

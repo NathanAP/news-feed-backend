@@ -143,7 +143,8 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Apenas os próprios usuários podem alterar suas preferências.
 - Usuários removidos (`status` em `false`) devem ficar com suas preferências excluídas também (`status` também deve ser setado para `false`)
 - O campo `language_to_translate` pode ser nulo, isso quer dizer que a pessoa nunca vai receber a opção de tradução no client.
-- O campo `language_to_translate` não afeta em nada das respostas da API.
+- O campo `language_to_translate` é o **idioma-alvo** usado pela rota de tradução: a API lê ele do `access_token` para decidir para qual idioma traduzir. O client apenas altera esse valor para o usuário; quem decide o comportamento da tradução é a API.
+    - Quando nulo, não há alvo configurado e a tradução não pode ser feita (a rota responde 400).
 - Alterar as preferências do usuário faz com que um novo `access_token` seja gerado, retornando junto ao client, já com as novas informações atualizadas nele.
     - O `access_token` anterior (usado para ativar a atualização das preferências e agora possui dados desatualizados) vai continuar válido até bater o tempo de expiração. Esse comportamento é considerado normal aqui pois fazem parte de um trecho não crítico da aplicação. Se em algum momento houver dados críticos ligado ao `access_token` e preferências do usuário, isso terá que ser mudado.
 - Se o usuário sofrer soft remove, as suas preferências também devem sofrer soft remove.
@@ -362,10 +363,10 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 ## Traduzindo notícias
 
-- A tradução de notícias é uma capacidade read-only sempre disponível pela API; não há gate de preferência no servidor.
-    - O client decide se oferece ou não a opção com base na preferência `language_to_translate` (nula = não mostra). Essa preferência é apenas uma dica de client e não afeta nenhuma resposta da API.
-- A tradução de notícias é disparada pelo usuário através do client.
-- A tradução de notícias só pode ser feita quando o `language_to_translate` alvo (recebido na URL) for diferente da `language_original` da notícia.
+- A tradução de notícias é uma capacidade read-only disparada pelo usuário através do client.
+- O idioma-alvo da tradução é a preferência `language_to_translate` do usuário, lida do `access_token` (não vem da URL). Ou seja, é a API quem decide o alvo a partir da preferência; o client apenas altera esse valor.
+    - Quando a preferência `language_to_translate` for nula, não há alvo configurado e a tradução não pode ser feita (400).
+- A tradução de notícias só pode ser feita quando o `language_to_translate` alvo for diferente da `language_original` da notícia.
     - Caso a `language_original` esteja em `null`, a tradução não poderá ser feita.
 - É responsabilidade do client guardar essa tradução feita como um cache.
     - O cache neste projeto via `Redis` será implementado futuramente.
@@ -383,10 +384,11 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Trazer opinião própria.
 - Ao final da chamada da tradução uma nova sanatização deve ser realizada no conteúdo do resultado final para garantir que não haja elementos HTML indesejados aplicados ao resultado final.
     - O método pode ser o exato mesmo utilizado no tratamento de notícias.
-- O endpoint `GET /v1/articles/{id}/translate/{language_to_translate}` é o responsável pela tradução de notícias:
-    - O `id` é referente à notícia ser procurada no banco de dados para ser traduzida.
-    - A `language_to_translate` é referente à qual idioma o conteúdo será traduzido. Deve estar na lista do `enum` de idiomas usado globalmente na aplicação (caso contrário, 400).
-    - Se o `language_to_translate` e a `language_original` da notícia forem iguais, o resultado deve ser 400.
+- O endpoint `GET /v1/articles/{id}/translate` é o responsável pela tradução de notícias:
+    - O `id` é referente à notícia a ser procurada no banco de dados para ser traduzida.
+    - O idioma-alvo **não** é passado na URL: vem da preferência `language_to_translate` do usuário (lida do `access_token`).
+    - Se a preferência `language_to_translate` for nula (sem alvo configurado), o resultado deve ser 400.
+    - Se o `language_to_translate` alvo e a `language_original` da notícia forem iguais, o resultado deve ser 400.
     - Se a `language_original` da notícia for `null`, o resultado deve ser 400.
 
 ## Resumindo notícias

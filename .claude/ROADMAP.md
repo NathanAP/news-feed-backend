@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.33.0.0
+0.33.1.0
 
 ## Versão 0.1.0.0
 
@@ -506,7 +506,9 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.33.1.0
 
-- [ ] A rota de tradução não deveria requerer o idioma a ser traduzido, o ideal era pegar direto do que está nas preferências do usuário...
+- [x] A rota de tradução não deveria requerer o idioma a ser traduzido, o ideal era pegar direto do que está nas preferências do usuário...
+    - Rota virou `GET /v1/articles/{id}/translate` (sem o param de idioma). O alvo agora vem da preferência `language_to_translate` do JWT; nula = sem alvo → 400
+    - Corrige a premissa errada da 0.33: `language_to_translate` **afeta** a resposta da API (é ele que decide o alvo). O client só altera o valor; quem decide o comportamento é a API
 
 ## Versão 0.34.0.0
 

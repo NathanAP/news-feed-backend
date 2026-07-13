@@ -15,13 +15,13 @@ import (
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
-// TranslateArticle translates an article on demand into a target language, for display only. It is
-// user-triggered (the client decides when) and reads the user's personality preference from the
-// JWT. Translation is a read-only capability with no preference gate: the language_to_translate
-// preference is only a client hint (whether to show the option) and never affects API behavior. It
-// validates the target language, loads the article, and refuses to translate when the article's
-// original language is unknown or equal to the target (400). The AI output is re-sanitized with the
-// treatment HTML whitelist as a defense. It persists nothing (read-only). The client caches the result.
+// TranslateArticle translates an article on demand into the reader's target language, for display
+// only. It is user-triggered (the client decides when) and reads both the personality and the target
+// language from the user's preferences in the JWT: the target is language_to_translate. A null target
+// means the user has no translation configured (the client hides the option), and the API cannot
+// translate — it returns 400. It loads the article and also refuses when the article's original
+// language is unknown or equal to the target (400). The AI output is re-sanitized with the treatment
+// HTML whitelist as a defense. It persists nothing (read-only). The client caches the result.
 func TranslateArticle(articleCtrl controllers.ArticleControllerInterface, translator ai.Translator, runTx controllers.TransactionRunner) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		logger.RouteStart(c.Path())
@@ -34,7 +34,12 @@ func TranslateArticle(articleCtrl controllers.ArticleControllerInterface, transl
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "id is required"})
 		}
 
-		target := c.Params("language")
+		// The translation target is the user's preference, not a URL parameter. Null = no target
+		// configured, so there is nothing to translate into.
+		if claims.LanguageToTranslate == nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "no translation target configured in preferences"})
+		}
+		target := string(*claims.LanguageToTranslate)
 		if !enums.Language(target).IsValid() {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "unsupported target language"})
 		}
