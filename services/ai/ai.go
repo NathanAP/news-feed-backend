@@ -1,8 +1,9 @@
 // Package ai is the provider-agnostic seam for every AI call in the application. The rest of the
 // codebase depends only on these interfaces — never on a concrete provider. Each capability is its
-// own interface so different tasks can use different providers (e.g. treatment on an LLM, keywords
-// on a local SLM). Swapping/adding a provider means adding an implementation and rewiring in
-// main.go; nothing else changes.
+// own interface so different tasks can use different providers (e.g. keywords on a local SLM,
+// judgement on a hosted model). Swapping/adding a provider means adding an implementation and
+// rewiring in main.go; nothing else changes. Note: the AI never touches an article's body — content
+// cleaning is deterministic (services/sanitize), not an AI capability.
 package ai
 
 import (
@@ -11,8 +12,6 @@ import (
 )
 
 var (
-	// ErrEmptyTreatment is returned when the model produces no usable treated content.
-	ErrEmptyTreatment = errors.New("treatment returned empty content")
 	// ErrInvalidKeywords is returned when the model's keyword output cannot be parsed or fails
 	// the 5-20 distinct-items rule.
 	ErrInvalidKeywords = errors.New("keywords output is invalid")
@@ -33,11 +32,6 @@ var (
 type Translation struct {
 	Title   string `json:"title"`
 	Content string `json:"content"`
-}
-
-// Treater cleans up an article's content (form only, never substance).
-type Treater interface {
-	Treat(ctx context.Context, title, content string) (string, error)
 }
 
 // Keyworder assigns 5-20 distinct keywords to an (already treated) article.
@@ -62,7 +56,6 @@ type Translator interface {
 // Client is a provider that can do all capabilities — convenient for providers (Gemini, Ollama)
 // that implement every one. Wiring picks each capability independently.
 type Client interface {
-	Treater
 	Keyworder
 	Judger
 	Translator
@@ -75,10 +68,6 @@ func NewDisabledClient() Client {
 }
 
 type disabledClient struct{}
-
-func (disabledClient) Treat(context.Context, string, string) (string, error) {
-	return "", ErrDisabled
-}
 
 func (disabledClient) Keywords(context.Context, string, string) ([]string, error) {
 	return nil, ErrDisabled

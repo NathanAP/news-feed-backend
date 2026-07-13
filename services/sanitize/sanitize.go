@@ -1,16 +1,13 @@
-// Package sanitize enforces the treated-article HTML whitelist with bluemonday. It is the reliable
-// (and XSS-safe) guarantee that the stored content contains only basic formatting tags — the LLM
-// prompt asks for that, but a model can never be trusted to enforce it. NOTE: bluemonday's
-// UGCPolicy is intentionally NOT used here: it allows <a>, <img> and URLs, which this project's
-// rules forbid ("sem URLs / sem a / sem img"). We build a stricter custom policy instead.
+// Package sanitize enforces the stored-article HTML whitelist with bluemonday. Since the treatment
+// pipeline no longer runs the article body through an LLM (the AI never touches the body), this is
+// the single, deterministic guarantee that persisted content is safe: it keeps rich-but-safe markup
+// (basic formatting, links and images) and strips anything dangerous or unknown. Hard invariants,
+// enforced by the policy below: never <script>, never event handlers (on*), never <style>, and never
+// raw <iframe> (embeds are a separate, allowlisted concern handled in a later version).
 package sanitize
 
 import (
-	"context"
-
 	"github.com/microcosm-cc/bluemonday"
-
-	"github.com/nathanap/news-feed-backend/services/ai"
 )
 
 // policy is safe for concurrent use once built, so it is created once at package init.
@@ -18,42 +15,42 @@ var policy = buildPolicy()
 
 func buildPolicy() *bluemonday.Policy {
 	p := bluemonday.NewPolicy()
-	// Basic formatting elements only, with no attributes (so no class/style). No <a>, <img>, and no
-	// document wrappers (<html>/<body>/<head>) — those are stripped, their text kept.
+
+	// Rich-but-safe formatting elements (no attributes, so no class/style/on*). Unlisted elements
+	// (e.g. div, section) are unwrapped: their text is kept, the tag dropped.
 	p.AllowElements(
-		"p", "br",
-		"strong", "b", "em", "i", "u", "s",
-		"ul", "ol", "li",
-		"blockquote", "h2", "h3", "h4",
-		"code", "pre",
+		"p", "br", "hr", "span",
+		"strong", "b", "em", "i", "u", "s", "sub", "sup", "small", "mark", "abbr", "cite", "q",
+		"h1", "h2", "h3", "h4", "h5", "h6",
+		"ul", "ol", "li", "dl", "dt", "dd",
+		"blockquote", "code", "pre", "kbd", "samp",
+		"figure", "figcaption",
+		"table", "thead", "tbody", "tfoot", "tr", "th", "td", "caption", "colgroup", "col",
 	)
-	// Drop these elements together with their contents (otherwise raw CSS/JS/head text would leak
-	// through as plain text when a full HTML document arrives from the model).
+	p.AllowAttrs("colspan", "rowspan").OnElements("td", "th")
+
+	// Links: keep <a href> for safe schemes only, tagged rel=nofollow. Internal article links (added
+	// by the URL-treatment step in a later version) are plain http(s) URLs, so this covers them too.
+	p.AllowAttrs("href").OnElements("a")
+	p.AllowURLSchemes("http", "https", "mailto")
+	p.RequireNoFollowOnLinks(true)
+
+	// Images: keep <img> with a safe src and descriptive attributes only. No srcset/class/style — the
+	// stored markup stays minimal and the client controls presentation.
+	p.AllowAttrs("src").OnElements("img")
+	p.AllowAttrs("alt", "width", "height").OnElements("img")
+
+	// Drop these elements together with their contents (otherwise raw CSS/JS/head text — and the
+	// script-based embeds like Instagram — would leak through as plain text). <iframe> is dropped
+	// here too until the allowlisted-embed version lands.
 	p.SkipElementsContent("script", "style", "head", "title", "noscript", "iframe")
 	return p
 }
 
-// Sanitize returns the input HTML with only the whitelisted basic tags kept. A full HTML document
-// (with <html>/<body>/<head>) is handled gracefully: the wrappers are removed and the body content
-// is preserved; scripts, styles, links, images and attributes are stripped.
+// Sanitize returns the input HTML with only the whitelisted safe markup kept: basic formatting,
+// links (safe schemes, rel=nofollow) and images. Scripts, styles, iframes, event handlers and
+// unknown attributes are stripped; a full HTML document is handled gracefully (wrappers removed,
+// body content preserved).
 func Sanitize(html string) string {
 	return policy.Sanitize(html)
-}
-
-// NewTreater wraps a Treater so its output is always sanitized. Applying it at the seam keeps both
-// the CRON pipeline and the dry-run endpoint consistent.
-func NewTreater(inner ai.Treater) ai.Treater {
-	return sanitizingTreater{inner: inner}
-}
-
-type sanitizingTreater struct {
-	inner ai.Treater
-}
-
-func (s sanitizingTreater) Treat(ctx context.Context, title, content string) (string, error) {
-	out, err := s.inner.Treat(ctx, title, content)
-	if err != nil {
-		return "", err
-	}
-	return Sanitize(out), nil
 }

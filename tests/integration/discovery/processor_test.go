@@ -53,7 +53,7 @@ func setupWithConcurrency(t *testing.T, aiClient ai.Client, concurrency int) (co
 	afCtrl := controllers.NewArticleFeedController()
 	evaluator := judgement.NewEvaluator(aiClient, 70)
 	detector := &servicemocks.MockLanguageDetector{}
-	processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, detector, aiClient, aiClient, evaluator, concurrency, false)
+	processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, detector, aiClient, evaluator, concurrency, false)
 	return runTx, queries, processor
 }
 
@@ -93,7 +93,7 @@ func TestIntegration_Processor_PersistsTreatedArticle(t *testing.T) {
 	articles, err := queries.ListArticles(t.Context())
 	require.NoError(t, err)
 	require.Len(t, articles, 1)
-	assert.Equal(t, "treated: raw content", articles[0].Content) // from the mock's Treat
+	assert.Equal(t, "raw content", articles[0].Content) // sanitized raw body (no HTML to strip → unchanged)
 	assert.Equal(t, `["alpha","beta","gamma","delta","epsilon"]`, articles[0].Keywords)
 	assert.Equal(t, "https://src.com/a1", articles[0].UrlOriginal)
 	require.True(t, articles[0].LanguageOriginal.Valid, "detected language must be persisted")
@@ -117,7 +117,7 @@ func TestIntegration_Processor_NullLanguageOnDetectionFailure(t *testing.T) {
 	evaluator := judgement.NewEvaluator(aiClient, 70)
 	processor := discovery.NewTreatmentProcessor(
 		runTx, controllers.NewArticleController(), controllers.NewFeedController(),
-		controllers.NewArticleFeedController(), failingDetector, aiClient, aiClient, evaluator, 1, false,
+		controllers.NewArticleFeedController(), failingDetector, aiClient, evaluator, 1, false,
 	)
 
 	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{item("https://src.com/nolang")}))
@@ -245,9 +245,11 @@ func TestIntegration_Processor_ConcurrentDedupsWithinBatch(t *testing.T) {
 func TestIntegration_Processor_AIFailureDoesNotPersist(t *testing.T) {
 	requireNotProduction(t)
 
+	// The body treatment no longer calls AI; the remaining AI step is keyword naming. A keyword
+	// failure must abort that article, leaving nothing persisted (it is rediscovered next run).
 	failing := &external.MockAIClient{
-		TreatFn: func(_ context.Context, _, _ string) (string, error) {
-			return "", ai.ErrEmptyTreatment
+		KeywordsFn: func(_ context.Context, _, _ string) ([]string, error) {
+			return nil, ai.ErrInvalidKeywords
 		},
 	}
 	_, queries, processor := setup(t, failing)
@@ -256,5 +258,5 @@ func TestIntegration_Processor_AIFailureDoesNotPersist(t *testing.T) {
 
 	articles, err := queries.ListArticles(t.Context())
 	require.NoError(t, err)
-	assert.Empty(t, articles, "a treatment failure must leave nothing persisted")
+	assert.Empty(t, articles, "a keyword failure must leave nothing persisted")
 }

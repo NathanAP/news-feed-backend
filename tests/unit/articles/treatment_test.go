@@ -20,9 +20,9 @@ import (
 func treatmentApp(aiClient ai.Client) *fiber.App {
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
-	// The mock implements both capabilities; wire it as treater and as every keyword mode.
+	// Wire the mock as every keyword mode; body treatment is deterministic (sanitize, no AI).
 	keyworders := map[string]ai.Keyworder{"local": aiClient, "groq": aiClient, "gemini": aiClient}
-	app.Post("/v1/articles/treatment", append(authMiddleware, articleendpoints.TreatArticle(aiClient, keyworders, "local", &jwtmock.MockLanguageDetector{}))...)
+	app.Post("/v1/articles/treatment", append(authMiddleware, articleendpoints.TreatArticle(keyworders, "local", &jwtmock.MockLanguageDetector{}))...)
 	return app
 }
 
@@ -49,7 +49,7 @@ func TestTreatArticle_Success(t *testing.T) {
 
 	var result map[string]any
 	require.NoError(t, readJSON(resp, &result))
-	assert.Equal(t, "treated: raw body", result["content"])
+	assert.Equal(t, "raw body", result["content"]) // sanitized raw body (no HTML to strip → unchanged)
 	assert.Len(t, result["keywords"].([]any), 5)
 	assert.Equal(t, "local", result["keywords_mode"]) // default mode
 	_, hasTreatMs := result["treatment_ms"]
@@ -114,9 +114,11 @@ func TestTreatArticle_Unauthenticated(t *testing.T) {
 func TestTreatArticle_AIFailure(t *testing.T) {
 	requireNotProduction(t)
 
+	// Body treatment is deterministic now; the only AI call left is keyword naming, whose failure
+	// must surface as a 500.
 	aiClient := &external.MockAIClient{
-		TreatFn: func(_ context.Context, _, _ string) (string, error) {
-			return "", ai.ErrEmptyTreatment
+		KeywordsFn: func(_ context.Context, _, _ string) ([]string, error) {
+			return nil, ai.ErrInvalidKeywords
 		},
 	}
 	app := treatmentApp(aiClient)

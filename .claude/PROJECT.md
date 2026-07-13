@@ -266,7 +266,8 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Sanatização do conteúdo: utiliza a biblioteca `bluemonday` para filtrar e sanatizar trechos indesejados da notícia.
     - Nomeação de palavras-chave: elenca palavras-chave para a notícia.
     - Gravação no banco de dados: forma um registro de notícia no banco de dados.
-- Os modelos de SLM e LLM disponibilizados durante todas as etapas devem estar na stack em `CLAUDE.md`.
+- A IA **não toca no corpo** da notícia: o tratamento de URLs e a sanitização são determinísticos (sem IA). A única etapa que usa IA é a nomeação de palavras-chave.
+- Os modelos de SLM e LLM utilizados na etapa de palavras-chave devem estar na stack em `CLAUDE.md`.
 - Em termos de código, o método completo precisa ser independente para poder ser chamado fora da CRON caso necessário.
 - Um endpoint de teste para esse processo pode ser encontrado em `POST base_url/v1/articles/treatment`.
     - Deve simular os exatos mesmos processos que rodaria na CRON.
@@ -299,8 +300,9 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 - Esta etapa utiliza a biblioteca `bluemonday` para forçar uma `whitelist` de sanitização em cima da versão do conteúdo obtida na etapa anterior.
 - Usa uma política customizada para permitir apenas:
-    - Tags básicas de formatação.
-    - Atributos confiáveis e lícitos.
+    - Tags de formatação (texto, títulos, listas, tabelas e semânticas seguras): `p`, `br`, `hr`, `span`, `strong`, `b`, `em`, `i`, `u`, `s`, `sub`, `sup`, `small`, `mark`, `abbr`, `cite`, `q`, `h1`–`h6`, `ul`, `ol`, `li`, `dl`, `dt`, `dd`, `blockquote`, `code`, `pre`, `kbd`, `samp`, `figure`, `figcaption`, `table`, `thead`, `tbody`, `tfoot`, `tr`, `th`, `td`, `caption`, `colgroup`, `col`.
+    - `<a href>` (esquemas `http`/`https`/`mailto`, marcado `rel=nofollow`) e `<img src>` (esquemas `http`/`https`, com `alt`/`width`/`height`).
+    - Tags fora da whitelist são "desembrulhadas" (o texto fica, a tag some); atributos fora da whitelist (`class`, `style`, `srcset`, `on*`, ...) são removidos.
 
 #### Whitelist de sanatização
 

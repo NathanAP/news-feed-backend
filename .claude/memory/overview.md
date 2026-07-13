@@ -39,13 +39,15 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
   por artigo é `discovery.processOne` — self-contained e concorrente-safe (dedup + unique de `url_original`
   colapsam duplicatas do batch; cada escrita em sua própria transação curta). É o caso de 1 nó do modelo
   futuro fila+workers (ROADMAP "Escalabilidade futura", pós-Postgres): trocar dispatcher, não reescrever.
-- `services/sanitize/` — sanitiza a saída do tratamento pra HTML básico (bluemonday, política
-  customizada: só tags básicas, sem `a`/`img`/`class`/`style`/URL). Decorator no `Treater`.
-- `services/ai/` — costura de IA **por capacidade**: `Treater` (tratar), `Keyworder` (keywords),
-  `Judger` (julgar, `score` 0–100) e `Translator` (traduzir, LLM-only), com
-  `ParseKeywords`/`ParseScore`/`ParseTranslation` compartilhadas. Impls: `gemini/`
+- `services/sanitize/` — **estágio primário** de limpeza do corpo (0.34): aplica a whitelist do
+  bluemonday direto no HTML cru do RSS (determinístico, sem IA). Política permissiva-porém-segura:
+  formatação + `<a href>` + `<img src>` (esquemas seguros, `rel=nofollow`); bloqueia `script`/`iframe`/`style`/`on*`/`class`. Função de pacote `Sanitize(html)`, usada no pipeline e no endpoint de tradução.
+- `services/ai/` — costura de IA **por capacidade**: `Keyworder` (keywords), `Judger` (julgar,
+  `score` 0–100) e `Translator` (traduzir, LLM-only), com
+  `ParseKeywords`/`ParseScore`/`ParseTranslation` compartilhadas. **A IA não toca no corpo** (a
+  capacidade `Treater` foi removida na 0.34). Impls: `gemini/`
   (LLM) e `openaicompat/` (Ollama local, Groq, ou qualquer endpoint OpenAI-compatible; API key
-  opcional). Tratamento via `TREATMENT_*`; keywords via `KEYWORDS_MODE`; julgamento via `JUDGEMENT_MODE`
+  opcional). Keywords via `KEYWORDS_MODE`; julgamento via `JUDGEMENT_MODE`
     - `JUDGEMENT_THRESHOLD` — modos `local`/`groq`/`gemini` pré-montados no boot (`buildModeClients`,
       compartilhado) e trocáveis por chamada nos dry-runs. `services/prompts/` — `.yaml` (`go:embed`).
 - `services/judgement/` — camada 2 do julgamento: `Evaluator` (um `ai.Judger` + threshold) pontua uma
@@ -76,10 +78,11 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
 | Feed × Notícia | `articles_feeds`          | Junction com `is_read`                                                             |
 | Sistema        | `system`                  | Singleton; `app_status` (chave de manutenção global) + `last_article_discovery_at` |
 
-Descoberta via CRON (0.19) + **tratamento por IA e persistência** (0.20/0.21) + **julgamento**
-(0.22): a CRON descobre, deduplica por `url_original`, trata o conteúdo com uma **LLM** (`TREATMENT_*`,
-sanitizado pra HTML básico), nomeia keywords com uma **SLM/LLM** por modo (`KEYWORDS_MODE` =
-local/groq/gemini, em inglês minúsculo), detecta o idioma (lingua-go), grava o `article` (com `language_original`) e por fim **julga** a quais
+Descoberta via CRON (0.19) + **tratamento e persistência** (0.20/0.21) + **julgamento**
+(0.22): a CRON descobre, deduplica por `url_original`, detecta o idioma (lingua-go), **sanitiza o corpo
+cru do RSS** (bluemonday, determinístico — desde a 0.34 a IA não reescreve mais o corpo), nomeia
+keywords com uma **SLM/LLM** por modo (`KEYWORDS_MODE` = local/groq/gemini, em inglês minúsculo),
+grava o `article` (com `language_original`) e por fim **julga** a quais
 feeds ele pertence (camada 1 SQL por keywords + camada 2 IA vs `JUDGEMENT_THRESHOLD`), gravando as
 associações em `articles_feeds`. **Tradução personalizada** on-demand por usuário já existe (0.23,
 LLM-only, read-only). Ainda **não** implementado: **resumo** por IA (depende de Redis), deploy,

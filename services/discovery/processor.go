@@ -11,12 +11,14 @@ import (
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	"github.com/nathanap/news-feed-backend/services/judgement"
 	"github.com/nathanap/news-feed-backend/services/langdetect"
+	"github.com/nathanap/news-feed-backend/services/sanitize"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
 // TreatmentProcessor is the real discovery sink: for each discovered article it deduplicates by
-// url_original, runs the two-step AI treatment (clean content, then keywords over the cleaned
-// content), persists the result, and finally judges the article against the user feeds — writing an
+// url_original, detects the original language, sanitizes the raw RSS body to the safe-HTML whitelist
+// (bluemonday, deterministic — the AI never touches the body), names keywords over the sanitized
+// content, persists the result, and finally judges the article against the user feeds — writing an
 // articles_feeds association for every feed that clears the threshold. AI calls happen outside any
 // transaction. A failure on one article (AI error, persistence error) is logged and skipped — since
 // nothing is persisted for it, the article is simply rediscovered and retried on the next run.
@@ -36,7 +38,6 @@ type TreatmentProcessor struct {
 	feedCtrl    controllers.FeedControllerInterface
 	afCtrl      controllers.ArticleFeedControllerInterface
 	detector    langdetect.Detector
-	treater     ai.Treater
 	keyworder   ai.Keyworder
 	evaluator   *judgement.Evaluator
 	concurrency int
@@ -49,7 +50,6 @@ func NewTreatmentProcessor(
 	feedCtrl controllers.FeedControllerInterface,
 	afCtrl controllers.ArticleFeedControllerInterface,
 	detector langdetect.Detector,
-	treater ai.Treater,
 	keyworder ai.Keyworder,
 	evaluator *judgement.Evaluator,
 	concurrency int,
@@ -61,7 +61,6 @@ func NewTreatmentProcessor(
 		feedCtrl:    feedCtrl,
 		afCtrl:      afCtrl,
 		detector:    detector,
-		treater:     treater,
 		keyworder:   keyworder,
 		evaluator:   evaluator,
 		concurrency: concurrency,
@@ -131,24 +130,22 @@ func (p *TreatmentProcessor) processOne(ctx context.Context, article DiscoveredA
 		return
 	}
 
-	treated, err := p.treater.Treat(ctx, article.Title, article.Content)
-	if err != nil {
-		p.log(fmt.Sprintf("    treat failed for %s: %v", article.URLOriginal, err), logger.ColorRed)
-		return
-	}
+	// Detect the original language from the raw (unsanitized) text. This is a lingua-go call, not
+	// AI: deterministic and offline. A failed detection is not fatal — the article is stored with
+	// a null language_original (it just cannot be translated later).
+	languageOriginal := p.detectLanguage(article.Title, article.Content)
 
-	keywords, err := p.keyworder.Keywords(ctx, article.Title, treated)
+	// Clean the raw RSS body to the safe-HTML whitelist. Deterministic (no AI, no error): the body
+	// is never rewritten by a model, only stripped of unsafe/unknown markup.
+	content := sanitize.Sanitize(article.Content)
+
+	keywords, err := p.keyworder.Keywords(ctx, article.Title, content)
 	if err != nil {
 		p.log(fmt.Sprintf("    keywords failed for %s: %v", article.URLOriginal, err), logger.ColorRed)
 		return
 	}
 
-	// Detect the original language from the raw (untreated) text. This is a lingua-go call, not
-	// AI: deterministic and offline. A failed detection is not fatal — the article is stored with
-	// a null language_original (it just cannot be translated later).
-	languageOriginal := p.detectLanguage(article.Title, article.Content)
-
-	saved, err := p.persist(ctx, article, treated, keywords, languageOriginal)
+	saved, err := p.persist(ctx, article, content, keywords, languageOriginal)
 	if err != nil {
 		if errors.Is(err, controllers.ErrArticleAlreadyExists) {
 			return // created concurrently between the dedup check and the insert

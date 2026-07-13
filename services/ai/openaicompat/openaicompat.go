@@ -22,7 +22,6 @@ import (
 )
 
 const (
-	treatmentPromptName   = "article_treatment"
 	keywordsPromptName    = "article_keywords"
 	judgementPromptName   = "article_feed_judgement"
 	translationPromptName = "article_translation"
@@ -54,18 +53,6 @@ func NewClient(baseURL, model, apiKey string) *Client {
 		apiKey:  apiKey,
 		http:    &http.Client{Timeout: requestTimeout},
 	}
-}
-
-func (c *Client) Treat(ctx context.Context, title, content string) (string, error) {
-	out, err := c.chat(ctx, treatmentPromptName, map[string]string{"title": title, "content": content}, false)
-	if err != nil {
-		return "", err
-	}
-	out = strings.TrimSpace(stripThinking(out))
-	if out == "" {
-		return "", ai.ErrEmptyTreatment
-	}
-	return out, nil
 }
 
 func (c *Client) Keywords(ctx context.Context, title, content string) ([]string, error) {

@@ -12,15 +12,17 @@ import (
 	"github.com/nathanap/news-feed-backend/schemas"
 	"github.com/nathanap/news-feed-backend/services/ai"
 	"github.com/nathanap/news-feed-backend/services/langdetect"
+	"github.com/nathanap/news-feed-backend/services/sanitize"
 )
 
 // TreatArticle is a dry-run of the treatment step: it takes raw article data (as produced by
-// discovery), runs treatment (LLM) then keyword naming, and returns the result plus per-step
-// timings. The keyword-naming backend is chosen by the configured default mode, or overridden per
-// call via the body's `keywords_mode` (local | groq | gemini) so backends can be benchmarked from
-// Bruno without restarting. It does NOT persist anything, but calls the AI providers for real
-// (consumes quota). Open for now (admin-future).
-func TreatArticle(treater ai.Treater, keyworders map[string]ai.Keyworder, defaultMode string, detector langdetect.Detector) fiber.Handler {
+// discovery), detects the language, sanitizes the raw body to the safe-HTML whitelist (deterministic,
+// no AI) then names keywords, and returns the result plus per-step timings. The keyword-naming
+// backend is chosen by the configured default mode, or overridden per call via the body's
+// `keywords_mode` (local | groq | gemini) so backends can be benchmarked from Bruno without
+// restarting. It does NOT persist anything, but calls the keyword AI for real (consumes quota). Open
+// for now (admin-future).
+func TreatArticle(keyworders map[string]ai.Keyworder, defaultMode string, detector langdetect.Detector) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
@@ -51,13 +53,11 @@ func TreatArticle(treater ai.Treater, keyworders map[string]ai.Keyworder, defaul
 			})
 		}
 
+		// Body treatment is now deterministic: sanitize the raw RSS HTML to the safe whitelist. No AI,
+		// no error path. (The URL-treatment step lands in a later version and will run here too.)
 		treatStart := time.Now()
-		treated, err := treater.Treat(c.Context(), req.Article.Title, req.Article.Content)
+		treated := sanitize.Sanitize(req.Article.Content)
 		treatmentMs := time.Since(treatStart).Milliseconds()
-		if err != nil {
-			logger.Log(fmt.Sprintf("treatment failed: %v", err), logger.ColorRed)
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to treat article"})
-		}
 
 		kwStart := time.Now()
 		keywords, err := keyworder.Keywords(c.Context(), req.Article.Title, treated)

@@ -44,16 +44,6 @@ func TestKeywords_StripsThinkingAndParses(t *testing.T) {
 	assert.Equal(t, []string{"alpha", "beta", "gamma", "delta", "epsilon"}, kw)
 }
 
-func TestTreat_StripsThinking(t *testing.T) {
-	srv := chatServer(t, "<think>reasoning here</think>\n# Treated body", http.StatusOK)
-	defer srv.Close()
-
-	client := openaicompat.NewClient(srv.URL, "qwen3:4b", "")
-	treated, err := client.Treat(context.Background(), "Title", "content")
-	require.NoError(t, err)
-	assert.Equal(t, "# Treated body", treated)
-}
-
 func TestKeywords_SendsAuthHeaderWhenKeySet(t *testing.T) {
 	var gotAuth string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

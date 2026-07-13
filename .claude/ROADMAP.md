@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.33.1.0
+0.34.0.0
 
 ## Versão 0.1.0.0
 
@@ -516,10 +516,10 @@ Reforma do tratamento de notícias (PROJECT.md) quebrada em 3 fases.
 
 **Fase 1** — a IA deixa de reescrever o corpo; o `bluemonday` vira o estágio primário sobre o RSS cru.
 
-- [ ] Remover a capacidade `ai.Treater` (LLM) e o código morto associado: `passthrough`, decorator `sanitize.NewTreater`, `NewVerboseTreater`, métodos `Treat` dos providers (gemini/openaicompat) e do mock, e as envs `TREATMENT_*` (incluindo o `TREATMENT_AI_ACTIVE` da 0.32, agora superseded)
-- [ ] Sanitizador novo (política permissiva-porém-segura): tags básicas de formatação + `<a href>` + `<img src>` (só esquemas seguros; sem `script`/`on*`/`style`/`iframe`). Embeds ainda são **removidos** nesta fase (resultado seguro; vídeo/post visual se perde até a Fase 3)
-- [ ] Reordenar o pipeline de tratamento: detecção de idioma → sanitização → nomeação de keywords (a IA nunca mais toca no corpo)
-- [ ] Atualizar o dry-run `POST /v1/articles/treatment` (sem passo de LLM no corpo), testes (unit/integração/e2e), Bruno e docs/memory
+- [x] Remover a capacidade `ai.Treater` (LLM) e o código morto associado: `passthrough`, decorator `sanitize.NewTreater`, `NewVerboseTreater`, métodos `Treat` dos providers (gemini/openaicompat) e do mock, e as envs `TREATMENT_*` (incluindo o `TREATMENT_AI_ACTIVE` da 0.32, agora superseded)
+- [x] Sanitizador novo (política permissiva-porém-segura): tags básicas de formatação + `<a href>` + `<img src>` (só esquemas seguros; sem `script`/`on*`/`style`/`iframe`). Embeds ainda são **removidos** nesta fase (resultado seguro; vídeo/post visual se perde até a Fase 3)
+- [x] Reordenar o pipeline de tratamento: detecção de idioma → sanitização → nomeação de keywords (a IA nunca mais toca no corpo)
+- [x] Atualizar o dry-run `POST /v1/articles/treatment` (sem passo de LLM no corpo), testes (unit/integração/e2e), Bruno e docs/memory
 
 ## Versão 0.35.0.0
 

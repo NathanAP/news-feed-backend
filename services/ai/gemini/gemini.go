@@ -17,7 +17,6 @@ import (
 )
 
 const (
-	treatmentPromptName   = "article_treatment"
 	keywordsPromptName    = "article_keywords"
 	judgementPromptName   = "article_feed_judgement"
 	translationPromptName = "article_translation"
@@ -43,19 +42,6 @@ func NewClient(ctx context.Context, apiKey, model string) (*Client, error) {
 		return nil, fmt.Errorf("failed to create gemini client: %w", err)
 	}
 	return &Client{genai: gc, model: model}, nil
-}
-
-// Treat runs the treatment prompt and returns the cleaned Markdown body.
-func (c *Client) Treat(ctx context.Context, title, content string) (string, error) {
-	out, err := c.generate(ctx, treatmentPromptName, map[string]string{"title": title, "content": content})
-	if err != nil {
-		return "", err
-	}
-	out = strings.TrimSpace(out)
-	if out == "" {
-		return "", ai.ErrEmptyTreatment
-	}
-	return out, nil
 }
 
 // Keywords runs the keyword prompt against the (already treated) content and validates the output.
