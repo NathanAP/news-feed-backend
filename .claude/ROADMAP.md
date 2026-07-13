@@ -504,6 +504,10 @@ Os níveis de tabulação indicam detalhes do assunto.
     - [x] A personalidade por enquanto pode deixar como está
     - Decisão de modelo: `translate_content` foi **colapsado** no `language_to_translate` nulo/preenchido (Opção A), removendo o campo redundante. A tradução virou capacidade read-only sem gate de preferência no servidor; a preferência é só dica de client e não afeta a API
 
+## Versão 0.33.1.0
+
+- [ ] A rota de tradução não deveria requerer o idioma a ser traduzido, o ideal era pegar direto do que está nas preferências do usuário...
+
 ## Versão 0.34.0.0
 
 - [ ] Alterar o tratamento de notícias conforme o PROJECT.md
