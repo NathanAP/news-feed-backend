@@ -1,6 +1,8 @@
 package articles
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -11,18 +13,22 @@ import (
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/schemas"
 	"github.com/nathanap/news-feed-backend/services/ai"
+	"github.com/nathanap/news-feed-backend/services/controllers"
 	"github.com/nathanap/news-feed-backend/services/langdetect"
 	"github.com/nathanap/news-feed-backend/services/sanitize"
+	"github.com/nathanap/news-feed-backend/services/urltreatment"
+	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
 // TreatArticle is a dry-run of the treatment step: it takes raw article data (as produced by
-// discovery), detects the language, sanitizes the raw body to the safe-HTML whitelist (deterministic,
-// no AI) then names keywords, and returns the result plus per-step timings. The keyword-naming
-// backend is chosen by the configured default mode, or overridden per call via the body's
-// `keywords_mode` (local | groq | gemini) so backends can be benchmarked from Bruno without
-// restarting. It does NOT persist anything, but calls the keyword AI for real (consumes quota). Open
-// for now (admin-future).
-func TreatArticle(keyworders map[string]ai.Keyworder, defaultMode string, detector langdetect.Detector) fiber.Handler {
+// discovery), detects the language, rewrites in-content links to articles we already have (url
+// treatment, read-only lookups) and sanitizes the raw body to the safe-HTML whitelist (both
+// deterministic, no AI) then names keywords, and returns the result plus per-step timings. The
+// keyword-naming backend is chosen by the configured default mode, or overridden per call via the
+// body's `keywords_mode` (local | groq | gemini) so backends can be benchmarked from Bruno without
+// restarting. It does NOT persist anything, but reads the DB (url treatment) and calls the keyword AI
+// for real (consumes quota). Open for now (admin-future).
+func TreatArticle(keyworders map[string]ai.Keyworder, defaultMode string, detector langdetect.Detector, articleCtrl controllers.ArticleControllerInterface, runTx controllers.TransactionRunner, clientURL string, urlVerbose bool) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
@@ -53,10 +59,19 @@ func TreatArticle(keyworders map[string]ai.Keyworder, defaultMode string, detect
 			})
 		}
 
-		// Body treatment is now deterministic: sanitize the raw RSS HTML to the safe whitelist. No AI,
-		// no error path. (The URL-treatment step lands in a later version and will run here too.)
+		// Body treatment is deterministic (no AI): url treatment (rewrite internal links, read-only)
+		// then sanitize to the safe whitelist. Mirrors the CRON pipeline exactly.
 		treatStart := time.Now()
-		treated := sanitize.Sanitize(req.Article.Content)
+		body := req.Article.Content
+		if clientURL != "" {
+			resolve := internalURLResolver(articleCtrl, runTx, clientURL)
+			if out, terr := urltreatment.Treat(c.Context(), req.Article.Content, resolve, urlVerbose); terr != nil {
+				logger.Log(fmt.Sprintf("url treatment failed: %v (using original content)", terr), logger.ColorRed)
+			} else {
+				body = out
+			}
+		}
+		treated := sanitize.Sanitize(body)
 		treatmentMs := time.Since(treatStart).Milliseconds()
 
 		kwStart := time.Now()
@@ -75,6 +90,30 @@ func TreatArticle(keyworders map[string]ai.Keyworder, defaultMode string, detect
 			TreatmentMs:      treatmentMs,
 			KeywordsMs:       keywordsMs,
 		})
+	}
+}
+
+// internalURLResolver builds the url-treatment resolver used by the dry-run: it maps discovered
+// hrefs to internal client URLs for the ones whose exact url_original matches an existing article.
+// All lookups share one short read transaction; a missing article is not an error.
+func internalURLResolver(articleCtrl controllers.ArticleControllerInterface, runTx controllers.TransactionRunner, clientURL string) urltreatment.Resolve {
+	return func(ctx context.Context, hrefs []string) (map[string]string, error) {
+		out := make(map[string]string, len(hrefs))
+		err := runTx(ctx, func(q db.Querier) error {
+			for _, href := range hrefs {
+				article, err := articleCtrl.FindByURLOriginal(ctx, q, href)
+				switch {
+				case err == nil:
+					out[href] = clientURL + "/articles/" + article.ID
+				case errors.Is(err, controllers.ErrArticleNotFound):
+					// Not one of ours: leave the link as-is.
+				default:
+					return err
+				}
+			}
+			return nil
+		})
+		return out, err
 	}
 }
 

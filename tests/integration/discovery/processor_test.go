@@ -53,7 +53,8 @@ func setupWithConcurrency(t *testing.T, aiClient ai.Client, concurrency int) (co
 	afCtrl := controllers.NewArticleFeedController()
 	evaluator := judgement.NewEvaluator(aiClient, 70)
 	detector := &servicemocks.MockLanguageDetector{}
-	processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, detector, aiClient, evaluator, concurrency, false)
+	// clientURL empty: url treatment is skipped for these tests (they assert on other behavior).
+	processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, detector, aiClient, evaluator, "", false, concurrency, false)
 	return runTx, queries, processor
 }
 
@@ -117,7 +118,7 @@ func TestIntegration_Processor_NullLanguageOnDetectionFailure(t *testing.T) {
 	evaluator := judgement.NewEvaluator(aiClient, 70)
 	processor := discovery.NewTreatmentProcessor(
 		runTx, controllers.NewArticleController(), controllers.NewFeedController(),
-		controllers.NewArticleFeedController(), failingDetector, aiClient, evaluator, 1, false,
+		controllers.NewArticleFeedController(), failingDetector, aiClient, evaluator, "", false, 1, false,
 	)
 
 	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{item("https://src.com/nolang")}))
@@ -126,6 +127,52 @@ func TestIntegration_Processor_NullLanguageOnDetectionFailure(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, articles, 1)
 	assert.False(t, articles[0].LanguageOriginal.Valid, "a failed detection must persist a null language_original")
+}
+
+func TestIntegration_Processor_RewritesInternalLinks(t *testing.T) {
+	requireNotProduction(t)
+
+	database := testutils.SetupTestDB(t)
+	queries := db.New(database)
+	runTx := controllers.NewTransactionRunner(database)
+	_, err := queries.CreateSource(t.Context(), db.CreateSourceParams{ID: sourceID, Name: "Test Source", Url: "https://src.com", UrlRss: "https://src.com/rss"})
+	require.NoError(t, err)
+
+	// An article we already have; the newly discovered content links to its url_original.
+	const existingID = "01900000-0000-7000-8000-0000000000f1"
+	_, err = queries.CreateArticle(t.Context(), db.CreateArticleParams{
+		ID: existingID, Title: "Existing", Content: "x",
+		UrlOriginal: "https://src.com/existing", Keywords: `["a","b","c","d","e"]`, SourceID: sourceID,
+	})
+	require.NoError(t, err)
+
+	aiClient := &external.MockAIClient{}
+	evaluator := judgement.NewEvaluator(aiClient, 70)
+	processor := discovery.NewTreatmentProcessor(
+		runTx, controllers.NewArticleController(), controllers.NewFeedController(),
+		controllers.NewArticleFeedController(), &servicemocks.MockLanguageDetector{}, aiClient, evaluator,
+		"https://client.app", false, 1, false,
+	)
+
+	newItem := discovery.DiscoveredArticle{
+		Title:       "Linking News",
+		Content:     `<p>see <a href="https://src.com/existing">ours</a> and <a href="https://ext.com/z">external</a></p>`,
+		URLOriginal: "https://src.com/linking",
+		SourceID:    sourceID,
+	}
+	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{newItem}))
+
+	articles, err := queries.ListArticles(t.Context())
+	require.NoError(t, err)
+	var content string
+	for _, a := range articles {
+		if a.UrlOriginal == "https://src.com/linking" {
+			content = a.Content
+		}
+	}
+	require.NotEmpty(t, content, "the linking article must have been persisted")
+	assert.Contains(t, content, `href="https://client.app/articles/`+existingID+`"`, "internal link must be rewritten to the client URL")
+	assert.Contains(t, content, `href="https://ext.com/z"`, "external link must be left untouched")
 }
 
 func TestIntegration_Processor_SkipsExistingURL(t *testing.T) {

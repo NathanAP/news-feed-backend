@@ -12,13 +12,15 @@ import (
 	"github.com/nathanap/news-feed-backend/services/judgement"
 	"github.com/nathanap/news-feed-backend/services/langdetect"
 	"github.com/nathanap/news-feed-backend/services/sanitize"
+	"github.com/nathanap/news-feed-backend/services/urltreatment"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
 // TreatmentProcessor is the real discovery sink: for each discovered article it deduplicates by
-// url_original, detects the original language, sanitizes the raw RSS body to the safe-HTML whitelist
-// (bluemonday, deterministic — the AI never touches the body), names keywords over the sanitized
-// content, persists the result, and finally judges the article against the user feeds — writing an
+// url_original, detects the original language, rewrites in-content links that point to articles we
+// already have (url treatment), sanitizes the raw RSS body to the safe-HTML whitelist (bluemonday,
+// deterministic — the AI never touches the body), names keywords over the sanitized content,
+// persists the result, and finally judges the article against the user feeds — writing an
 // articles_feeds association for every feed that clears the threshold. AI calls happen outside any
 // transaction. A failure on one article (AI error, persistence error) is logged and skipped — since
 // nothing is persisted for it, the article is simply rediscovered and retried on the next run.
@@ -40,6 +42,10 @@ type TreatmentProcessor struct {
 	detector    langdetect.Detector
 	keyworder   ai.Keyworder
 	evaluator   *judgement.Evaluator
+	// clientURL is the base URL of the web client (e.g. https://app.example.com); internal article
+	// links become clientURL + "/articles/" + id. Empty disables url treatment (links are only sanitized).
+	clientURL   string
+	urlVerbose  bool
 	concurrency int
 	verbose     bool
 }
@@ -52,6 +58,8 @@ func NewTreatmentProcessor(
 	detector langdetect.Detector,
 	keyworder ai.Keyworder,
 	evaluator *judgement.Evaluator,
+	clientURL string,
+	urlVerbose bool,
 	concurrency int,
 	verbose bool,
 ) *TreatmentProcessor {
@@ -63,6 +71,8 @@ func NewTreatmentProcessor(
 		detector:    detector,
 		keyworder:   keyworder,
 		evaluator:   evaluator,
+		clientURL:   clientURL,
+		urlVerbose:  urlVerbose,
 		concurrency: concurrency,
 		verbose:     verbose,
 	}
@@ -135,9 +145,22 @@ func (p *TreatmentProcessor) processOne(ctx context.Context, article DiscoveredA
 	// a null language_original (it just cannot be translated later).
 	languageOriginal := p.detectLanguage(article.Title, article.Content)
 
-	// Clean the raw RSS body to the safe-HTML whitelist. Deterministic (no AI, no error): the body
-	// is never rewritten by a model, only stripped of unsafe/unknown markup.
-	content := sanitize.Sanitize(article.Content)
+	// URL treatment: rewrite in-content links that point to articles we already have so they open in
+	// our client. Runs before sanitize (the rewritten links must survive the whitelist). Best-effort
+	// and non-fatal — on error the original body flows on unchanged. Skipped entirely without a
+	// configured client URL.
+	body := article.Content
+	if p.clientURL != "" {
+		treated, terr := urltreatment.Treat(ctx, article.Content, p.resolveInternalURLs, p.urlVerbose)
+		if terr != nil {
+			p.log(fmt.Sprintf("    url treatment failed for %s: %v (using original content)", article.URLOriginal, terr), logger.ColorRed)
+		}
+		body = treated
+	}
+
+	// Clean the (url-treated) RSS body to the safe-HTML whitelist. Deterministic (no AI, no error):
+	// the body is never rewritten by a model, only stripped of unsafe/unknown markup.
+	content := sanitize.Sanitize(body)
 
 	keywords, err := p.keyworder.Keywords(ctx, article.Title, content)
 	if err != nil {
@@ -215,6 +238,29 @@ func (p *TreatmentProcessor) alreadyExists(ctx context.Context, urlOriginal stri
 		return err
 	})
 	return exists, err
+}
+
+// resolveInternalURLs is the url-treatment resolver: given the anchor hrefs found in an article, it
+// returns, for the ones whose exact url_original matches an article we already have, the internal
+// client URL to point them at. All lookups share one short read transaction. A missing article is not
+// an error (the link simply stays external); a real DB error aborts and is surfaced to the caller.
+func (p *TreatmentProcessor) resolveInternalURLs(ctx context.Context, hrefs []string) (map[string]string, error) {
+	out := make(map[string]string, len(hrefs))
+	err := p.runTx(ctx, func(q db.Querier) error {
+		for _, href := range hrefs {
+			article, err := p.articleCtrl.FindByURLOriginal(ctx, q, href)
+			switch {
+			case err == nil:
+				out[href] = p.clientURL + "/articles/" + article.ID
+			case errors.Is(err, controllers.ErrArticleNotFound):
+				// Not one of ours: leave the link as-is.
+			default:
+				return err
+			}
+		}
+		return nil
+	})
+	return out, err
 }
 
 // detectLanguage runs lingua-go over the raw title+content and returns the ISO code, or nil when

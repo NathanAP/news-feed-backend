@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.34.0.0
+0.35.0.0
 
 ## Versão 0.1.0.0
 
@@ -525,10 +525,11 @@ Reforma do tratamento de notícias (PROJECT.md) quebrada em 3 fases.
 
 **Fase 2** — tratamento de URLs (linking entre notícias).
 
-- [ ] Novo passo determinístico antes da sanitização: identifica `<a href>` no conteúdo, busca a `url_original` exata nos registros de notícias; se a notícia existe, reescreve o `href` para `CLIENT_URL/articles/{id}`; senão nada acontece
+- [x] Novo passo determinístico antes da sanitização: identifica `<a href>` no conteúdo, busca a `url_original` exata nos registros de notícias; se a notícia existe, reescreve o `href` para `CLIENT_URL/articles/{id}`; senão nada acontece
     - Roda **antes** da sanitização (o link interno precisa existir antes do bluemonday; o bluemonday já permite links, então não muda de política)
     - Novo pacote `services/urltreatment` (parse via `golang.org/x/net/html`, lookup por `url_original`). Usa `CLIENT_URL` e `URLS_TREATMENT_VERBOSE_MODE`
     - Escopo só `<a href>` (não texto solto/`<img>`); sem pré-filtro por source (lookup direto por `url_original`, que é índice único)
+    - Best-effort (erro de banco → corpo original); pulado sem `CLIENT_URL`. Resolver DB-agnóstico injetado (1 transação de leitura por artigo). Integrado na CRON e no dry-run `POST /articles/treatment`
 
 ## Versão 0.36.0.0
 

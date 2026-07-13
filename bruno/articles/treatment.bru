@@ -25,14 +25,15 @@ body:json {
   }
 }
 
-docs {
-  Dry-run do tratamento de uma notícia: detecta o idioma, sanitiza o corpo cru do RSS pela whitelist
-  do bluemonday (determinístico, SEM IA — a IA não toca mais no corpo) e depois nomeia as palavras-chave
-  sobre o conteúdo sanitizado. NÃO grava nada.
+  Dry-run do tratamento de uma notícia: detecta o idioma, reescreve links internos (url treatment) e
+  sanitiza o corpo cru do RSS pela whitelist do bluemonday (ambos determinísticos, SEM IA — a IA não
+  toca mais no corpo) e depois nomeia as palavras-chave sobre o conteúdo sanitizado. NÃO grava nada
+  (mas o url treatment LÊ o banco pra achar notícias nossas).
 
   Repare no `content` de exemplo: embeds (o `<iframe>` do YouTube), `<script>`, `class`/`style`/`srcset`
-  e atributos de evento são removidos; `<a href>`, `<img src>` e a formatação básica sobrevivem. (A
-  reescrita de links internos e os embeds liberados chegam nas fases 0.35/0.36.)
+  e atributos de evento são removidos; `<a href>`, `<img src>` e a formatação básica sobrevivem. Um `<a>`
+  cuja `url_original` já exista no banco vira `CLIENT_URL/articles/{id}` (requer `CLIENT_URL` setada e a
+  notícia já cadastrada). Os embeds liberados chegam na fase 0.36.
 
   Atenção: a etapa de keywords chama o provedor de IA de verdade (consome quota). `article.title` e
   `article.content` são obrigatórios (400). Campo opcional `keywords_mode` (local | groq | gemini) troca

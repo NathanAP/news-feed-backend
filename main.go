@@ -113,9 +113,16 @@ func main() {
 	feedCtrl := controllers.NewFeedController()
 	systemCtrl := controllers.NewSystemController()
 
-	// Article-body treatment is deterministic (no AI): the raw RSS HTML is cleaned by the
-	// bluemonday whitelist in services/sanitize, wired directly where it is used (the discovery
-	// pipeline and the dry-run endpoint) — no provider or flag needed.
+	// Article-body treatment is deterministic (no AI): url treatment rewrites in-content links to
+	// articles we already have (to CLIENT_URL/articles/{id}), then the bluemonday whitelist in
+	// services/sanitize cleans the raw RSS HTML. Both are wired directly where used (discovery
+	// pipeline and dry-run endpoint). Without CLIENT_URL, url treatment is skipped (links only sanitized).
+	clientURL := strings.TrimRight(os.Getenv("CLIENT_URL"), "/")
+	if clientURL == "" {
+		log.Println("CLIENT_URL not set; url treatment (internal article links) will be skipped")
+	}
+	urlTreatmentVerbose := os.Getenv("URLS_TREATMENT_VERBOSE_MODE") == "true"
+
 	keyworders, keywordsDefaultMode := buildKeyworders()
 	defaultKeyworder := keyworders[keywordsDefaultMode]
 	if defaultKeyworder == nil {
@@ -210,7 +217,7 @@ func main() {
 	// by clients in staging/production. Registered conditionally, like /users/dev-login, so the routes
 	// literally do not exist outside development (defense in depth beyond any runtime check).
 	if os.Getenv("ENVIRONMENT") == "development" {
-		articles.Post("/treatment", append(authMiddleware, articleendpoints.TreatArticle(keyworders, keywordsDefaultMode, detector))...)
+		articles.Post("/treatment", append(authMiddleware, articleendpoints.TreatArticle(keyworders, keywordsDefaultMode, detector, articleCtrl, runTx, clientURL, urlTreatmentVerbose))...)
 		articles.Post("/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, judgementDefaultMode, judgementThreshold, runTx))...)
 		log.Println("Development mode: POST /v1/articles/treatment and /v1/articles/judgement enabled")
 	}
@@ -229,7 +236,7 @@ func main() {
 	if os.Getenv("RSS_FEED_CRON_ACTIVE") == "true" {
 		cronVerbose := os.Getenv("RSS_FEED_CRON_VERBOSE_MODE") == "true"
 		discoveryConcurrency := parseConcurrency(os.Getenv("DISCOVERY_CONCURRENCY"))
-		processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, detector, defaultKeyworder, evaluator, discoveryConcurrency, cronVerbose)
+		processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, detector, defaultKeyworder, evaluator, clientURL, urlTreatmentVerbose, discoveryConcurrency, cronVerbose)
 		runner := cron.NewDiscoveryRunner(runTx, sourceCtrl, systemCtrl, processor, discoveryHTTPClient, discoveryConcurrency, cronVerbose)
 		scheduler, err := cron.NewScheduler(os.Getenv("RSS_FEED_CRON_SCHEDULE"), runner)
 		if err != nil {

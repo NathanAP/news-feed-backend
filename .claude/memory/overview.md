@@ -42,6 +42,10 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
 - `services/sanitize/` — **estágio primário** de limpeza do corpo (0.34): aplica a whitelist do
   bluemonday direto no HTML cru do RSS (determinístico, sem IA). Política permissiva-porém-segura:
   formatação + `<a href>` + `<img src>` (esquemas seguros, `rel=nofollow`); bloqueia `script`/`iframe`/`style`/`on*`/`class`. Função de pacote `Sanitize(html)`, usada no pipeline e no endpoint de tradução.
+- `services/urltreatment/` — passo determinístico **antes** do sanitize (0.35): parseia o HTML (`x/net/html`),
+  acha os `<a href>` e reescreve os que casam a `url_original` de uma notícia nossa para `CLIENT_URL/articles/{id}`.
+  DB-agnóstico: recebe um `Resolve` injetado (1 transação de leitura por artigo, via `FindByURLOriginal`).
+  Best-effort (erro → corpo original) e pulado sem `CLIENT_URL`.
 - `services/ai/` — costura de IA **por capacidade**: `Keyworder` (keywords), `Judger` (julgar,
   `score` 0–100) e `Translator` (traduzir, LLM-only), com
   `ParseKeywords`/`ParseScore`/`ParseTranslation` compartilhadas. **A IA não toca no corpo** (a
@@ -79,8 +83,9 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
 | Sistema        | `system`                  | Singleton; `app_status` (chave de manutenção global) + `last_article_discovery_at` |
 
 Descoberta via CRON (0.19) + **tratamento e persistência** (0.20/0.21) + **julgamento**
-(0.22): a CRON descobre, deduplica por `url_original`, detecta o idioma (lingua-go), **sanitiza o corpo
-cru do RSS** (bluemonday, determinístico — desde a 0.34 a IA não reescreve mais o corpo), nomeia
+(0.22): a CRON descobre, deduplica por `url_original`, detecta o idioma (lingua-go), **reescreve links
+internos** (url treatment → `CLIENT_URL/articles/{id}`, 0.35) e **sanitiza o corpo cru do RSS**
+(bluemonday, determinístico — desde a 0.34 a IA não reescreve mais o corpo), nomeia
 keywords com uma **SLM/LLM** por modo (`KEYWORDS_MODE` = local/groq/gemini, em inglês minúsculo),
 grava o `article` (com `language_original`) e por fim **julga** a quais
 feeds ele pertence (camada 1 SQL por keywords + camada 2 IA vs `JUDGEMENT_THRESHOLD`), gravando as

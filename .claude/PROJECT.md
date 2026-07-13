@@ -287,8 +287,11 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 - A etapa de tratamento de URLs opera de acordo com as seguintes variáveis de ambiente:
     - `URLS_TREATMENT_VERBOSE_MODE`: `boolean` que decide se os logs são exibidos no terminal ou não durante esta etapa.
+    - `CLIENT_URL`: URL base do client, usada para construir o link interno (`CLIENT_URL/articles/{id}`). Quando não configurada, esta etapa é **pulada** (os links seguem inalterados) e o corpo apenas segue para a sanitização.
 - Esta etapa tem como objetivo identificar cada URL presente na notícia em tratamento para descobrir quais estão presentes na nossa lista de notícias no campo `url_original` e apontar para nossa própria URL ao invés da externa.
     - Apenas considerar URLs presentes nas tags `<a>`.
+    - Roda **antes** da sanitização (o link interno reescrito precisa existir antes do `bluemonday`; como o `bluemonday` já permite links, nenhuma mudança de política é necessária).
+    - É determinística e **best-effort**: uma falha de leitura no banco não derruba o artigo — o corpo original segue para a sanitização.
 - Exemplo de quando aplicar o tratamento de URL:
     - A notícia `001` foi gravado em nosso banco de dados semana passada.
     - A notícia `100` surge hoje e o tratamento de URL identifica que a notícia `001` está presente nela.

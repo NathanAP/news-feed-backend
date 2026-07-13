@@ -12,17 +12,25 @@ import (
 
 	"github.com/nathanap/news-feed-backend/middlewares"
 	"github.com/nathanap/news-feed-backend/services/ai"
+	"github.com/nathanap/news-feed-backend/services/controllers"
 	articleendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/articles"
+	db "github.com/nathanap/news-feed-backend/sqlc"
 	"github.com/nathanap/news-feed-backend/tests/mocks/external"
 	jwtmock "github.com/nathanap/news-feed-backend/tests/mocks/services"
 )
 
+// treatmentApp wires the dry-run with url treatment disabled (empty client URL), for tests that
+// assert on sanitization/keywords only.
 func treatmentApp(aiClient ai.Client) *fiber.App {
+	return treatmentAppFull(aiClient, &mockArticleCtrl{}, "")
+}
+
+func treatmentAppFull(aiClient ai.Client, articleCtrl controllers.ArticleControllerInterface, clientURL string) *fiber.App {
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
-	// Wire the mock as every keyword mode; body treatment is deterministic (sanitize, no AI).
+	// Wire the mock as every keyword mode; body treatment is deterministic (url treatment + sanitize, no AI).
 	keyworders := map[string]ai.Keyworder{"local": aiClient, "groq": aiClient, "gemini": aiClient}
-	app.Post("/v1/articles/treatment", append(authMiddleware, articleendpoints.TreatArticle(keyworders, "local", &jwtmock.MockLanguageDetector{}))...)
+	app.Post("/v1/articles/treatment", append(authMiddleware, articleendpoints.TreatArticle(keyworders, "local", &jwtmock.MockLanguageDetector{}, articleCtrl, fakeTxRunner, clientURL, false))...)
 	return app
 }
 
@@ -55,6 +63,31 @@ func TestTreatArticle_Success(t *testing.T) {
 	_, hasTreatMs := result["treatment_ms"]
 	_, hasKwMs := result["keywords_ms"]
 	assert.True(t, hasTreatMs && hasKwMs)
+}
+
+func TestTreatArticle_RewritesInternalLinks(t *testing.T) {
+	requireNotProduction(t)
+
+	// The resolver knows one internal article (by url_original); the other link is external.
+	ctrl := &mockArticleCtrl{
+		findByURLOriginalFn: func(_ context.Context, _ db.Querier, url string) (db.Article, error) {
+			if url == "https://src.com/known" {
+				return db.Article{ID: "art-123"}, nil
+			}
+			return db.Article{}, controllers.ErrArticleNotFound
+		},
+	}
+	app := treatmentAppFull(&external.MockAIClient{}, ctrl, "https://client.app")
+
+	body := `{"article":{"title":"T","content":"<p><a href=\"https://src.com/known\">a</a> <a href=\"https://ext.com/x\">b</a></p>"}}`
+	resp := postTreatment(t, app, body, true)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var result map[string]any
+	require.NoError(t, readJSON(resp, &result))
+	content, _ := result["content"].(string)
+	assert.Contains(t, content, `href="https://client.app/articles/art-123"`) // internal rewritten
+	assert.Contains(t, content, `href="https://ext.com/x"`)                   // external untouched
 }
 
 func TestTreatArticle_ModeOverride(t *testing.T) {
