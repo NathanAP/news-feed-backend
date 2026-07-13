@@ -499,7 +499,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 - [ ] Alterar preferências do usuário
     - Remover tema light/dark, isso vai ser gravado via localStorage no client mesmo. Esse controle não é nosso
-    - Ao invés de se chamar apenas "Language", vamos usar "TranslateToLanguage" com a possibilidade dele ser vazio/nulo
+    - Ao invés de se chamar apenas "Language", vamos trocar o campo para "TranslateToLanguage" com a possibilidade dele ser vazio/nulo
         - Quando nulo a gente não mostra a opção de tradução no client
     - A personalidade por enquanto pode deixar como está
 
