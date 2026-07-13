@@ -67,11 +67,9 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 0. Uma nova notícia descoberta entra em etapa de tratamento de URLs.
 1. Todas as URLs do conteúdo da notícia são identificados.
-2. Para cada URL identificada verifica-se quais delas pertencem às fontes de notícias disponíveis.
-   2.1. Ao ser identificada como pertencente à uma fonte de notícias uma nova busca é realizada em nas notícias olhando pela `url_original` exata identificada.
-   2.1.1. Caso a notícia exista, altera-se aquela URL do conteúdo da notícia para apontar para a do client.
-   2.1.2. Caso contrário nada acontece.
-   2.1. Caso contrário nada acontece.
+2. Para cada URL identificada verifica-se cada uma delas olhando pela exata `url_original` nos registros de notícias.
+   2.1. Caso a notícia exista, altera-se aquela URL do conteúdo da notícia para apontar para a do client.
+   2.2. Caso contrário nada acontece.
 3. Uma chamada para a inteligência artificial faz a notícia receber palavras-chave correspondente ao seu conteúdo.
 4. A notícia é salva no banco de dados.
 5. A notícia segue para a etapa de julgamento.
