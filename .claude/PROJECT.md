@@ -66,7 +66,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 ## Fluxo de tratamento
 
 0. Uma nova notícia descoberta entra em etapa de tratamento de URLs.
-1. Todas as URLs do conteúdo da notícia são identificados.
+1. Todas as URLs do conteúdo (tags `<a>`) da notícia são identificados.
 2. Para cada URL identificada verifica-se cada uma delas olhando pela exata `url_original` nos registros de notícias.
    2.1. Caso a notícia exista, altera-se aquela URL do conteúdo da notícia para apontar para a do client.
    2.2. Caso contrário nada acontece.
@@ -287,10 +287,11 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - A etapa de tratamento de URLs opera de acordo com as seguintes variáveis de ambiente:
     - `URLS_TREATMENT_VERBOSE_MODE`: `boolean` que decide se os logs são exibidos no terminal ou não durante esta etapa.
 - Esta etapa tem como objetivo identificar cada URL presente na notícia em tratamento para descobrir quais estão presentes na nossa lista de notícias no campo `url_original` e apontar para nossa própria URL ao invés da externa.
+    - Apenas considerar URLs presentes nas tags `<a>`.
 - Exemplo de quando aplicar o tratamento de URL:
     - A notícia `001` foi gravado em nosso banco de dados semana passada.
     - A notícia `100` surge hoje e o tratamento de URL identifica que a notícia `001` está presente nela.
-    - O tratamento de URLs identifica a notícia `001` e substitui o atributo `href` da tag `a` encontrada pela nossa própria URL apontando para esta notícia.
+    - O tratamento de URLs identifica a notícia `001` e substitui o atributo `href` da tag `<a>` encontrada pela nossa própria URL apontando para esta notícia.
 - Mais detalhes desse fluxo na sessão "Fluxo de tratamento".
 - A resposta desta etapa deve devolver a nova versão do conteúdo da notícia com tratamento realizado.
 
