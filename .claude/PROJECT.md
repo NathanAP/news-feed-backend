@@ -305,10 +305,11 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 #### Whitelist de sanatização
 
 - A `whitelist` de sanatização utilizada pelo `bluemonday` tem como objetivo principal garantir que não haja tags ou atributos ilícitos ou perigosos, como por exemplo:
-    - Tags desconhecidas, não-existentes ou perigosas (Exemplo: `iframe`, `script`).
-    - Atributos desconhecidos ou não-existentes ou perigosas (Exemplo: `onclick`, `onhover`).
+    - Tags desconhecidas, não-existentes ou perigosas (Exemplo: `<iframe>` fora da `allowlist` abaixo, `<script>`, entre outros).
+    - Atributos desconhecidos ou não-existentes ou perigosas (Exemplo: `onclick=`, `onhover=`, entre outros).
 - As URLs internas, URLs externas e imagens estão liberdas normalmente.
-- Embeddings estão liberados desde que sejam conhecidos (Instagram, YouTube, Twitch, entre outros).
+- Embeddings estão liberados desde que façam parte de uma `allowlist` e não possuam `<script>` (YouTube, Twitch, entre outros).
+    - Embeddings mais "complexos" como o Instagram devem ser substituídos por `<a href={url_da_postagem}>{url_da_postagem_reduzida}</a>`.
 
 ### Nomeação de palavras-chave
 
