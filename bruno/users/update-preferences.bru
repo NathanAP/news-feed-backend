@@ -16,20 +16,17 @@ auth:bearer {
 
 body:json {
   {
-    "theme": "light",
-    "language": "pt",
-    "translate_content": true,
+    "language_to_translate": "pt",
     "ai_personality": "mixed"
   }
 }
 
 docs {
   Valores aceitos:
-  - theme: "light" | "dark"
-  - language: "pt" | "en" | "es" | "fr" | "de" | "it"
-  - translate_content: true | false
+  - language_to_translate: "pt" | "en" | "es" | "fr" | "de" | "it" | null
+    (null = sem tradução; o client esconde a opção. É apenas dica de client, não afeta a API.)
   - ai_personality: "fun" | "informative" | "mixed"
-  
+
   Retorna: { access_token, expires_in, preferences }
   O access_token retornado já contém as preferências atualizadas.
 }

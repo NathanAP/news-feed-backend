@@ -35,9 +35,7 @@ func TestE2E_Preferences_GetAfterLogin(t *testing.T) {
 
 	var body map[string]interface{}
 	require.NoError(t, readJSON(resp, &body))
-	assert.Equal(t, "dark", body["theme"])
-	assert.Equal(t, "pt", body["language"])
-	assert.Equal(t, true, body["translate_content"])
+	assert.Equal(t, "pt", body["language_to_translate"])
 	assert.Equal(t, "mixed", body["ai_personality"])
 }
 
@@ -53,7 +51,7 @@ func TestE2E_Preferences_UpdateAndVerifyNewToken(t *testing.T) {
 
 	_, _, accessToken := loginViaCallback(t, app, queries)
 
-	body := `{"theme":"light","language":"en","translate_content":false,"ai_personality":"informative"}`
+	body := `{"language_to_translate":"en","ai_personality":"informative"}`
 	req, err := http.NewRequest(http.MethodPut, "/v1/users/me/preferences", strings.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -72,12 +70,10 @@ func TestE2E_Preferences_UpdateAndVerifyNewToken(t *testing.T) {
 
 	prefs, ok := result["preferences"].(map[string]interface{})
 	require.True(t, ok)
-	assert.Equal(t, "light", prefs["theme"])
-	assert.Equal(t, "en", prefs["language"])
-	assert.Equal(t, false, prefs["translate_content"])
+	assert.Equal(t, "en", prefs["language_to_translate"])
 	assert.Equal(t, "informative", prefs["ai_personality"])
 
-	// New token should contain updated preferences
+	// New token should carry the updated preferences.
 	getReq, err := http.NewRequest(http.MethodGet, "/v1/users/me/preferences", nil)
 	require.NoError(t, err)
 	getReq.Header.Set("Authorization", "Bearer "+newToken)
@@ -88,7 +84,7 @@ func TestE2E_Preferences_UpdateAndVerifyNewToken(t *testing.T) {
 
 	var updatedBody map[string]interface{}
 	require.NoError(t, readJSON(getResp, &updatedBody))
-	assert.Equal(t, "light", updatedBody["theme"])
+	assert.Equal(t, "en", updatedBody["language_to_translate"])
 }
 
 func TestE2E_Preferences_InvalidValues(t *testing.T) {
@@ -106,9 +102,8 @@ func TestE2E_Preferences_InvalidValues(t *testing.T) {
 		name string
 		body string
 	}{
-		{"invalid theme", `{"theme":"rainbow","language":"pt","translate_content":true,"ai_personality":"mixed"}`},
-		{"invalid language", `{"theme":"dark","language":"elvish","translate_content":true,"ai_personality":"mixed"}`},
-		{"invalid ai_personality", `{"theme":"dark","language":"pt","translate_content":true,"ai_personality":"chaotic"}`},
+		{"invalid language_to_translate", `{"language_to_translate":"elvish","ai_personality":"mixed"}`},
+		{"invalid ai_personality", `{"language_to_translate":"pt","ai_personality":"chaotic"}`},
 	}
 
 	for _, tc := range cases {

@@ -41,13 +41,15 @@ func articleCtrlWithLanguage(languageOriginal string) *mockArticleCtrl {
 	}
 }
 
-// tokenWithTranslateDisabled builds an access token whose translate_content preference is false.
-func tokenWithTranslateDisabled(t *testing.T) string {
+// tokenWithNullLanguage builds an access token whose language_to_translate preference is null. Since
+// 0.33 that preference is only a client hint and never gates the endpoint, so translation must still
+// succeed with it unset.
+func tokenWithNullLanguage(t *testing.T) string {
 	t.Helper()
 	user := fixtures.NewTestUser()
 	rt := fixtures.NewTestRefreshToken(user.ID)
 	prefs := db.UserPreference{
-		Theme: "dark", Language: "pt", TranslateContent: 0, AiPersonality: "mixed",
+		LanguageToTranslate: sql.NullString{Valid: false}, AiPersonality: "mixed",
 	}
 	token, err := jwtmock.GenerateTestAccessToken(user, rt.ID, prefs)
 	require.NoError(t, err)
@@ -81,12 +83,15 @@ func TestTranslateArticle_Success(t *testing.T) {
 	assert.Contains(t, result["content"], "translated:")
 }
 
-func TestTranslateArticle_GateDisabled(t *testing.T) {
+// TestTranslateArticle_NoPreferenceGate proves the 0.33 model: translation is a read-only capability
+// with no preference gate. A user whose language_to_translate is null (the client would hide the
+// option) can still call the endpoint directly and get a translation.
+func TestTranslateArticle_NoPreferenceGate(t *testing.T) {
 	requireNotProduction(t)
 
 	app := translateApp(articleCtrlWithLanguage("pt"), &external.MockAIClient{})
-	resp := getTranslate(t, app, "some-id", "es", tokenWithTranslateDisabled(t))
-	assert.Equal(t, http.StatusForbidden, resp.StatusCode)
+	resp := getTranslate(t, app, "some-id", "es", tokenWithNullLanguage(t))
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
 func TestTranslateArticle_UnsupportedLanguage(t *testing.T) {

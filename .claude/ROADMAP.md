@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.32.0.0
+0.33.0.0
 
 ## Versão 0.1.0.0
 
@@ -497,11 +497,12 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.33.0.0
 
-- [ ] Alterar preferências do usuário
-    - Remover tema light/dark, isso vai ser gravado via localStorage no client mesmo. Esse controle não é nosso
-    - Ao invés de se chamar apenas "Language", vamos trocar o campo para "TranslateToLanguage" com a possibilidade dele ser vazio/nulo
-        - Quando nulo a gente não mostra a opção de tradução no client
-    - A personalidade por enquanto pode deixar como está
+- [x] Alterar preferências do usuário
+    - [x] Remover tema light/dark, isso vai ser gravado via localStorage no client mesmo. Esse controle não é nosso
+    - [x] Ao invés de se chamar apenas "Language", vamos trocar o campo para "TranslateToLanguage" com a possibilidade dele ser vazio/nulo
+        - Ficou como `language_to_translate` (nullable). Quando nulo a gente não mostra a opção de tradução no client
+    - [x] A personalidade por enquanto pode deixar como está
+    - Decisão de modelo: `translate_content` foi **colapsado** no `language_to_translate` nulo/preenchido (Opção A), removendo o campo redundante. A tradução virou capacidade read-only sem gate de preferência no servidor; a preferência é só dica de client e não afeta a API
 
 ## Versão 0.34.0.0
 

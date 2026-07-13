@@ -14,7 +14,7 @@ Mostramos apenas a hierarquia de pastas com uma descrição em parênteses. Arqu
 ├── middlewares                (middlewares HTTP: auth JWT, guard de manutenção por app_status)
 ├── migrations                 (migrações goose up/down, embutidas via embed)
 ├── schemas                    (DTOs de request/response da API)
-│   └── enums                  (enums de fonte única: theme, language, ai_personality)
+│   └── enums                  (enums de fonte única: language, ai_personality)
 ├── services                   (regras de negócio e integrações)
 │   ├── ai                     (costura de IA por capacidade: Treater, Keyworder, Judger, Translator)
 │   │   ├── gemini             (implementação LLM — Google Gemini)

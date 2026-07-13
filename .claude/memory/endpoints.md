@@ -12,7 +12,7 @@ Todo **erro** responde `{ error: string }` com o status apropriado. Datas em UTC
 
 - **AuthResponse** — `{ access_token, refresh_token, expires_in }` (`refresh_token` = **id** do token; `expires_in` em segundos).
 - **UserResponse** — `{ id, email, name, picture?, created_at }`.
-- **UserPreferencesResponse** — `{ theme, language, translate_content, ai_personality }`.
+- **UserPreferencesResponse** — `{ language_to_translate?, ai_personality }` (`language_to_translate` anulável: null = tradução off, só dica de client).
 - **UpdatePreferencesResponse** — `{ access_token, expires_in, preferences: UserPreferencesResponse }`.
 - **SystemResponse** — `{ id, app_status, last_article_discovery_at?, created_at, modified_at? }`.
 - **SourceResponse** — `{ id, status, name, url, url_rss, created_at, modified_at? }`.
@@ -84,7 +84,7 @@ Criação/edição/remoção ainda não são restritas a admin (admin-futuro). A
 - `POST /articles/create` — `{ title, content, url_original, keywords[5..20], source_id, language_original }` →
   201 **ArticleResponse** / 400 (inclui `source_id` ausente/fonte inativa e `language_original` ausente/inválido) / 409 (url_original duplicada) / 500.
   `language_original` é um código do enum de idiomas (`pt|en|es|fr|de|it`) e é obrigatório na criação manual (na CRON é detectado).
-- `GET /articles/:id/translate/:language` — **tradução personalizada** sob demanda (LLM apenas, `TRANSLATION_*`). Traduz título+conteúdo para `:language` (`pt|en|es|fr|de|it`), preservando o HTML e adaptando o tom à `ai_personality` (lida do JWT); re-sanitiza a saída (bluemonday). **Keywords não são traduzidas** (ficam canônicas em inglês). **Read-only** (não grava; client cacheia). Como a leitura da notícia, é **aberta a qualquer usuário autenticado** (a notícia é global; não exige que ela esteja num feed do usuário), com a trava extra da preferência `translate_content`. → 200 `{ title, content, language, language_original }` / 403 (`translate_content` off) / 400 (idioma inválido, igual ao original, ou `language_original` null) / 404 / 500.
+- `GET /articles/:id/translate/:language` — **tradução personalizada** sob demanda (LLM apenas, `TRANSLATION_*`). Traduz título+conteúdo para `:language` (`pt|en|es|fr|de|it`), preservando o HTML e adaptando o tom à `ai_personality` (lida do JWT); re-sanitiza a saída (bluemonday). **Keywords não são traduzidas** (ficam canônicas em inglês). **Read-only** (não grava; client cacheia). Como a leitura da notícia, é **aberta a qualquer usuário autenticado** (a notícia é global; não exige que ela esteja num feed do usuário) e **sem gate de preferência** (desde 0.33; `language_to_translate` é só dica de client). → 200 `{ title, content, language, language_original }` / 400 (idioma inválido, igual ao original, ou `language_original` null) / 404 / 500.
 - `PUT /articles/:id/read` — marca como lida nos feeds do usuário. Sem body na resposta → **200**
   (em ≥1 feed, ou já lida) / **204** (não está em nenhum feed do usuário) / 404 (notícia inexistente). Idempotente.
 - `GET /articles/:id` → 200 **ArticleResponse** / 404. **Rota principal de visualização de uma notícia.**

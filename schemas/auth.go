@@ -9,16 +9,14 @@ import (
 )
 
 type Claims struct {
-	UserID           string              `json:"user_id"`
-	Email            string              `json:"email"`
-	Name             string              `json:"name"`
-	Picture          string              `json:"picture"`
-	RefreshTokenID   string              `json:"refresh_token_id"`
-	CreatedAt        time.Time           `json:"created_at"`
-	Theme            enums.Theme         `json:"theme"`
-	Language         enums.Language      `json:"language"`
-	TranslateContent bool                `json:"translate_content"`
-	AIPersonality    enums.AIPersonality `json:"ai_personality"`
+	UserID              string              `json:"user_id"`
+	Email               string              `json:"email"`
+	Name                string              `json:"name"`
+	Picture             string              `json:"picture"`
+	RefreshTokenID      string              `json:"refresh_token_id"`
+	CreatedAt           time.Time           `json:"created_at"`
+	LanguageToTranslate *enums.Language     `json:"language_to_translate"`
+	AIPersonality       enums.AIPersonality `json:"ai_personality"`
 	jwt.RegisteredClaims
 }
 

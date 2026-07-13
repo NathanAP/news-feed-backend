@@ -26,7 +26,7 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
   automático no CI ainda, mas o código deixou de ser escrito à mão. Gotcha do parser: evitar
   caracteres não-ASCII (em-dash etc.) em comentários dos `.sql` de `queries/` — corrompe a geração.
 - `schemas/` — DTOs de request/response. Enums em `schemas/enums/` (fonte única, um arquivo por
-  enum: `theme.go`, `language.go`, `ai_personality.go`), referenciados como `enums.X`.
+  enum: `language.go`, `ai_personality.go`), referenciados como `enums.X`.
 - `services/controllers/` — regras de negócio. **Stateless**, recebem `db.Querier`, nunca
   commitam (ver "Transações" abaixo).
 - `services/endpoints/v1/<modelo>/` — handlers HTTP (um arquivo por rota).
@@ -69,7 +69,7 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
 | Domínio        | Tabela(s)                 | Resumo                                                                             |
 | -------------- | ------------------------- | ---------------------------------------------------------------------------------- |
 | Usuários/Auth  | `users`, `refresh_tokens` | Login só via Google + JWT                                                          |
-| Preferências   | `user_preferences`        | 1:1 com usuário; tema, idioma, tradução, personalidade IA                          |
+| Preferências   | `user_preferences`        | 1:1 com usuário; idioma-alvo de tradução (anulável), personalidade IA              |
 | Fontes         | `sources`                 | Globais; CRUD + descoberta de RSS                                                  |
 | Notícias       | `articles`                | Globais; ligadas a uma `source`; CRUD (criação manual/admin por ora)               |
 | Feeds          | `feeds`                   | Por usuário; palavras-chave; máx. 5 ativos                                         |

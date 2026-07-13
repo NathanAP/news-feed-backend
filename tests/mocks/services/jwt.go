@@ -17,29 +17,29 @@ func GenerateTestAccessToken(user db.User, refreshTokenID string, prefs ...db.Us
 		picture = user.Picture.String
 	}
 
-	theme := enums.ThemeDark
-	language := enums.LanguagePT
-	translateContent := true
+	defaultLang := enums.LanguagePT
+	languageToTranslate := &defaultLang
 	aiPersonality := enums.AIPersonalityMixed
 
 	if len(prefs) > 0 {
-		theme = enums.Theme(prefs[0].Theme)
-		language = enums.Language(prefs[0].Language)
-		translateContent = prefs[0].TranslateContent == 1
+		if prefs[0].LanguageToTranslate.Valid {
+			lang := enums.Language(prefs[0].LanguageToTranslate.String)
+			languageToTranslate = &lang
+		} else {
+			languageToTranslate = nil
+		}
 		aiPersonality = enums.AIPersonality(prefs[0].AiPersonality)
 	}
 
 	claims := schemas.Claims{
-		UserID:           user.ID,
-		Email:            user.Email,
-		Name:             user.Name,
-		Picture:          picture,
-		RefreshTokenID:   refreshTokenID,
-		CreatedAt:        user.CreatedAt,
-		Theme:            theme,
-		Language:         language,
-		TranslateContent: translateContent,
-		AIPersonality:    aiPersonality,
+		UserID:              user.ID,
+		Email:               user.Email,
+		Name:                user.Name,
+		Picture:             picture,
+		RefreshTokenID:      refreshTokenID,
+		CreatedAt:           user.CreatedAt,
+		LanguageToTranslate: languageToTranslate,
+		AIPersonality:       aiPersonality,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

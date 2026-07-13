@@ -25,10 +25,9 @@ type exampleUser struct {
 }
 
 type exampleUserPreferences struct {
-	Theme            string `json:"theme"`
-	Language         string `json:"language"`
-	TranslateContent bool   `json:"translate_content"`
-	AIPersonality    string `json:"ai_personality"`
+	// LanguageToTranslate is a pointer so examples.json can express null (translation off).
+	LanguageToTranslate *string `json:"language_to_translate"`
+	AIPersonality       string  `json:"ai_personality"`
 }
 
 type exampleSource struct {

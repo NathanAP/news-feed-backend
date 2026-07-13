@@ -93,9 +93,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - `picture`: URL da foto do usuário relacionado.
     - `created_at`: data de criação do usuário relacionado.
     - `refresh_token_id`: `UUID` do `refresh_token` relacionado.
-    - `theme`: `enum` contendo o atual tema e presente nas preferências do usuário relacionado.
-    - `language`: `enum` contendo o idioma preferido e presente nos idiomas globalmente usados na aplicação.
-    - `translate_content`: `bool` sobre a necessidade de tradução do conteúdo das notícias e presente nas preferências do usuário relacionado.
+    - `language_to_translate`: `enum` (opcional) com o idioma-alvo de tradução das preferências; `null` quando o usuário não quer tradução (apenas dica de client, não afeta a API).
     - `ai_personality`: `enum` contendo a personalidade da IA e presente nas preferências do usuário relacionado.
 - Um struct chamado `Claims` mantém também esse mapeamento no código.
 - Se o usuário sofrer soft remove, os seus `refresh_tokens` também devem sofrer soft remove.
@@ -364,10 +362,11 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 ## Traduzindo notícias
 
-- A tradução de notícias é uma opção dada ao usuário quando suas preferências marcarem `true` no campo `translate_content` e a preferência `language` estiver configurada.
+- A tradução de notícias é uma capacidade read-only sempre disponível pela API; não há gate de preferência no servidor.
+    - O client decide se oferece ou não a opção com base na preferência `language_to_translate` (nula = não mostra). Essa preferência é apenas uma dica de client e não afeta nenhuma resposta da API.
 - A tradução de notícias é disparada pelo usuário através do client.
-- A tradução de notícias só pode ser feita quando o `language` configurado nas preferências do usuário for diferente da `language_original` da notícia.
-    - Caso o idioma esteja em `null`, a tradução não poderá ser feita.
+- A tradução de notícias só pode ser feita quando o `language_to_translate` alvo (recebido na URL) for diferente da `language_original` da notícia.
+    - Caso a `language_original` esteja em `null`, a tradução não poderá ser feita.
 - É responsabilidade do client guardar essa tradução feita como um cache.
     - O cache neste projeto via `Redis` será implementado futuramente.
 - A tradução de notícias também leva em conta a personalidade escolhida pelas preferências do usuário na opção `ai_personality`.
@@ -386,8 +385,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - O método pode ser o exato mesmo utilizado no tratamento de notícias.
 - O endpoint `GET /v1/articles/{id}/translate/{language_to_translate}` é o responsável pela tradução de notícias:
     - O `id` é referente à notícia ser procurada no banco de dados para ser traduzida.
-    - A `language_to_translate` é referente à qual idioma o conteúdo será traduzido. Deve estar na lista do `enum` de idiomas usado globalmente na aplicação.
-    - Se o usuário não estiver apto à fazer a tradução (`translate_content` em `false` ou `language` desconfigurada), o resultado deve ser 403.
+    - A `language_to_translate` é referente à qual idioma o conteúdo será traduzido. Deve estar na lista do `enum` de idiomas usado globalmente na aplicação (caso contrário, 400).
     - Se o `language_to_translate` e a `language_original` da notícia forem iguais, o resultado deve ser 400.
     - Se a `language_original` da notícia for `null`, o resultado deve ser 400.
 

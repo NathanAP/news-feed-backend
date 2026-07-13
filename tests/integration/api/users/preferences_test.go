@@ -94,10 +94,12 @@ func TestGetPreferences_Integration_ReturnsCurrentPrefs(t *testing.T) {
 
 	var body map[string]interface{}
 	require.NoError(t, readJSONPrefs(resp, &body))
-	assert.Equal(t, "dark", body["theme"])
-	assert.Equal(t, "pt", body["language"])
-	assert.Equal(t, true, body["translate_content"])
+	assert.Equal(t, "pt", body["language_to_translate"])
 	assert.Equal(t, "mixed", body["ai_personality"])
+	_, hasTheme := body["theme"]
+	assert.False(t, hasTheme)
+	_, hasTranslateContent := body["translate_content"]
+	assert.False(t, hasTranslateContent)
 }
 
 func TestGetPreferences_Integration_Unauthenticated(t *testing.T) {
@@ -118,7 +120,7 @@ func TestUpdatePreferences_Integration_PersistsAndReturnsNewToken(t *testing.T) 
 	app, queries, prefCtrl, authCtrl := setupPreferencesIntegrationApp(t)
 	token := seedUserWithPrefs(t, queries, prefCtrl, authCtrl)
 
-	body := `{"theme":"light","language":"en","translate_content":false,"ai_personality":"fun"}`
+	body := `{"language_to_translate":"en","ai_personality":"fun"}`
 	req, err := http.NewRequest(http.MethodPut, "/v1/users/me/preferences", strings.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -134,19 +136,41 @@ func TestUpdatePreferences_Integration_PersistsAndReturnsNewToken(t *testing.T) 
 
 	prefs, ok := result["preferences"].(map[string]interface{})
 	require.True(t, ok)
-	assert.Equal(t, "light", prefs["theme"])
-	assert.Equal(t, "en", prefs["language"])
-	assert.Equal(t, false, prefs["translate_content"])
+	assert.Equal(t, "en", prefs["language_to_translate"])
 	assert.Equal(t, "fun", prefs["ai_personality"])
 }
 
-func TestUpdatePreferences_Integration_InvalidTheme(t *testing.T) {
+func TestUpdatePreferences_Integration_NullLanguagePersists(t *testing.T) {
 	requireNotProduction(t)
 
 	app, queries, prefCtrl, authCtrl := setupPreferencesIntegrationApp(t)
 	token := seedUserWithPrefs(t, queries, prefCtrl, authCtrl)
 
-	body := `{"theme":"invalid","language":"pt","translate_content":true,"ai_personality":"mixed"}`
+	body := `{"language_to_translate":null,"ai_personality":"mixed"}`
+	req, err := http.NewRequest(http.MethodPut, "/v1/users/me/preferences", strings.NewReader(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var result map[string]interface{}
+	require.NoError(t, readJSONPrefs(resp, &result))
+	prefs, ok := result["preferences"].(map[string]interface{})
+	require.True(t, ok)
+	// A null target means translation is off; the field serializes as JSON null.
+	assert.Nil(t, prefs["language_to_translate"])
+}
+
+func TestUpdatePreferences_Integration_InvalidLanguageToTranslate(t *testing.T) {
+	requireNotProduction(t)
+
+	app, queries, prefCtrl, authCtrl := setupPreferencesIntegrationApp(t)
+	token := seedUserWithPrefs(t, queries, prefCtrl, authCtrl)
+
+	body := `{"language_to_translate":"invalid","ai_personality":"mixed"}`
 	req, err := http.NewRequest(http.MethodPut, "/v1/users/me/preferences", strings.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")

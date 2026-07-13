@@ -14,10 +14,11 @@ import (
 var ErrUserPreferencesNotFound = errors.New("user preferences not found")
 
 type UpdatePreferencesParams struct {
-	Theme            enums.Theme
-	Language         enums.Language
-	TranslateContent bool
-	AIPersonality    enums.AIPersonality
+	// LanguageToTranslate is the reader's target translation language, or nil when translation is
+	// off (the client then hides the option). It replaces the old theme/language/translate_content
+	// trio: a nil pointer is the single source of truth for "no translation".
+	LanguageToTranslate *enums.Language
+	AIPersonality       enums.AIPersonality
 }
 
 type UserPreferencesController struct{}
@@ -36,13 +37,21 @@ func DefaultPreferencesParams(userID string) (db.CreateUserPreferencesParams, er
 	}
 
 	return db.CreateUserPreferencesParams{
-		ID:               id.String(),
-		UserID:           userID,
-		Theme:            string(enums.ThemeDark),
-		Language:         string(enums.LanguagePT),
-		TranslateContent: 1,
-		AiPersonality:    string(enums.AIPersonalityMixed),
+		ID:                  id.String(),
+		UserID:              userID,
+		LanguageToTranslate: sql.NullString{String: string(enums.LanguagePT), Valid: true},
+		AiPersonality:       string(enums.AIPersonalityMixed),
 	}, nil
+}
+
+// LanguageToTranslatePtr converts a persisted (nullable) language_to_translate into a typed pointer,
+// nil when unset. Used to build tokens and API responses from a preferences row.
+func LanguageToTranslatePtr(prefs db.UserPreference) *enums.Language {
+	if !prefs.LanguageToTranslate.Valid {
+		return nil
+	}
+	lang := enums.Language(prefs.LanguageToTranslate.String)
+	return &lang
 }
 
 func (c *UserPreferencesController) CreateDefault(ctx context.Context, q db.Querier, userID string) (db.UserPreference, error) {
@@ -71,17 +80,15 @@ func (c *UserPreferencesController) FindByUserID(ctx context.Context, q db.Queri
 }
 
 func (c *UserPreferencesController) Update(ctx context.Context, q db.Querier, userID string, params UpdatePreferencesParams) (db.UserPreference, error) {
-	translateContent := int64(0)
-	if params.TranslateContent {
-		translateContent = 1
+	languageToTranslate := sql.NullString{}
+	if params.LanguageToTranslate != nil {
+		languageToTranslate = sql.NullString{String: string(*params.LanguageToTranslate), Valid: true}
 	}
 
 	prefs, err := q.UpdateUserPreferences(ctx, db.UpdateUserPreferencesParams{
-		Theme:            string(params.Theme),
-		Language:         string(params.Language),
-		TranslateContent: translateContent,
-		AiPersonality:    string(params.AIPersonality),
-		UserID:           userID,
+		LanguageToTranslate: languageToTranslate,
+		AiPersonality:       string(params.AIPersonality),
+		UserID:              userID,
 	})
 	if err != nil {
 		return db.UserPreference{}, fmt.Errorf("failed to update user preferences: %w", err)

@@ -157,16 +157,14 @@ func (c *AuthController) GenerateAccessToken(user db.User, refreshTokenID string
 	}
 
 	claims := schemas.Claims{
-		UserID:           user.ID,
-		Email:            user.Email,
-		Name:             user.Name,
-		Picture:          picture,
-		RefreshTokenID:   refreshTokenID,
-		CreatedAt:        user.CreatedAt,
-		Theme:            enums.Theme(prefs.Theme),
-		Language:         enums.Language(prefs.Language),
-		TranslateContent: prefs.TranslateContent == 1,
-		AIPersonality:    enums.AIPersonality(prefs.AiPersonality),
+		UserID:              user.ID,
+		Email:               user.Email,
+		Name:                user.Name,
+		Picture:             picture,
+		RefreshTokenID:      refreshTokenID,
+		CreatedAt:           user.CreatedAt,
+		LanguageToTranslate: LanguageToTranslatePtr(prefs),
+		AIPersonality:       enums.AIPersonality(prefs.AiPersonality),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(c.accessTokenExpiry)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

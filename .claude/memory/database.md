@@ -28,9 +28,11 @@
 
 ### user_preferences (1:1 com users)
 
-`id`, `user_id` (UNIQUE, FK users), `status`, `theme` (`light`|`dark`),
-`language` (`pt`|`en`|`es`|...), `translate_content` (0/1), `ai_personality`
-(`fun`|`informative`|`mixed`), timestamps. Defaults: dark, pt, translate=1, mixed.
+`id`, `user_id` (UNIQUE, FK users), `status`, `language_to_translate`
+(**nullable**, `pt`|`en`|`es`|...; null = tradução off, só dica de client), `ai_personality`
+(`fun`|`informative`|`mixed`), timestamps. Defaults: language_to_translate=pt, mixed.
+`theme` e `translate_content` foram removidos na 0.33 (tema é do client; opt-in de tradução
+virou o próprio `language_to_translate` nulo/preenchido).
 
 ### refresh_tokens (N:1 com users)
 

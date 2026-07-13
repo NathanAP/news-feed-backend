@@ -16,10 +16,8 @@ func GetPreferences() fiber.Handler {
 		claims := middlewares.GetClaims(c)
 
 		return c.JSON(schemas.UserPreferencesResponse{
-			Theme:            claims.Theme,
-			Language:         claims.Language,
-			TranslateContent: claims.TranslateContent,
-			AIPersonality:    claims.AIPersonality,
+			LanguageToTranslate: claims.LanguageToTranslate,
+			AIPersonality:       claims.AIPersonality,
 		})
 	}
 }

@@ -36,11 +36,14 @@ func runDevUser(sc *seedCtx) (*report, error) {
 		}
 
 		// CreateUser already created default preferences; override them with the example values.
+		var languageToTranslate *enums.Language
+		if sc.ex.UserPreferences.LanguageToTranslate != nil {
+			lang := enums.Language(*sc.ex.UserPreferences.LanguageToTranslate)
+			languageToTranslate = &lang
+		}
 		if _, err := sc.prefCtrl.Update(sc.ctx, q, user.ID, controllers.UpdatePreferencesParams{
-			Theme:            enums.Theme(sc.ex.UserPreferences.Theme),
-			Language:         enums.Language(sc.ex.UserPreferences.Language),
-			TranslateContent: sc.ex.UserPreferences.TranslateContent,
-			AIPersonality:    enums.AIPersonality(sc.ex.UserPreferences.AIPersonality),
+			LanguageToTranslate: languageToTranslate,
+			AIPersonality:       enums.AIPersonality(sc.ex.UserPreferences.AIPersonality),
 		}); err != nil {
 			return err
 		}
@@ -53,11 +56,9 @@ func runDevUser(sc *seedCtx) (*report, error) {
 
 // validateDevPreferences ensures the example preference values are valid enum members.
 func validateDevPreferences(p exampleUserPreferences) error {
-	if !enums.Theme(p.Theme).IsValid() {
-		return fmt.Errorf("invalid theme %q in examples.json (want light|dark)", p.Theme)
-	}
-	if !enums.Language(p.Language).IsValid() {
-		return fmt.Errorf("invalid language %q in examples.json (want pt|en|es|fr|de|it)", p.Language)
+	// language_to_translate is optional (null = translation off); validate only when present.
+	if p.LanguageToTranslate != nil && !enums.Language(*p.LanguageToTranslate).IsValid() {
+		return fmt.Errorf("invalid language_to_translate %q in examples.json (want pt|en|es|fr|de|it)", *p.LanguageToTranslate)
 	}
 	if !enums.AIPersonality(p.AIPersonality).IsValid() {
 		return fmt.Errorf("invalid ai_personality %q in examples.json (want fun|informative|mixed)", p.AIPersonality)

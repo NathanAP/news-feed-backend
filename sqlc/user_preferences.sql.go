@@ -7,30 +7,27 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const createUserPreferences = `-- name: CreateUserPreferences :one
-INSERT INTO user_preferences (id, user_id, theme, language, translate_content, ai_personality)
-VALUES (?, ?, ?, ?, ?, ?)
-RETURNING id, user_id, status, theme, language, translate_content, ai_personality, created_at, modified_at, removed_at
+INSERT INTO user_preferences (id, user_id, language_to_translate, ai_personality)
+VALUES (?, ?, ?, ?)
+RETURNING id, user_id, status, language_to_translate, ai_personality, created_at, modified_at, removed_at
 `
 
 type CreateUserPreferencesParams struct {
-	ID               string `json:"id"`
-	UserID           string `json:"user_id"`
-	Theme            string `json:"theme"`
-	Language         string `json:"language"`
-	TranslateContent int64  `json:"translate_content"`
-	AiPersonality    string `json:"ai_personality"`
+	ID                  string         `json:"id"`
+	UserID              string         `json:"user_id"`
+	LanguageToTranslate sql.NullString `json:"language_to_translate"`
+	AiPersonality       string         `json:"ai_personality"`
 }
 
 func (q *Queries) CreateUserPreferences(ctx context.Context, arg CreateUserPreferencesParams) (UserPreference, error) {
 	row := q.db.QueryRowContext(ctx, createUserPreferences,
 		arg.ID,
 		arg.UserID,
-		arg.Theme,
-		arg.Language,
-		arg.TranslateContent,
+		arg.LanguageToTranslate,
 		arg.AiPersonality,
 	)
 	var i UserPreference
@@ -38,9 +35,7 @@ func (q *Queries) CreateUserPreferences(ctx context.Context, arg CreateUserPrefe
 		&i.ID,
 		&i.UserID,
 		&i.Status,
-		&i.Theme,
-		&i.Language,
-		&i.TranslateContent,
+		&i.LanguageToTranslate,
 		&i.AiPersonality,
 		&i.CreatedAt,
 		&i.ModifiedAt,
@@ -50,7 +45,7 @@ func (q *Queries) CreateUserPreferences(ctx context.Context, arg CreateUserPrefe
 }
 
 const findUserPreferencesByUserID = `-- name: FindUserPreferencesByUserID :one
-SELECT id, user_id, status, theme, language, translate_content, ai_personality, created_at, modified_at, removed_at FROM user_preferences
+SELECT id, user_id, status, language_to_translate, ai_personality, created_at, modified_at, removed_at FROM user_preferences
 WHERE user_id = ? AND status = 1 AND removed_at IS NULL
 LIMIT 1
 `
@@ -62,9 +57,7 @@ func (q *Queries) FindUserPreferencesByUserID(ctx context.Context, userID string
 		&i.ID,
 		&i.UserID,
 		&i.Status,
-		&i.Theme,
-		&i.Language,
-		&i.TranslateContent,
+		&i.LanguageToTranslate,
 		&i.AiPersonality,
 		&i.CreatedAt,
 		&i.ModifiedAt,
@@ -86,36 +79,26 @@ func (q *Queries) SoftDeleteUserPreferences(ctx context.Context, userID string) 
 
 const updateUserPreferences = `-- name: UpdateUserPreferences :one
 UPDATE user_preferences
-SET theme = ?, language = ?, translate_content = ?, ai_personality = ?,
+SET language_to_translate = ?, ai_personality = ?,
     modified_at = CURRENT_TIMESTAMP
 WHERE user_id = ? AND status = 1 AND removed_at IS NULL
-RETURNING id, user_id, status, theme, language, translate_content, ai_personality, created_at, modified_at, removed_at
+RETURNING id, user_id, status, language_to_translate, ai_personality, created_at, modified_at, removed_at
 `
 
 type UpdateUserPreferencesParams struct {
-	Theme            string `json:"theme"`
-	Language         string `json:"language"`
-	TranslateContent int64  `json:"translate_content"`
-	AiPersonality    string `json:"ai_personality"`
-	UserID           string `json:"user_id"`
+	LanguageToTranslate sql.NullString `json:"language_to_translate"`
+	AiPersonality       string         `json:"ai_personality"`
+	UserID              string         `json:"user_id"`
 }
 
 func (q *Queries) UpdateUserPreferences(ctx context.Context, arg UpdateUserPreferencesParams) (UserPreference, error) {
-	row := q.db.QueryRowContext(ctx, updateUserPreferences,
-		arg.Theme,
-		arg.Language,
-		arg.TranslateContent,
-		arg.AiPersonality,
-		arg.UserID,
-	)
+	row := q.db.QueryRowContext(ctx, updateUserPreferences, arg.LanguageToTranslate, arg.AiPersonality, arg.UserID)
 	var i UserPreference
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.Status,
-		&i.Theme,
-		&i.Language,
-		&i.TranslateContent,
+		&i.LanguageToTranslate,
 		&i.AiPersonality,
 		&i.CreatedAt,
 		&i.ModifiedAt,

@@ -17,20 +17,17 @@ import (
 
 // TranslateArticle translates an article on demand into a target language, for display only. It is
 // user-triggered (the client decides when) and reads the user's personality preference from the
-// JWT. It gates on the translate_content preference (403), validates the target language, loads the
-// article, and refuses to translate when the article's original language is unknown or equal to the
-// target (400). The AI output is re-sanitized with the treatment HTML whitelist as a defense. It
-// persists nothing (read-only). The client is responsible for caching the result.
+// JWT. Translation is a read-only capability with no preference gate: the language_to_translate
+// preference is only a client hint (whether to show the option) and never affects API behavior. It
+// validates the target language, loads the article, and refuses to translate when the article's
+// original language is unknown or equal to the target (400). The AI output is re-sanitized with the
+// treatment HTML whitelist as a defense. It persists nothing (read-only). The client caches the result.
 func TranslateArticle(articleCtrl controllers.ArticleControllerInterface, translator ai.Translator, runTx controllers.TransactionRunner) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
 
 		claims := middlewares.GetClaims(c)
-		// The user must have opted into translation and have a configured language.
-		if !claims.TranslateContent || claims.Language == "" {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "translation is not enabled for this user"})
-		}
 
 		id := c.Params("id")
 		if id == "" {

@@ -28,10 +28,10 @@ docs {
   `:language` deve ser um idioma suportado ("pt" | "en" | "es" | "fr" | "de" | "it"). O client é
   responsável por cachear o resultado (Redis virá no futuro).
 
-  Requer que o usuário esteja apto (preferência `translate_content` = true), senão 403. Chama a IA de
-  verdade (consome quota; LLM apenas — `TRANSLATION_*`). Respostas:
+  Capacidade read-only sem gate de preferência (desde 0.33): a preferência `language_to_translate` é
+  só dica de client e não afeta a API. Chama a IA de verdade (consome quota; LLM apenas —
+  `TRANSLATION_*`). Respostas:
   - 200 `{ title, content, language, language_original }`.
-  - 403 se `translate_content` estiver desligado.
   - 400 se o idioma-alvo for inválido, igual ao `language_original`, ou se o `language_original` da
     notícia for desconhecido (null).
   - 404 se a notícia não existir; 500 em falha da IA.

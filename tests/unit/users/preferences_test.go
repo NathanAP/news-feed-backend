@@ -38,9 +38,11 @@ func TestGetPreferences_Success(t *testing.T) {
 
 	var body map[string]interface{}
 	require.NoError(t, readJSON(resp, &body))
-	assert.NotEmpty(t, body["theme"])
-	assert.NotEmpty(t, body["language"])
+	assert.NotEmpty(t, body["language_to_translate"])
 	assert.NotEmpty(t, body["ai_personality"])
+	// theme and translate_content were removed in 0.33.
+	_, hasTheme := body["theme"]
+	assert.False(t, hasTheme)
 }
 
 func TestGetPreferences_Unauthenticated(t *testing.T) {
@@ -61,7 +63,7 @@ func TestUpdatePreferences_Success(t *testing.T) {
 	requireNotProduction(t)
 
 	app := setupPreferencesApp()
-	body := `{"theme":"light","language":"en","translate_content":false,"ai_personality":"fun"}`
+	body := `{"language_to_translate":"en","ai_personality":"fun"}`
 	req, err := http.NewRequest(http.MethodPut, "/v1/users/me/preferences", strings.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -78,11 +80,11 @@ func TestUpdatePreferences_Success(t *testing.T) {
 	assert.NotNil(t, result["preferences"])
 }
 
-func TestUpdatePreferences_InvalidTheme(t *testing.T) {
+func TestUpdatePreferences_NullLanguageDisablesTranslation(t *testing.T) {
 	requireNotProduction(t)
 
 	app := setupPreferencesApp()
-	body := `{"theme":"invalid","language":"pt","translate_content":true,"ai_personality":"mixed"}`
+	body := `{"language_to_translate":null,"ai_personality":"mixed"}`
 	req, err := http.NewRequest(http.MethodPut, "/v1/users/me/preferences", strings.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -90,14 +92,14 @@ func TestUpdatePreferences_InvalidTheme(t *testing.T) {
 
 	resp, err := app.Test(req)
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
-func TestUpdatePreferences_InvalidLanguage(t *testing.T) {
+func TestUpdatePreferences_InvalidLanguageToTranslate(t *testing.T) {
 	requireNotProduction(t)
 
 	app := setupPreferencesApp()
-	body := `{"theme":"dark","language":"klingon","translate_content":true,"ai_personality":"mixed"}`
+	body := `{"language_to_translate":"klingon","ai_personality":"mixed"}`
 	req, err := http.NewRequest(http.MethodPut, "/v1/users/me/preferences", strings.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -112,7 +114,7 @@ func TestUpdatePreferences_InvalidAIPersonality(t *testing.T) {
 	requireNotProduction(t)
 
 	app := setupPreferencesApp()
-	body := `{"theme":"dark","language":"pt","translate_content":true,"ai_personality":"chaotic"}`
+	body := `{"language_to_translate":"pt","ai_personality":"chaotic"}`
 	req, err := http.NewRequest(http.MethodPut, "/v1/users/me/preferences", strings.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -140,7 +142,7 @@ func TestUpdatePreferences_Unauthenticated(t *testing.T) {
 	requireNotProduction(t)
 
 	app := setupPreferencesApp()
-	body := `{"theme":"light","language":"en","translate_content":false,"ai_personality":"fun"}`
+	body := `{"language_to_translate":"en","ai_personality":"fun"}`
 	req, err := http.NewRequest(http.MethodPut, "/v1/users/me/preferences", strings.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")

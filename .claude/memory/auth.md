@@ -25,8 +25,8 @@ Logout faz soft-remove do `refresh_token`; o `access_token` segue válido até e
 
 ## Claims do access_token (struct `schemas.Claims`)
 
-`user_id`, `email`, `name`, `picture`, `created_at`, `refresh_token_id`, `theme`,
-`language`, `translate_content`, `ai_personality`. Ou seja, as preferências viajam no token —
+`user_id`, `email`, `name`, `picture`, `created_at`, `refresh_token_id`,
+`language_to_translate` (anulável), `ai_personality`. Ou seja, as preferências viajam no token —
 alterar preferências regenera o token. Se um endpoint precisar de um dado do usuário que
 **não** está no token, é preciso reavaliar (renovar/invalidar tokens).
 

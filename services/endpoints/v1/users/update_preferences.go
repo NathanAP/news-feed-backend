@@ -29,14 +29,10 @@ func UpdatePreferences(prefCtrl controllers.UserPreferencesControllerInterface, 
 			})
 		}
 
-		if !req.Theme.IsValid() {
+		// language_to_translate is optional (null clears translation); validate only when present.
+		if req.LanguageToTranslate != nil && !req.LanguageToTranslate.IsValid() {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "invalid theme, accepted values: light, dark",
-			})
-		}
-		if !req.Language.IsValid() {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "invalid language, accepted values: pt, en, es, fr, de, it",
+				"error": "invalid language_to_translate, accepted values: pt, en, es, fr, de, it",
 			})
 		}
 		if !req.AIPersonality.IsValid() {
@@ -54,10 +50,8 @@ func UpdatePreferences(prefCtrl controllers.UserPreferencesControllerInterface, 
 		err := runTx(c.Context(), func(q db.Querier) error {
 			var err error
 			updatedPrefs, err = prefCtrl.Update(c.Context(), q, claims.UserID, controllers.UpdatePreferencesParams{
-				Theme:            req.Theme,
-				Language:         req.Language,
-				TranslateContent: req.TranslateContent,
-				AIPersonality:    req.AIPersonality,
+				LanguageToTranslate: req.LanguageToTranslate,
+				AIPersonality:       req.AIPersonality,
 			})
 			if err != nil {
 				return err
@@ -76,10 +70,8 @@ func UpdatePreferences(prefCtrl controllers.UserPreferencesControllerInterface, 
 			AccessToken: newToken,
 			ExpiresIn:   accessTokenExpirySeconds,
 			Preferences: schemas.UserPreferencesResponse{
-				Theme:            enums.Theme(updatedPrefs.Theme),
-				Language:         enums.Language(updatedPrefs.Language),
-				TranslateContent: updatedPrefs.TranslateContent == 1,
-				AIPersonality:    enums.AIPersonality(updatedPrefs.AiPersonality),
+				LanguageToTranslate: controllers.LanguageToTranslatePtr(updatedPrefs),
+				AIPersonality:       enums.AIPersonality(updatedPrefs.AiPersonality),
 			},
 		})
 	}

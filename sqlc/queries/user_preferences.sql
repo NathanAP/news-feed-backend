@@ -1,6 +1,6 @@
 -- name: CreateUserPreferences :one
-INSERT INTO user_preferences (id, user_id, theme, language, translate_content, ai_personality)
-VALUES (?, ?, ?, ?, ?, ?)
+INSERT INTO user_preferences (id, user_id, language_to_translate, ai_personality)
+VALUES (?, ?, ?, ?)
 RETURNING *;
 
 -- name: FindUserPreferencesByUserID :one
@@ -10,7 +10,7 @@ LIMIT 1;
 
 -- name: UpdateUserPreferences :one
 UPDATE user_preferences
-SET theme = ?, language = ?, translate_content = ?, ai_personality = ?,
+SET language_to_translate = ?, ai_personality = ?,
     modified_at = CURRENT_TIMESTAMP
 WHERE user_id = ? AND status = 1 AND removed_at IS NULL
 RETURNING *;

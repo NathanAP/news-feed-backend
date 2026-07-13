@@ -3,15 +3,15 @@ package schemas
 import "github.com/nathanap/news-feed-backend/schemas/enums"
 
 type UserPreferencesResponse struct {
-	Theme            enums.Theme         `json:"theme"`
-	Language         enums.Language      `json:"language"`
-	TranslateContent bool                `json:"translate_content"`
-	AIPersonality    enums.AIPersonality `json:"ai_personality"`
+	// LanguageToTranslate is null when the user has no translation target set (the client then
+	// hides the translation option). It is a client hint only and does not gate any API behavior.
+	LanguageToTranslate *enums.Language     `json:"language_to_translate"`
+	AIPersonality       enums.AIPersonality `json:"ai_personality"`
 }
 
 type UpdateUserPreferencesRequest struct {
-	Theme            enums.Theme         `json:"theme"`
-	Language         enums.Language      `json:"language"`
-	TranslateContent bool                `json:"translate_content"`
-	AIPersonality    enums.AIPersonality `json:"ai_personality"`
+	// LanguageToTranslate omitted/null clears the translation target; when present it must be a
+	// valid language enum.
+	LanguageToTranslate *enums.Language     `json:"language_to_translate"`
+	AIPersonality       enums.AIPersonality `json:"ai_personality"`
 }

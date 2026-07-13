@@ -16,6 +16,8 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+func strPtr(s string) *string { return &s }
+
 func requireNotProduction(t *testing.T) {
 	t.Helper()
 	env := os.Getenv("ENVIRONMENT")
@@ -26,7 +28,7 @@ func requireNotProduction(t *testing.T) {
 func testExamples() examples {
 	return examples{
 		User:            exampleUser{Email: "dev@test.local", Name: "Dev", Picture: ""},
-		UserPreferences: exampleUserPreferences{Theme: "dark", Language: "pt", TranslateContent: true, AIPersonality: "mixed"},
+		UserPreferences: exampleUserPreferences{LanguageToTranslate: strPtr("pt"), AIPersonality: "mixed"},
 		Sources:         []exampleSource{{URL: "https://src.com", URLRss: "https://src.com/rss"}},
 		Feeds:           []exampleFeed{{Name: "Feed A", Keywords: []string{"a", "b", "c", "d", "e"}}},
 		Articles: []exampleArticle{

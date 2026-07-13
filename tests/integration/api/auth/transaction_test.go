@@ -66,7 +66,8 @@ func TestWithTransaction_Integration_CommitsOnSuccess(t *testing.T) {
 
 	prefs, err := queries.FindUserPreferencesByUserID(context.Background(), created.ID)
 	require.NoError(t, err, "preferences must persist alongside the user")
-	assert.Equal(t, "dark", prefs.Theme)
+	assert.Equal(t, "mixed", prefs.AiPersonality)
+	assert.Equal(t, "pt", prefs.LanguageToTranslate.String, "default translation target")
 }
 
 // TestCreateUser_Integration_DuplicateReturnsError covers the write-failure path where the
