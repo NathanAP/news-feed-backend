@@ -292,14 +292,24 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Exemplo de quando aplicar o tratamento de URL:
     - A notícia `001` foi gravado em nosso banco de dados semana passada.
     - A notícia `100` surge hoje e o tratamento de URL identifica que a notícia `001` está presente nela.
-    - O tratamento de URLs identifica a notícia `001` e substitui a referência pela nossa própria URL apontando para esta notícia.
+    - O tratamento de URLs identifica a notícia `001` e substitui o atributo `href` da tag `a` encontrada pela nossa própria URL apontando para esta notícia.
 - Mais detalhes desse fluxo na sessão "Fluxo de tratamento".
 - A resposta desta etapa deve devolver a nova versão do conteúdo da notícia com tratamento realizado.
 
 ### Sanitização do conteúdo
 
-- Esta etapa utiliza a biblioteca `bluemonday` para forçar a whitelist de sanitização obtida na etapa anterior.
-- Usa uma política customizada para permitir apenas tags básicas de formatação, atributos confiáveis e apenas links presentes na whitelist.
+- Esta etapa utiliza a biblioteca `bluemonday` para forçar uma `whitelist` de sanitização em cima da versão do conteúdo obtida na etapa anterior.
+- Usa uma política customizada para permitir apenas:
+    - Tags básicas de formatação.
+    - Atributos confiáveis e lícitos.
+
+#### Whitelist de sanatização
+
+- A `whitelist` de sanatização utilizada pelo `bluemonday` tem como objetivo principal garantir que não haja tags ou atributos ilícitos ou perigosos, como por exemplo:
+    - Tags desconhecidas, não-existentes ou perigosas (Exemplo: `iframe`, `script`).
+    - Atributos desconhecidos ou não-existentes ou perigosas (Exemplo: `onclick`, `onhover`).
+- As URLs internas, URLs externas e imagens estão liberdas normalmente.
+- Embeddings estão liberados desde que sejam conhecidos (Instagram, YouTube, Twitch, entre outros).
 
 ### Nomeação de palavras-chave
 

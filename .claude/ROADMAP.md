@@ -526,6 +526,7 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
 - Paginações estão acontecendo via Go (ao invés de SQL)
 - TlDraw do banco de dados
 - Preparar ambiente staging + production
+- Denunciar conteúdo
 - Multi feed
 - Editar informações básicas do usuário
 - Cascade de tabelas
