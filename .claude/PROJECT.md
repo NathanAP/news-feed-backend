@@ -37,7 +37,10 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 0. O usuário se cadastra através da sua conta Google.
 1. O usuário cria um novo feed e o personaliza conforme preferir.
 2. O sistema descobre notícias automaticamente através das fontes RSS disponíveis.
-3. Cada nova notícia descoberta recebe um tratamento que envolve melhora do texto e atribuição de palavras-chave para ser gravada no banco de dados.
+3. Cada nova notícia descoberta recebe um tratamento antes de ser gravado no banco de dados. Ela envolve:
+    - normalização de URLs.
+    - normalização de elementos HTML.
+    - atribuição de palavras-chave.
 4. Identifica-se a quais feeds a notícia pertence.
 5. O usuário acessa a notícia e ela é marcada como lida.
 6. (opcional) O usuário requisita um resumo totalmente personalizado para aquela notícia de acordo com suas preferências.
@@ -568,6 +571,10 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
     - Realizar `git stash` e `git pull origin production`.
     - Excluir as pastas `raiz/.claude/`, `raiz/bruno/`, `raiz/cmd/` e `raiz/test/`.
     - Subir a aplicação.
+
+### Variáveis globais úteis
+
+- a variável `CLIENT_URL` possui a URL base do client.
 
 ## Logs / debug manual
 
