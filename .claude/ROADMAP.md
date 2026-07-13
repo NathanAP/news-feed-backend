@@ -512,9 +512,30 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 ## Versão 0.34.0.0
 
-- [ ] Alterar o tratamento de notícias conforme o PROJECT.md
-    - A alteração é relativamente grande. Nosso pensamento inicial não vai funcionar e insistir em algo errado não é bom
-    - Preciso que me ajude a entender o novo papel do `bluemonday` agora...
+Reforma do tratamento de notícias (PROJECT.md) quebrada em 3 fases.
+
+**Fase 1** — a IA deixa de reescrever o corpo; o `bluemonday` vira o estágio primário sobre o RSS cru.
+
+- [ ] Remover a capacidade `ai.Treater` (LLM) e o código morto associado: `passthrough`, decorator `sanitize.NewTreater`, `NewVerboseTreater`, métodos `Treat` dos providers (gemini/openaicompat) e do mock, e as envs `TREATMENT_*` (incluindo o `TREATMENT_AI_ACTIVE` da 0.32, agora superseded)
+- [ ] Sanitizador novo (política permissiva-porém-segura): tags básicas de formatação + `<a href>` + `<img src>` (só esquemas seguros; sem `script`/`on*`/`style`/`iframe`). Embeds ainda são **removidos** nesta fase (resultado seguro; vídeo/post visual se perde até a Fase 3)
+- [ ] Reordenar o pipeline de tratamento: detecção de idioma → sanitização → nomeação de keywords (a IA nunca mais toca no corpo)
+- [ ] Atualizar o dry-run `POST /v1/articles/treatment` (sem passo de LLM no corpo), testes (unit/integração/e2e), Bruno e docs/memory
+
+## Versão 0.35.0.0
+
+**Fase 2** — tratamento de URLs (linking entre notícias).
+
+- [ ] Novo passo determinístico antes da sanitização: identifica `<a href>` no conteúdo, busca a `url_original` exata nos registros de notícias; se a notícia existe, reescreve o `href` para `CLIENT_URL/articles/{id}`; senão nada acontece
+    - Roda **antes** da sanitização (o link interno precisa existir antes do bluemonday; o bluemonday já permite links, então não muda de política)
+    - Novo pacote `services/urltreatment` (parse via `golang.org/x/net/html`, lookup por `url_original`). Usa `CLIENT_URL` e `URLS_TREATMENT_VERBOSE_MODE`
+    - Escopo só `<a href>` (não texto solto/`<img>`); sem pré-filtro por source (lookup direto por `url_original`, que é índice único)
+
+## Versão 0.36.0.0
+
+**Fase 3** — embeds conhecidos (com foco em segurança).
+
+- [ ] `<iframe>` de YouTube/Twitch liberados via allowlist apertada de `src`; `<script>` nunca é permitido
+- [ ] Instagram (e similares baseados em `<script>`) convertidos para `<a href={url_da_postagem}>{url_reduzida}</a>` (PROJECT.md, "Whitelist de sanatização")
 
 ## Futuro
 
