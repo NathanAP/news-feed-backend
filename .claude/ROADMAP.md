@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.36.0.0
+0.36.0.1
 
 ## Versão 0.1.0.0
 

@@ -1,5 +1,6 @@
 # Endpoints da API
 
+> Este arquivo está sendo enviado em conjunto com o `api-integration.md` ao client.
 > Resumo para consumo (inclusive por outras instâncias, ex: o client). Base: `/{API_VERSION}`
 > (hoje `/v1`). Auth = `Authorization: Bearer <access_token>`. Datas sempre em UTC.
 > Convenção de "não encontrado": busca em lista vazia → 200 `[]`; busca de item único
@@ -145,7 +146,7 @@ interno — por isso jamais devem ser alcançáveis por um client.
 - Toda rota de busca de coleção (`GET /v1/articles`, `/v1/sources`, `/v1/feeds`, `/v1/feeds/:id/articles`) é **paginada**.
   Query: `?page=` (mín/padrão 1) e `?page_size=` (mín 1, máx 100, padrão 20). Resposta:
   `{ docs: [...], pagination: { actual_page, total_pages, actual_count, total_count, has_next_page,
-  has_previous_page } }`. Página fora do range → `docs` vazio (sem erro), `actual_page` fica no valor
+has_previous_page } }`. Página fora do range → `docs` vazio (sem erro), `actual_page` fica no valor
   pedido. Helper global em `services/pagination` (paginação em memória sobre a lista já filtrada).
 
 ## Notas
