@@ -1,17 +1,21 @@
-// Package embedtreatment turns script-based embeds — the ones that can only render by loading
-// third-party JavaScript — into a plain link to the original post, so no <script> is ever needed in
-// the stored content. Today it handles Instagram (`<blockquote class="instagram-media">` + a loader
-// <script>): the blockquote becomes `<a href="{permalink}">{permalink}</a>` and the loader script is
-// dropped downstream by sanitize. It runs before sanitization, is deterministic (no AI, no DB) and
-// best-effort: any parse/render error returns the original content unchanged.
+// Package embedtreatment makes known embeds safe and playable in our own client, before the content
+// is sanitized. It does two deterministic things (no AI, no DB):
 //
-// iframe embeds (YouTube/Twitch) are NOT handled here — those are safe to keep as-is and are
-// allowlisted directly by services/sanitize.
+//  1. Script-based embeds (Instagram: `<blockquote class="instagram-media">` + a loader <script>)
+//     become a plain link `<a href="{permalink}">{permalink}</a>` — no <script> is ever needed.
+//  2. Twitch iframes (`player.twitch.tv` / `clips.twitch.tv`) get their `parent` query param rewritten
+//     to our client's host. Twitch refuses to play unless `parent` matches the domain embedding the
+//     iframe, and the RSS carries the source's domain (or none), so without this the player renders
+//     but never plays. Needs the client URL; skipped when it is empty.
+//
+// YouTube iframes need no adjustment and are left as-is (sanitize allowlists them). It is best-effort:
+// any parse/render error returns the original content unchanged.
 package embedtreatment
 
 import (
 	"bytes"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"golang.org/x/net/html"
@@ -20,22 +24,27 @@ import (
 	"github.com/nathanap/news-feed-backend/logger"
 )
 
-// Treat converts known script-based embeds in content into plain links. Returns the original content
-// (plus the error, for logging) if the HTML cannot be parsed or rendered.
-func Treat(content string, verbose bool) (string, error) {
+// Treat converts script embeds to links and fixes Twitch iframe `parent` params for the given client
+// URL. Returns the original content (plus the error, for logging) if it cannot be parsed or rendered.
+func Treat(content, clientURL string, verbose bool) (string, error) {
 	nodes, err := parseFragment(content)
 	if err != nil {
 		return content, err
 	}
 
+	// 1. Twitch iframe parent -> our client's host (only if we know it).
+	twitchFixed := 0
+	if host := hostOf(clientURL); host != "" {
+		for _, n := range nodes {
+			twitchFixed += fixTwitchParents(n, host, verbose)
+		}
+	}
+
+	// 2. Instagram blockquote -> link.
 	var blockquotes []*html.Node
 	for _, n := range nodes {
 		collectInstagram(n, &blockquotes)
 	}
-	if len(blockquotes) == 0 {
-		return content, nil
-	}
-
 	converted := 0
 	for _, bq := range blockquotes {
 		permalink := instagramPermalink(bq)
@@ -50,14 +59,70 @@ func Treat(content string, verbose bool) (string, error) {
 		}
 	}
 
+	if twitchFixed == 0 && converted == 0 {
+		return content, nil // nothing changed → return the original verbatim
+	}
+
 	out, err := renderFragment(nodes)
 	if err != nil {
 		return content, err
 	}
 	if verbose {
-		logger.Print(fmt.Sprintf("@@@ EMBED TREATMENT - %d script embed(s) converted to link @@@", converted), logger.ColorCyan)
+		logger.Print(fmt.Sprintf("@@@ EMBED TREATMENT - %d script embed(s) -> link, %d twitch parent(s) fixed @@@", converted, twitchFixed), logger.ColorCyan)
 	}
 	return out, nil
+}
+
+// fixTwitchParents rewrites the `parent` query param of every Twitch iframe in the subtree to host,
+// returning how many were changed.
+func fixTwitchParents(n *html.Node, host string, verbose bool) int {
+	count := 0
+	forEach(n, atom.Iframe, func(ifr *html.Node) {
+		for i := range ifr.Attr {
+			if ifr.Attr[i].Key != "src" {
+				continue
+			}
+			if newSrc, ok := rewriteTwitchParent(ifr.Attr[i].Val, host); ok {
+				ifr.Attr[i].Val = newSrc
+				count++
+				if verbose {
+					logger.Print("    twitch parent -> "+host, logger.ColorGreen)
+				}
+			}
+		}
+	})
+	return count
+}
+
+// rewriteTwitchParent forces `parent=host` (dropping any existing parent) on a Twitch player/clip URL.
+// Returns (src, false) for non-Twitch URLs or when parent is already exactly host.
+func rewriteTwitchParent(src, host string) (string, bool) {
+	u, err := url.Parse(src)
+	if err != nil {
+		return src, false
+	}
+	if u.Host != "player.twitch.tv" && u.Host != "clips.twitch.tv" {
+		return src, false
+	}
+	q := u.Query()
+	if len(q["parent"]) == 1 && q.Get("parent") == host {
+		return src, false // already correct
+	}
+	q.Set("parent", host) // replace every existing parent with a single, correct one
+	u.RawQuery = q.Encode()
+	return u.String(), true
+}
+
+// hostOf returns the hostname of a URL (no port), or "" when empty/unparseable.
+func hostOf(rawURL string) string {
+	if rawURL == "" {
+		return ""
+	}
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return ""
+	}
+	return u.Hostname()
 }
 
 // collectInstagram appends every Instagram blockquote in the subtree to out.
@@ -86,7 +151,7 @@ func instagramPermalink(bq *html.Node) string {
 		return cleanURL(pl)
 	}
 	var found string
-	forEachAnchor(bq, func(a *html.Node) {
+	forEach(bq, atom.A, func(a *html.Node) {
 		if found != "" {
 			return
 		}
@@ -149,12 +214,13 @@ func renderFragment(nodes []*html.Node) (string, error) {
 	return buf.String(), nil
 }
 
-func forEachAnchor(n *html.Node, fn func(*html.Node)) {
-	if n.Type == html.ElementNode && n.DataAtom == atom.A {
+// forEach invokes fn for every element with atom a in the subtree rooted at n.
+func forEach(n *html.Node, a atom.Atom, fn func(*html.Node)) {
+	if n.Type == html.ElementNode && n.DataAtom == a {
 		fn(n)
 	}
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		forEachAnchor(c, fn)
+		forEach(c, a, fn)
 	}
 }
 

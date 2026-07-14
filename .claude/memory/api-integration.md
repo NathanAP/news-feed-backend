@@ -28,6 +28,11 @@ normais (não injetar de formas inseguras além do render de HTML).
 - **Embeds de vídeo**: `<iframe>` **apenas** de **YouTube** (`youtube.com/embed/`,
   `youtube-nocookie.com/embed/`) e **Twitch** (`player.twitch.tv/`, `clips.twitch.tv/embed`). Vêm com
   `width`/`height`/`allowfullscreen`/`allow`/`title`/`loading`. Renderize responsivo (ex.: wrapper 16:9).
+  - **Twitch**: o player só reproduz se o `parent` do embed bater com o domínio que renderiza. A **API
+    já reescreve** o `parent` para o host do `CLIENT_URL` configurado — então o embed **toca** desde que
+    o client seja servido nesse mesmo host. Se o client rodar em outro domínio, o Twitch não vai
+    reproduzir (o `parent` não bate); nesse caso alinhe o `CLIENT_URL` da API com o domínio real do
+    client, ou reescreva o `parent` no client. YouTube não precisa disso.
 - **Instagram (e embeds baseados em `<script>`)**: **NÃO** vêm como embed. A API os converte em um
   **link** (`<a href>` para a postagem). Não espere `<blockquote class="instagram-media">` nem scripts
   do Instagram — se quiser um card rico, faça no client a partir do link.

@@ -73,7 +73,7 @@ func TreatArticle(keyworders map[string]ai.Keyworder, defaultMode string, detect
 				body = out
 			}
 		}
-		if out, eerr := embedtreatment.Treat(body, urlVerbose); eerr != nil {
+		if out, eerr := embedtreatment.Treat(body, clientURL, urlVerbose); eerr != nil {
 			logger.Log(fmt.Sprintf("embed treatment failed: %v (using original content)", eerr), logger.ColorRed)
 		} else {
 			body = out

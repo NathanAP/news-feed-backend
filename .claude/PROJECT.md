@@ -315,6 +315,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - As URLs internas, URLs externas e imagens estão liberdas normalmente.
 - Embeddings estão liberados desde que façam parte de uma `allowlist` e não possuam `<script>` (YouTube, Twitch, entre outros).
     - Embeddings mais "complexos" como o Instagram devem ser substituídos por `<a href={url_da_postagem}>{url_da_postagem_reduzida}</a>`.
+    - O embed do Twitch só reproduz quando o parâmetro `parent` do `src` bate com o domínio que renderiza. Por isso, na etapa de tratamento de embeds (antes da sanitização), o `parent` do iframe do Twitch é reescrito para o host do `CLIENT_URL`. Sem `CLIENT_URL` configurada, essa reescrita é pulada.
 
 ### Nomeação de palavras-chave
 

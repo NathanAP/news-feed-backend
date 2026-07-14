@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.36.0.1
+0.36.1.0
 
 ## Versão 0.1.0.0
 
@@ -545,6 +545,16 @@ Reforma do tratamento de notícias (PROJECT.md) quebrada em 3 fases.
     - Política do `bluemonday` (`services/sanitize`): `AllowAttrs("src").Matching(embedSrc).OnElements("iframe")` + atributos de exibição (`width`/`height`/`allowfullscreen`/`allow`/`title`/`loading`). Iframe fora da allowlist é desembrulhado. Verificado empiricamente
 - [x] Instagram (e similares baseados em `<script>`) convertidos para `<a href={url_da_postagem}>{url_reduzida}</a>` (PROJECT.md, "Whitelist de sanatização")
     - Novo pacote `services/embedtreatment` (puro, `x/net/html`), roda **antes** do sanitize; acha `<blockquote class="instagram-media">`, lê o `data-instgrm-permalink` (ou o `<a>` interno) e substitui por um link com a URL limpa (sem query). Best-effort. Integrado na CRON e no dry-run
+
+## Versão 0.36.0.1
+
+- [x] Criar `.claude/memory/api-integration.md` (doc de contratos/filosofias da API para o projeto do web client, para enviar junto com o `endpoints.md`)
+
+## Versão 0.36.1.0
+
+- [x] Reescrever o `parent` do iframe do Twitch para o host do `CLIENT_URL` no tratamento de embeds
+    - O player do Twitch só reproduz quando o `parent` bate com o domínio que renderiza; o RSS traz o domínio da fonte (ou nada), então sem isso o embed renderizava mas não tocava (apontado pelo Claude do client)
+    - `services/embedtreatment` passou a receber o `CLIENT_URL`, deriva o host (sem porta) e força `parent=<host>` no `src` do Twitch (`player.twitch.tv`/`clips.twitch.tv`), preservando os demais params. Pulado sem `CLIENT_URL`. YouTube não precisa
 
 ## Futuro
 

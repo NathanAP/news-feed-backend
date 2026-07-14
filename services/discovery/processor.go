@@ -159,9 +159,10 @@ func (p *TreatmentProcessor) processOne(ctx context.Context, article DiscoveredA
 		body = treated
 	}
 
-	// Embed treatment: convert script-based embeds (Instagram) into plain links before sanitize.
-	// Deterministic (no AI, no DB) and best-effort — on error the body flows on unchanged.
-	if treated, eerr := embedtreatment.Treat(body, p.urlVerbose); eerr != nil {
+	// Embed treatment: convert script embeds (Instagram) to links and fix Twitch iframe `parent` for
+	// our client, before sanitize. Deterministic (no AI, no DB) and best-effort — on error the body
+	// flows on unchanged.
+	if treated, eerr := embedtreatment.Treat(body, p.clientURL, p.urlVerbose); eerr != nil {
 		p.log(fmt.Sprintf("    embed treatment failed for %s: %v (using original content)", article.URLOriginal, eerr), logger.ColorRed)
 	} else {
 		body = treated

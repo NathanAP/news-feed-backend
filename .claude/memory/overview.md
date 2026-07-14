@@ -44,9 +44,10 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
   formatação + `<a href>` + `<img src>` (esquemas seguros, `rel=nofollow`) + `<iframe>` de embed **só** com
   `src` na allowlist (YouTube/Twitch, 0.36); bloqueia `script`/`style`/`on*`/`class` e qualquer iframe fora
   da allowlist. Função de pacote `Sanitize(html)`, usada no pipeline e no endpoint de tradução.
-- `services/embedtreatment/` — passo determinístico **antes** do sanitize (0.36): converte embeds via
+- `services/embedtreatment/` — passo determinístico **antes** do sanitize (0.36): (1) converte embeds via
   `<script>` (Instagram: `<blockquote class="instagram-media">`) em `<a href={permalink}>{permalink}</a>`,
-  já que `<script>` nunca é liberado. Puro (`x/net/html`), best-effort.
+  já que `<script>` nunca é liberado; (2) reescreve o `parent` do iframe do Twitch para o host do
+  `CLIENT_URL` (0.36.1 — senão o player renderiza mas não reproduz). Puro (`x/net/html`), best-effort.
 - `services/urltreatment/` — passo determinístico **antes** do sanitize (0.35): parseia o HTML (`x/net/html`),
   acha os `<a href>` e reescreve os que casam a `url_original` de uma notícia nossa para `CLIENT_URL/articles/{id}`.
   DB-agnóstico: recebe um `Resolve` injetado (1 transação de leitura por artigo, via `FindByURLOriginal`).
