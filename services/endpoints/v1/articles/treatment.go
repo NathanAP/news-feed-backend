@@ -14,6 +14,7 @@ import (
 	"github.com/nathanap/news-feed-backend/schemas"
 	"github.com/nathanap/news-feed-backend/services/ai"
 	"github.com/nathanap/news-feed-backend/services/controllers"
+	"github.com/nathanap/news-feed-backend/services/embedtreatment"
 	"github.com/nathanap/news-feed-backend/services/langdetect"
 	"github.com/nathanap/news-feed-backend/services/sanitize"
 	"github.com/nathanap/news-feed-backend/services/urltreatment"
@@ -59,8 +60,9 @@ func TreatArticle(keyworders map[string]ai.Keyworder, defaultMode string, detect
 			})
 		}
 
-		// Body treatment is deterministic (no AI): url treatment (rewrite internal links, read-only)
-		// then sanitize to the safe whitelist. Mirrors the CRON pipeline exactly.
+		// Body treatment is deterministic (no AI): url treatment (rewrite internal links, read-only) +
+		// embed treatment (script embeds -> links) then sanitize to the safe whitelist. Mirrors the
+		// CRON pipeline exactly.
 		treatStart := time.Now()
 		body := req.Article.Content
 		if clientURL != "" {
@@ -70,6 +72,11 @@ func TreatArticle(keyworders map[string]ai.Keyworder, defaultMode string, detect
 			} else {
 				body = out
 			}
+		}
+		if out, eerr := embedtreatment.Treat(body, urlVerbose); eerr != nil {
+			logger.Log(fmt.Sprintf("embed treatment failed: %v (using original content)", eerr), logger.ColorRed)
+		} else {
+			body = out
 		}
 		treated := sanitize.Sanitize(body)
 		treatmentMs := time.Since(treatStart).Milliseconds()

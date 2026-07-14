@@ -102,7 +102,7 @@ produção — resposta **404** (a rota não está montada), não 401. São ferr
 do pipeline; **chamam a IA de verdade** (consomem quota), **não persistem** nada e expõem comportamento
 interno — por isso jamais devem ser alcançáveis por um client.
 
-- `POST /articles/treatment` — **dry-run** do tratamento. Body `{ article: { title, content, ... }, keywords_mode? }`. Roda detecção de idioma (lingua-go) + **tratamento de URLs** (reescreve links internos, leitura no banco) + **sanitização do corpo cru** (bluemonday, ambos determinísticos — a IA não toca no corpo desde a 0.34) → keywords (única etapa de IA). → 200 `{ content, keywords, keywords_mode, language_original, treatment_ms, keywords_ms }` (`content` é o corpo sanitizado; `treatment_ms` mede a sanitização) / 400 / 500 (falha da IA de keywords). O `keywords_mode` opcional (`local`|`groq`|`gemini`) troca o backend das keywords só nesta chamada (benchmark sem reiniciar; 400 se o modo não existe).
+- `POST /articles/treatment` — **dry-run** do tratamento. Body `{ article: { title, content, ... }, keywords_mode? }`. Roda detecção de idioma (lingua-go) + **tratamento de URLs** (reescreve links internos, leitura no banco) + **tratamento de embeds** (Instagram → link) + **sanitização do corpo cru** (bluemonday, iframes YouTube/Twitch por allowlist; todos determinísticos — a IA não toca no corpo desde a 0.34) → keywords (única etapa de IA). → 200 `{ content, keywords, keywords_mode, language_original, treatment_ms, keywords_ms }` (`content` é o corpo sanitizado; `treatment_ms` mede a sanitização) / 400 / 500 (falha da IA de keywords). O `keywords_mode` opcional (`local`|`groq`|`gemini`) troca o backend das keywords só nesta chamada (benchmark sem reiniciar; 400 se o modo não existe).
 - `POST /articles/judgement` — **dry-run** do julgamento por IA. Body `{ article: { title, content, keywords }, judgement_mode? }` (notícia já tratada; sem `id`). Camada 1: feeds candidatos por sobreposição de keywords (SQL `json_each`, feeds ativos de qualquer usuário); camada 2: `score` 0–100 da IA por candidato vs `JUDGEMENT_THRESHOLD`. → 200 `{ judgement_mode, threshold, candidate_count, judgements: [{ feed_id, feed_name, score, passed }], judgement_ms }` / 400 / 500. `judgement_mode` opcional (`local`|`groq`|`gemini`) troca o backend só nesta chamada (400 se inexistente).
 
 ## Feeds (`/v1/feeds`) — auth, **recurso por-usuário**
@@ -130,7 +130,8 @@ interno — por isso jamais devem ser alcançáveis por um client.
 - CRON interna (`services/cron`, `robfig/cron/v3`) varre as sources ativas em `RSS_FEED_CRON_SCHEDULE`,
   ativa por `RSS_FEED_CRON_ACTIVE`. Lê o RSS de cada source (gofeed), **deduplica por `url_original`**,
   **trata** as novas (detecta o idioma com lingua-go + **reescreve links internos** (url treatment →
-  `CLIENT_URL/articles/{id}`, 0.35) + **sanitiza o corpo cru do RSS** com bluemonday — ambos
+  `CLIENT_URL/articles/{id}`, 0.35) + **converte embeds via script** (Instagram → link, 0.36) +
+  **sanitiza o corpo cru do RSS** com bluemonday (iframes YouTube/Twitch por allowlist) — todos
   determinísticos, a IA não toca no corpo desde a 0.34 — + SLM/LLM nomeia keywords),
   **persiste** o `article` (com `language_original`) e por fim **julga** (camada 1 SQL por keywords + camada 2 IA vs
   `JUDGEMENT_THRESHOLD`), gravando as associações aprovadas em `articles_feeds`; ao

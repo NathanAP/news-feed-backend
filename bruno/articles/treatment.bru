@@ -31,10 +31,11 @@ docs {
   toca mais no corpo) e depois nomeia as palavras-chave sobre o conteúdo sanitizado. NÃO grava nada
   (mas o url treatment LÊ o banco pra achar notícias nossas).
   
-  Repare no `content` de exemplo: embeds (o `<iframe>` do YouTube), `<script>`, `class`/`style`/`srcset`
-  e atributos de evento são removidos; `<a href>`, `<img src>` e a formatação básica sobrevivem. Um `<a>`
-  cuja `url_original` já exista no banco vira `CLIENT_URL/articles/{id}` (requer `CLIENT_URL` setada e a
-  notícia já cadastrada). Os embeds liberados chegam na fase 0.36.
+  Repare no `content` de exemplo: o `<iframe>` do YouTube é MANTIDO (allowlist de embeds YouTube/Twitch);
+  `<script>`, `class`/`style`/`srcset` e atributos de evento são removidos; `<a href>`, `<img src>` e a
+  formatação básica sobrevivem. Um `<a>` cuja `url_original` já exista no banco vira `CLIENT_URL/articles/{id}`
+  (requer `CLIENT_URL` setada e a notícia já cadastrada). Embed do Instagram (blockquote+script) vira um
+  link limpo para a postagem.
   
   DICA: com `URLS_TREATMENT_VERBOSE_MODE=true` o terminal mostra o passo do tratamento de URLs (âncoras
   achadas e cada reescrita `de -> para`). Rode a API em foreground (`go run main.go`) ou siga os logs

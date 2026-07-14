@@ -41,7 +41,12 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
   futuro fila+workers (ROADMAP "Escalabilidade futura", pós-Postgres): trocar dispatcher, não reescrever.
 - `services/sanitize/` — **estágio primário** de limpeza do corpo (0.34): aplica a whitelist do
   bluemonday direto no HTML cru do RSS (determinístico, sem IA). Política permissiva-porém-segura:
-  formatação + `<a href>` + `<img src>` (esquemas seguros, `rel=nofollow`); bloqueia `script`/`iframe`/`style`/`on*`/`class`. Função de pacote `Sanitize(html)`, usada no pipeline e no endpoint de tradução.
+  formatação + `<a href>` + `<img src>` (esquemas seguros, `rel=nofollow`) + `<iframe>` de embed **só** com
+  `src` na allowlist (YouTube/Twitch, 0.36); bloqueia `script`/`style`/`on*`/`class` e qualquer iframe fora
+  da allowlist. Função de pacote `Sanitize(html)`, usada no pipeline e no endpoint de tradução.
+- `services/embedtreatment/` — passo determinístico **antes** do sanitize (0.36): converte embeds via
+  `<script>` (Instagram: `<blockquote class="instagram-media">`) em `<a href={permalink}>{permalink}</a>`,
+  já que `<script>` nunca é liberado. Puro (`x/net/html`), best-effort.
 - `services/urltreatment/` — passo determinístico **antes** do sanitize (0.35): parseia o HTML (`x/net/html`),
   acha os `<a href>` e reescreve os que casam a `url_original` de uma notícia nossa para `CLIENT_URL/articles/{id}`.
   DB-agnóstico: recebe um `Resolve` injetado (1 transação de leitura por artigo, via `FindByURLOriginal`).
@@ -84,8 +89,9 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
 
 Descoberta via CRON (0.19) + **tratamento e persistência** (0.20/0.21) + **julgamento**
 (0.22): a CRON descobre, deduplica por `url_original`, detecta o idioma (lingua-go), **reescreve links
-internos** (url treatment → `CLIENT_URL/articles/{id}`, 0.35) e **sanitiza o corpo cru do RSS**
-(bluemonday, determinístico — desde a 0.34 a IA não reescreve mais o corpo), nomeia
+internos** (url treatment → `CLIENT_URL/articles/{id}`, 0.35), **converte embeds via script** (Instagram
+→ link, 0.36) e **sanitiza o corpo cru do RSS** (bluemonday, determinístico — desde a 0.34 a IA não
+reescreve mais o corpo; iframes YouTube/Twitch permitidos por allowlist), nomeia
 keywords com uma **SLM/LLM** por modo (`KEYWORDS_MODE` = local/groq/gemini, em inglês minúsculo),
 grava o `article` (com `language_original`) e por fim **julga** a quais
 feeds ele pertence (camada 1 SQL por keywords + camada 2 IA vs `JUDGEMENT_THRESHOLD`), gravando as

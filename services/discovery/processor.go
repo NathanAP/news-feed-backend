@@ -9,6 +9,7 @@ import (
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/services/ai"
 	"github.com/nathanap/news-feed-backend/services/controllers"
+	"github.com/nathanap/news-feed-backend/services/embedtreatment"
 	"github.com/nathanap/news-feed-backend/services/judgement"
 	"github.com/nathanap/news-feed-backend/services/langdetect"
 	"github.com/nathanap/news-feed-backend/services/sanitize"
@@ -158,8 +159,16 @@ func (p *TreatmentProcessor) processOne(ctx context.Context, article DiscoveredA
 		body = treated
 	}
 
-	// Clean the (url-treated) RSS body to the safe-HTML whitelist. Deterministic (no AI, no error):
-	// the body is never rewritten by a model, only stripped of unsafe/unknown markup.
+	// Embed treatment: convert script-based embeds (Instagram) into plain links before sanitize.
+	// Deterministic (no AI, no DB) and best-effort — on error the body flows on unchanged.
+	if treated, eerr := embedtreatment.Treat(body, p.urlVerbose); eerr != nil {
+		p.log(fmt.Sprintf("    embed treatment failed for %s: %v (using original content)", article.URLOriginal, eerr), logger.ColorRed)
+	} else {
+		body = treated
+	}
+
+	// Clean the (url- and embed-treated) RSS body to the safe-HTML whitelist. Deterministic (no AI,
+	// no error): the body is never rewritten by a model, only stripped of unsafe/unknown markup.
 	content := sanitize.Sanitize(body)
 
 	keywords, err := p.keyworder.Keywords(ctx, article.Title, content)

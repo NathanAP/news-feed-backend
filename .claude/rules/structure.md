@@ -22,6 +22,7 @@ Mostramos apenas a hierarquia de pastas com uma descrição em parênteses. Arqu
 │   ├── controllers            (regras de negócio stateless; recebem db.Querier e nunca commitam)
 │   ├── cron                   (scheduler robfig/cron + DiscoveryRunner que varre as sources ativas)
 │   ├── discovery              (descoberta de notícias no RSS de uma source + pipeline por artigo)
+│   ├── embedtreatment         (converte embeds via script (Instagram) em link antes do sanitize; parsing HTML)
 │   ├── endpoints              (handlers HTTP)
 │   │   └── v1                 (versão 1 da API: uma pasta por modelo, um arquivo por rota)
 │   ├── judgement              (camada 2 do julgamento: pontua uma notícia contra feeds candidatos)

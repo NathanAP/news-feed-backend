@@ -1,14 +1,23 @@
 // Package sanitize enforces the stored-article HTML whitelist with bluemonday. Since the treatment
 // pipeline no longer runs the article body through an LLM (the AI never touches the body), this is
 // the single, deterministic guarantee that persisted content is safe: it keeps rich-but-safe markup
-// (basic formatting, links and images) and strips anything dangerous or unknown. Hard invariants,
-// enforced by the policy below: never <script>, never event handlers (on*), never <style>, and never
-// raw <iframe> (embeds are a separate, allowlisted concern handled in a later version).
+// (basic formatting, links, images and a tight allowlist of video embeds) and strips anything
+// dangerous or unknown. Hard invariants, enforced by the policy below: never <script>, never event
+// handlers (on*), never <style>, and <iframe> only when its src matches the known-embed allowlist
+// (any other iframe is dropped).
 package sanitize
 
 import (
+	"regexp"
+
 	"github.com/microcosm-cc/bluemonday"
 )
+
+// embedSrc is the allowlist of trusted <iframe> embed providers (YouTube, Twitch). Only iframes whose
+// src matches are kept; every other iframe has its src stripped and is dropped. It never permits
+// <script>, so no third-party JS ever runs — script-based embeds (Instagram) are turned into a plain
+// link upstream (services/embedtreatment).
+var embedSrc = regexp.MustCompile(`^https://(www\.youtube\.com/embed/|www\.youtube-nocookie\.com/embed/|player\.twitch\.tv/|clips\.twitch\.tv/embed)`)
 
 // policy is safe for concurrent use once built, so it is created once at package init.
 var policy = buildPolicy()
@@ -40,17 +49,22 @@ func buildPolicy() *bluemonday.Policy {
 	p.AllowAttrs("src").OnElements("img")
 	p.AllowAttrs("alt", "width", "height").OnElements("img")
 
-	// Drop these elements together with their contents (otherwise raw CSS/JS/head text — and the
-	// script-based embeds like Instagram — would leak through as plain text). <iframe> is dropped
-	// here too until the allowlisted-embed version lands.
-	p.SkipElementsContent("script", "style", "head", "title", "noscript", "iframe")
+	// Known video embeds: keep <iframe> ONLY when its src matches the trusted allowlist (YouTube,
+	// Twitch). An iframe with any other src has its src stripped and is dropped (unwrapped). Display
+	// attributes only — never on*/style, and never <script>.
+	p.AllowAttrs("src").Matching(embedSrc).OnElements("iframe")
+	p.AllowAttrs("width", "height", "allowfullscreen", "allow", "title", "loading").OnElements("iframe")
+
+	// Drop these elements together with their contents (otherwise raw CSS/JS/head text would leak
+	// through as plain text).
+	p.SkipElementsContent("script", "style", "head", "title", "noscript")
 	return p
 }
 
 // Sanitize returns the input HTML with only the whitelisted safe markup kept: basic formatting,
-// links (safe schemes, rel=nofollow) and images. Scripts, styles, iframes, event handlers and
-// unknown attributes are stripped; a full HTML document is handled gracefully (wrappers removed,
-// body content preserved).
+// links (safe schemes, rel=nofollow), images and allowlisted video embeds (YouTube/Twitch iframes).
+// Scripts, styles, non-allowlisted iframes, event handlers and unknown attributes are stripped; a
+// full HTML document is handled gracefully (wrappers removed, body content preserved).
 func Sanitize(html string) string {
 	return policy.Sanitize(html)
 }

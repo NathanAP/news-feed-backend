@@ -37,13 +37,32 @@ func TestSanitize_StripsClassStyleAndEventHandlers(t *testing.T) {
 	assert.Equal(t, `<p>text</p>`, out)
 }
 
-func TestSanitize_DropsScriptStyleAndIframe(t *testing.T) {
+func TestSanitize_DropsScriptStyleAndUnknownIframe(t *testing.T) {
 	out := sanitize.Sanitize(`<p>ok</p><script>alert('xss')</script><style>.a{color:red}</style><iframe src="https://evil.com"></iframe>`)
 	assert.NotContains(t, out, "alert")
 	assert.NotContains(t, out, "color:red")
 	assert.NotContains(t, out, "<iframe")
 	assert.NotContains(t, out, "evil.com")
 	assert.Contains(t, out, "<p>ok</p>")
+}
+
+func TestSanitize_KeepsAllowlistedEmbeds(t *testing.T) {
+	yt := sanitize.Sanitize(`<iframe src="https://www.youtube.com/embed/abc123?rel=1" width="900" height="507" allowfullscreen="true" style="border:0" onload="x()"></iframe>`)
+	assert.Contains(t, yt, `<iframe`)
+	assert.Contains(t, yt, `src="https://www.youtube.com/embed/abc123?rel=1"`)
+	assert.Contains(t, yt, `allowfullscreen`)
+	assert.NotContains(t, yt, "style=") // style stripped
+	assert.NotContains(t, yt, "onload") // event handler stripped
+
+	tw := sanitize.Sanitize(`<iframe src="https://player.twitch.tv/?video=123&parent=x"></iframe>`)
+	assert.Contains(t, tw, `src="https://player.twitch.tv/`)
+}
+
+func TestSanitize_DropsNonAllowlistedIframe(t *testing.T) {
+	// A look-alike host that is not in the allowlist must not be kept.
+	out := sanitize.Sanitize(`<p>a</p><iframe src="https://youtube.evil.com/embed/x">fallback</iframe>`)
+	assert.NotContains(t, out, "<iframe")
+	assert.NotContains(t, out, "youtube.evil.com")
 }
 
 // TestSanitize_DropsInstagramScriptEmbed covers the script-based embed case (Instagram): the

@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.35.1.0
+0.36.0.0
 
 ## Versão 0.1.0.0
 
@@ -541,8 +541,10 @@ Reforma do tratamento de notícias (PROJECT.md) quebrada em 3 fases.
 
 **Fase 3** — embeds conhecidos (com foco em segurança).
 
-- [ ] `<iframe>` de YouTube/Twitch liberados via allowlist apertada de `src`; `<script>` nunca é permitido
-- [ ] Instagram (e similares baseados em `<script>`) convertidos para `<a href={url_da_postagem}>{url_reduzida}</a>` (PROJECT.md, "Whitelist de sanatização")
+- [x] `<iframe>` de YouTube/Twitch liberados via allowlist apertada de `src`; `<script>` nunca é permitido
+    - Política do `bluemonday` (`services/sanitize`): `AllowAttrs("src").Matching(embedSrc).OnElements("iframe")` + atributos de exibição (`width`/`height`/`allowfullscreen`/`allow`/`title`/`loading`). Iframe fora da allowlist é desembrulhado. Verificado empiricamente
+- [x] Instagram (e similares baseados em `<script>`) convertidos para `<a href={url_da_postagem}>{url_reduzida}</a>` (PROJECT.md, "Whitelist de sanatização")
+    - Novo pacote `services/embedtreatment` (puro, `x/net/html`), roda **antes** do sanitize; acha `<blockquote class="instagram-media">`, lê o `data-instgrm-permalink` (ou o `<a>` interno) e substitui por um link com a URL limpa (sem query). Best-effort. Integrado na CRON e no dry-run
 
 ## Futuro
 
