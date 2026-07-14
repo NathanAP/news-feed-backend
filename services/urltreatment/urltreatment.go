@@ -37,6 +37,12 @@ func Treat(ctx context.Context, content string, resolve Resolve, verbose bool) (
 	}
 
 	hrefs := collectHrefs(nodes)
+	if verbose {
+		logger.Print(fmt.Sprintf("@@@ URL TREATMENT START - %d anchor href(s) found @@@", len(hrefs)), logger.ColorCyan)
+		for _, h := range hrefs {
+			logger.Print("    found: "+h, logger.ColorBlue)
+		}
+	}
 	if len(hrefs) == 0 {
 		return content, nil
 	}
@@ -46,12 +52,20 @@ func Treat(ctx context.Context, content string, resolve Resolve, verbose bool) (
 		return content, err
 	}
 	if len(mapping) == 0 {
+		if verbose {
+			logger.Print(fmt.Sprintf("@@@ URL TREATMENT END - 0 of %d link(s) are ours; nothing rewritten @@@", len(hrefs)), logger.ColorGreen)
+		}
 		return content, nil
 	}
 
 	rewritten := 0
 	for _, n := range nodes {
 		rewritten += rewriteAnchors(n, mapping)
+	}
+	if verbose {
+		for external, internal := range mapping {
+			logger.Print(fmt.Sprintf("    rewrote: %s -> %s", external, internal), logger.ColorGreen)
+		}
 	}
 
 	out, err := renderFragment(nodes)
@@ -60,7 +74,7 @@ func Treat(ctx context.Context, content string, resolve Resolve, verbose bool) (
 	}
 
 	if verbose {
-		logger.Print(fmt.Sprintf("@@@ URL TREATMENT - rewrote %d internal link(s) of %d anchor href(s) @@@", rewritten, len(hrefs)), logger.ColorCyan)
+		logger.Print(fmt.Sprintf("@@@ URL TREATMENT END - %d internal link(s) rewritten @@@", rewritten), logger.ColorGreen)
 	}
 	return out, nil
 }

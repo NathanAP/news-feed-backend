@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.35.0.0
+0.35.1.0
 
 ## Versão 0.1.0.0
 
@@ -530,6 +530,12 @@ Reforma do tratamento de notícias (PROJECT.md) quebrada em 3 fases.
     - Novo pacote `services/urltreatment` (parse via `golang.org/x/net/html`, lookup por `url_original`). Usa `CLIENT_URL` e `URLS_TREATMENT_VERBOSE_MODE`
     - Escopo só `<a href>` (não texto solto/`<img>`); sem pré-filtro por source (lookup direto por `url_original`, que é índice único)
     - Best-effort (erro de banco → corpo original); pulado sem `CLIENT_URL`. Resolver DB-agnóstico injetado (1 transação de leitura por artigo). Integrado na CRON e no dry-run `POST /articles/treatment`
+
+## Versão 0.35.1.0
+
+- [x] Enriquecer os logs do tratamento de URLs (`URLS_TREATMENT_VERBOSE_MODE`) para dar pra acompanhar o passo pelo terminal
+    - Antes: só um contador, e nada quando 0 links casavam. Agora: marca START com nº de `<a>` achados, lista cada href encontrado, cada reescrita (`de -> para`) e END com o total (inclusive o caso "0 são nossos")
+    - Vale para a CRON e para o dry-run `POST /articles/treatment` (ambos passam o flag ao `urltreatment.Treat`)
 
 ## Versão 0.36.0.0
 

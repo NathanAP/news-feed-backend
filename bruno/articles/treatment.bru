@@ -25,22 +25,27 @@ body:json {
   }
 }
 
+docs {
   Dry-run do tratamento de uma notícia: detecta o idioma, reescreve links internos (url treatment) e
   sanitiza o corpo cru do RSS pela whitelist do bluemonday (ambos determinísticos, SEM IA — a IA não
   toca mais no corpo) e depois nomeia as palavras-chave sobre o conteúdo sanitizado. NÃO grava nada
   (mas o url treatment LÊ o banco pra achar notícias nossas).
-
+  
   Repare no `content` de exemplo: embeds (o `<iframe>` do YouTube), `<script>`, `class`/`style`/`srcset`
   e atributos de evento são removidos; `<a href>`, `<img src>` e a formatação básica sobrevivem. Um `<a>`
   cuja `url_original` já exista no banco vira `CLIENT_URL/articles/{id}` (requer `CLIENT_URL` setada e a
   notícia já cadastrada). Os embeds liberados chegam na fase 0.36.
-
+  
+  DICA: com `URLS_TREATMENT_VERBOSE_MODE=true` o terminal mostra o passo do tratamento de URLs (âncoras
+  achadas e cada reescrita `de -> para`). Rode a API em foreground (`go run main.go`) ou siga os logs
+  (`task ll`) pra acompanhar.
+  
   Atenção: a etapa de keywords chama o provedor de IA de verdade (consome quota). `article.title` e
   `article.content` são obrigatórios (400). Campo opcional `keywords_mode` (local | groq | gemini) troca
   o backend das keywords só nesta chamada, pra benchmark sem reiniciar (400 se o modo não existir).
   Retorna 200 com `{ content, keywords, keywords_mode, treatment_ms, keywords_ms }` (`treatment_ms` agora
   mede a sanitização); 500 em falha da IA de keywords.
-
+  
   EXCLUSIVA DO MODO DE DESENVOLVIMENTO: a rota só é registrada quando ENVIRONMENT=development. Em
   staging/produção ela não existe (404) — é ferramenta interna, nunca para clientes.
 }
