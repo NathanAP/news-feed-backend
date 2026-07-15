@@ -22,7 +22,7 @@ import (
 // or overridden per call via the body's `judgement_mode` (local | groq | gemini). It stops at the
 // penultimate step: it does NOT write any articles_feeds association. It does call the AI for real
 // (consumes quota) and reads real feeds. Open for now (admin-future).
-func JudgeArticle(feedCtrl controllers.FeedControllerInterface, judgers map[string]ai.Judger, defaultMode string, threshold int, runTx controllers.TransactionRunner) fiber.Handler {
+func JudgeArticle(feedCtrl controllers.FeedControllerInterface, judgers map[string]ai.Judger, defaultMode string, threshold int, autoAssociateRatio float64, minMatches int, runTx controllers.TransactionRunner) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
@@ -51,7 +51,7 @@ func JudgeArticle(feedCtrl controllers.FeedControllerInterface, judgers map[stri
 
 		// Layer 1: candidate feeds by keyword overlap. Read-only, but wrapped in a transaction like
 		// every DB access; nothing is written, so it is still a dry-run.
-		var candidates []db.Feed
+		var candidates []controllers.FeedCandidate
 		if err := runTx(c.Context(), func(q db.Querier) error {
 			var e error
 			candidates, e = feedCtrl.FindCandidatesByKeywords(c.Context(), q, req.Article.Keywords)
@@ -61,8 +61,8 @@ func JudgeArticle(feedCtrl controllers.FeedControllerInterface, judgers map[stri
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to find candidate feeds"})
 		}
 
-		// Layer 2: AI scoring against each candidate.
-		evaluator := judgement.NewEvaluator(judger, threshold)
+		// Layer 2: triage (auto-associate / discard / AI) over the candidates.
+		evaluator := judgement.NewEvaluator(judger, threshold, autoAssociateRatio, minMatches)
 		start := time.Now()
 		results, err := evaluator.Evaluate(c.Context(), candidates, req.Article.Title, req.Article.Keywords)
 		judgementMs := time.Since(start).Milliseconds()
@@ -76,6 +76,8 @@ func JudgeArticle(feedCtrl controllers.FeedControllerInterface, judgers map[stri
 			judgements = append(judgements, schemas.FeedJudgement{
 				FeedID:   r.Feed.ID,
 				FeedName: r.Feed.Name,
+				Overlap:  r.OverlapCount,
+				Decision: string(r.Decision),
 				Score:    r.Score,
 				Passed:   r.Passed,
 			})

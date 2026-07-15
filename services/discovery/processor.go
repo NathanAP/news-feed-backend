@@ -201,7 +201,7 @@ func (p *TreatmentProcessor) processOne(ctx context.Context, article DiscoveredA
 // inserts run in their own transactions; the AI scoring (layer 2) runs in between, outside any
 // transaction.
 func (p *TreatmentProcessor) judge(ctx context.Context, article db.Article, keywords []string) {
-	var candidates []db.Feed
+	var candidates []controllers.FeedCandidate
 	if err := p.runTx(ctx, func(q db.Querier) error {
 		var e error
 		candidates, e = p.feedCtrl.FindCandidatesByKeywords(ctx, q, keywords)
@@ -223,6 +223,7 @@ func (p *TreatmentProcessor) judge(ctx context.Context, article db.Article, keyw
 
 	for _, r := range results {
 		if !r.Passed {
+			p.log(fmt.Sprintf("    %s: feed %q (overlap %d, score %d)", r.Decision, r.Feed.Name, r.OverlapCount, r.Score), logger.ColorBlue)
 			continue
 		}
 		if err := p.runTx(ctx, func(q db.Querier) error {
@@ -232,7 +233,11 @@ func (p *TreatmentProcessor) judge(ctx context.Context, article db.Article, keyw
 			p.log(fmt.Sprintf("    judge: failed to associate %s to feed %s: %v", article.ID, r.Feed.ID, err), logger.ColorRed)
 			continue
 		}
-		p.log(fmt.Sprintf("    judged into feed %q (score %d)", r.Feed.Name, r.Score), logger.ColorGreen)
+		if r.Decision == judgement.DecisionAutoAssociated {
+			p.log(fmt.Sprintf("    auto-associated into feed %q (overlap %d)", r.Feed.Name, r.OverlapCount), logger.ColorGreen)
+		} else {
+			p.log(fmt.Sprintf("    judged into feed %q (score %d)", r.Feed.Name, r.Score), logger.ColorGreen)
+		}
 	}
 }
 

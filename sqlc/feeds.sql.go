@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+	"database/sql"
+	"time"
 )
 
 const countActiveFeedsByUser = `-- name: CountActiveFeedsByUser :one
@@ -56,27 +58,42 @@ func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, e
 }
 
 const findCandidateFeedsByKeywords = `-- name: FindCandidateFeedsByKeywords :many
-SELECT DISTINCT f.id, f.status, f.name, f.keywords, f.user_id, f.created_at, f.modified_at, f.removed_at
+SELECT f.id, f.status, f.name, f.keywords, f.user_id, f.created_at, f.modified_at, f.removed_at,
+       COUNT(DISTINCT fk.value) AS overlap_count
 FROM feeds f
 JOIN json_each(f.keywords) fk
 JOIN json_each(?) ak ON ak.value = fk.value
 WHERE f.status = 1 AND f.removed_at IS NULL
+GROUP BY f.id
 `
 
+type FindCandidateFeedsByKeywordsRow struct {
+	ID           string       `json:"id"`
+	Status       int64        `json:"status"`
+	Name         string       `json:"name"`
+	Keywords     string       `json:"keywords"`
+	UserID       string       `json:"user_id"`
+	CreatedAt    time.Time    `json:"created_at"`
+	ModifiedAt   sql.NullTime `json:"modified_at"`
+	RemovedAt    sql.NullTime `json:"removed_at"`
+	OverlapCount int64        `json:"overlap_count"`
+}
+
 // Judgement layer 1 (keyword overlap): returns every active feed (of any user) that shares at
-// least one keyword with the article. Both sides are stored as JSON arrays of lowercase strings,
-// so json_each expands each into rows and the join matches on exact keyword equality. DISTINCT
-// collapses a feed that overlaps on several keywords into a single row. The parameter is the
-// article's keywords as a JSON array TEXT.
-func (q *Queries) FindCandidateFeedsByKeywords(ctx context.Context, jsonEach interface{}) ([]Feed, error) {
+// least one keyword with the article, along with overlap_count (how many distinct keywords matched).
+// Both sides are stored as JSON arrays of lowercase strings, so json_each expands each into rows and
+// the join matches on exact keyword equality. GROUP BY collapses a feed to one row and COUNT gives
+// its overlap. The overlap feeds the triage (auto-associate / discard / send-to-AI) in layer 2. The
+// parameter is the article's keywords as a JSON array TEXT.
+func (q *Queries) FindCandidateFeedsByKeywords(ctx context.Context, jsonEach interface{}) ([]FindCandidateFeedsByKeywordsRow, error) {
 	rows, err := q.db.QueryContext(ctx, findCandidateFeedsByKeywords, jsonEach)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Feed
+	var items []FindCandidateFeedsByKeywordsRow
 	for rows.Next() {
-		var i Feed
+		var i FindCandidateFeedsByKeywordsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Status,
@@ -86,6 +103,7 @@ func (q *Queries) FindCandidateFeedsByKeywords(ctx context.Context, jsonEach int
 			&i.CreatedAt,
 			&i.ModifiedAt,
 			&i.RemovedAt,
+			&i.OverlapCount,
 		); err != nil {
 			return nil, err
 		}

@@ -2,6 +2,7 @@ package articles_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strings"
 	"testing"
@@ -20,11 +21,21 @@ import (
 	jwtmock "github.com/nathanap/news-feed-backend/tests/mocks/services"
 )
 
+// judgeCandidate builds a layer-1 candidate with a feed carrying the given keywords and the given
+// keyword-overlap count — the two inputs the triage uses.
+func judgeCandidate(id string, feedKeywords []string, overlap int) controllers.FeedCandidate {
+	feed := fixtures.NewTestFeed("01900000-0000-7000-8000-000000000009")
+	feed.ID = id
+	kw, _ := json.Marshal(feedKeywords)
+	feed.Keywords = string(kw)
+	return controllers.FeedCandidate{Feed: feed, OverlapCount: overlap}
+}
+
 // mockJudgeFeedCtrl implements FeedControllerInterface for the judgement endpoint tests. Only
 // FindCandidatesByKeywords is exercised; the rest satisfy the interface. By default it returns one
-// candidate feed so layer 2 (AI scoring) runs.
+// borderline candidate (7 keywords, 2 overlapping → 28% < 30% and >= 2 matches) so layer 2 (AI) runs.
 type mockJudgeFeedCtrl struct {
-	findCandidatesFn func(ctx context.Context, q db.Querier, keywords []string) ([]db.Feed, error)
+	findCandidatesFn func(ctx context.Context, q db.Querier, keywords []string) ([]controllers.FeedCandidate, error)
 }
 
 func (m *mockJudgeFeedCtrl) Create(_ context.Context, _ db.Querier, userID, _ string, _ []string) (db.Feed, error) {
@@ -33,11 +44,13 @@ func (m *mockJudgeFeedCtrl) Create(_ context.Context, _ db.Querier, userID, _ st
 func (m *mockJudgeFeedCtrl) FindByID(_ context.Context, _ db.Querier, _, userID string) (db.Feed, error) {
 	return fixtures.NewTestFeed(userID), nil
 }
-func (m *mockJudgeFeedCtrl) FindCandidatesByKeywords(ctx context.Context, q db.Querier, keywords []string) ([]db.Feed, error) {
+func (m *mockJudgeFeedCtrl) FindCandidatesByKeywords(ctx context.Context, q db.Querier, keywords []string) ([]controllers.FeedCandidate, error) {
 	if m.findCandidatesFn != nil {
 		return m.findCandidatesFn(ctx, q, keywords)
 	}
-	return []db.Feed{fixtures.NewTestFeed("01900000-0000-7000-8000-000000000001")}, nil
+	return []controllers.FeedCandidate{
+		judgeCandidate("01900000-0000-7000-8000-000000000001", []string{"a", "b", "c", "d", "e", "f", "g"}, 2),
+	}, nil
 }
 func (m *mockJudgeFeedCtrl) List(_ context.Context, _ db.Querier, userID string) ([]db.Feed, error) {
 	return []db.Feed{fixtures.NewTestFeed(userID)}, nil
@@ -55,7 +68,7 @@ func judgementApp(feedCtrl controllers.FeedControllerInterface, judger ai.Judger
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
 	judgers := map[string]ai.Judger{"local": judger, "groq": judger, "gemini": judger}
-	app.Post("/v1/articles/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, "local", 70, fakeTxRunner))...)
+	app.Post("/v1/articles/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, "local", 70, 0.30, 2, fakeTxRunner))...)
 	return app
 }
 
@@ -89,10 +102,66 @@ func TestJudgeArticle_Success(t *testing.T) {
 	judgements := result["judgements"].([]any)
 	require.Len(t, judgements, 1)
 	first := judgements[0].(map[string]any)
+	assert.Equal(t, "judged", first["decision"]) // borderline overlap → AI ran
 	assert.Equal(t, float64(90), first["score"]) // mock default score
 	assert.Equal(t, true, first["passed"])       // 90 >= 70
 	_, hasMs := result["judgement_ms"]
 	assert.True(t, hasMs)
+}
+
+func TestJudgeArticle_AutoAssociatesStrongOverlap(t *testing.T) {
+	requireNotProduction(t)
+
+	// 5-keyword feed with 3 overlapping (60% >= 30%) → auto-associated, no AI. The judger would error
+	// if called, proving no AI ran.
+	strong := &mockJudgeFeedCtrl{
+		findCandidatesFn: func(_ context.Context, _ db.Querier, _ []string) ([]controllers.FeedCandidate, error) {
+			return []controllers.FeedCandidate{
+				judgeCandidate("01900000-0000-7000-8000-00000000000a", []string{"a", "b", "c", "d", "e"}, 3),
+			}, nil
+		},
+	}
+	failIfCalled := &external.MockAIClient{
+		JudgeFn: func(_ context.Context, _ []string, _ string, _ []string) (int, error) {
+			return 0, ai.ErrInvalidScore
+		},
+	}
+	app := judgementApp(strong, failIfCalled)
+	resp := postJudgement(t, app, validJudgeBody, true)
+	assert.Equal(t, http.StatusOK, resp.StatusCode) // no 500 → AI was not called
+
+	var result map[string]any
+	require.NoError(t, readJSON(resp, &result))
+	first := result["judgements"].([]any)[0].(map[string]any)
+	assert.Equal(t, "auto_associated", first["decision"])
+	assert.Equal(t, true, first["passed"])
+}
+
+func TestJudgeArticle_DiscardsSingleKeywordOverlap(t *testing.T) {
+	requireNotProduction(t)
+
+	// 1 overlapping keyword (< min 2) → discarded, no AI.
+	weak := &mockJudgeFeedCtrl{
+		findCandidatesFn: func(_ context.Context, _ db.Querier, _ []string) ([]controllers.FeedCandidate, error) {
+			return []controllers.FeedCandidate{
+				judgeCandidate("01900000-0000-7000-8000-00000000000b", []string{"a", "b", "c", "d", "e"}, 1),
+			}, nil
+		},
+	}
+	failIfCalled := &external.MockAIClient{
+		JudgeFn: func(_ context.Context, _ []string, _ string, _ []string) (int, error) {
+			return 0, ai.ErrInvalidScore
+		},
+	}
+	app := judgementApp(weak, failIfCalled)
+	resp := postJudgement(t, app, validJudgeBody, true)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var result map[string]any
+	require.NoError(t, readJSON(resp, &result))
+	first := result["judgements"].([]any)[0].(map[string]any)
+	assert.Equal(t, "discarded", first["decision"])
+	assert.Equal(t, false, first["passed"])
 }
 
 func TestJudgeArticle_ModeOverride(t *testing.T) {
@@ -130,8 +199,8 @@ func TestJudgeArticle_NoCandidates(t *testing.T) {
 	requireNotProduction(t)
 
 	noCandidates := &mockJudgeFeedCtrl{
-		findCandidatesFn: func(_ context.Context, _ db.Querier, _ []string) ([]db.Feed, error) {
-			return []db.Feed{}, nil
+		findCandidatesFn: func(_ context.Context, _ db.Querier, _ []string) ([]controllers.FeedCandidate, error) {
+			return []controllers.FeedCandidate{}, nil
 		},
 	}
 	app := judgementApp(noCandidates, &external.MockAIClient{})

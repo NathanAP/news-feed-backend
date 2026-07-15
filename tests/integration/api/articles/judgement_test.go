@@ -22,7 +22,8 @@ import (
 )
 
 // setupJudgementApp wires the judgement endpoint against a real DB (so the layer-1 candidate query
-// runs for real) and a supplied judger mock (so layer 2 is deterministic). Threshold is 70.
+// runs for real) and a supplied judger mock (so layer 2 is deterministic). Threshold 70, auto-associate
+// ratio 0.30, min matches 2 (the defaults).
 func setupJudgementApp(t *testing.T, judger ai.Judger) (*fiber.App, db.Querier) {
 	t.Helper()
 
@@ -37,7 +38,7 @@ func setupJudgementApp(t *testing.T, judger ai.Judger) (*fiber.App, db.Querier) 
 	judgers := map[string]ai.Judger{"local": judger, "groq": judger, "gemini": judger}
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
-	app.Post("/v1/articles/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, "local", 70, runTx))...)
+	app.Post("/v1/articles/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, "local", 70, 0.30, 2, runTx))...)
 
 	return app, queries
 }
@@ -65,27 +66,72 @@ func postJudgement(t *testing.T, app *fiber.App, token, body string) *http.Respo
 	return resp
 }
 
-func TestIntegration_Judgement_MatchesCandidateAndScores(t *testing.T) {
+func TestIntegration_Judgement_AutoAssociatesStrongOverlap(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupJudgementApp(t, &external.MockAIClient{}) // default score 90
+	app, queries := setupJudgementApp(t, &external.MockAIClient{})
 	token := seedUser(t, queries)
 	userID := userIDFromToken(t, queries)
 	feedID := seedFeed(t, queries, userID, `["metallica","rock","metal","music","concert"]`)
 
-	// Article shares "rock" with the feed → layer 1 matches; mock scores 90 (>= 70) → passed.
-	body := `{"article":{"title":"Rock news","content":"body","keywords":["rock","guitar","tour"]}}`
+	// Article covers 3 of the feed's 5 keywords (rock,metal,music) → 60% >= 30% → auto-associated, no AI.
+	body := `{"article":{"title":"Rock news","keywords":["rock","metal","music","guitar"]}}`
 	resp := postJudgement(t, app, token, body)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 	var result map[string]any
 	require.NoError(t, readJSON(resp, &result))
 	assert.Equal(t, float64(1), result["candidate_count"])
-	judgements := result["judgements"].([]any)
-	require.Len(t, judgements, 1)
-	first := judgements[0].(map[string]any)
+	first := result["judgements"].([]any)[0].(map[string]any)
 	assert.Equal(t, feedID, first["feed_id"])
+	assert.Equal(t, float64(3), first["overlap"], "3 keywords overlapped")
+	assert.Equal(t, "auto_associated", first["decision"])
 	assert.Equal(t, true, first["passed"])
+}
+
+func TestIntegration_Judgement_JudgesBorderlineOverlap(t *testing.T) {
+	requireNotProduction(t)
+
+	app, queries := setupJudgementApp(t, &external.MockAIClient{}) // default score 90
+	token := seedUser(t, queries)
+	userID := userIDFromToken(t, queries)
+	// 8-keyword feed; the article covers 2 (rock,metal) → 25% < 30% but >= 2 matches → borderline → AI.
+	feedID := seedFeed(t, queries, userID, `["rock","metal","thrash","bay area","kirk","james","cliff","1983"]`)
+
+	body := `{"article":{"title":"Rock news","keywords":["rock","metal","guitar"]}}`
+	resp := postJudgement(t, app, token, body)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var result map[string]any
+	require.NoError(t, readJSON(resp, &result))
+	first := result["judgements"].([]any)[0].(map[string]any)
+	assert.Equal(t, feedID, first["feed_id"])
+	assert.Equal(t, float64(2), first["overlap"])
+	assert.Equal(t, "judged", first["decision"])
+	assert.Equal(t, float64(90), first["score"])
+	assert.Equal(t, true, first["passed"])
+}
+
+func TestIntegration_Judgement_DiscardsSingleKeywordOverlap(t *testing.T) {
+	requireNotProduction(t)
+
+	app, queries := setupJudgementApp(t, &external.MockAIClient{})
+	token := seedUser(t, queries)
+	userID := userIDFromToken(t, queries)
+	seedFeed(t, queries, userID, `["metallica","rock","metal","music","concert"]`)
+
+	// Article shares only "rock" → 1 match < min 2 → discarded (still a candidate, but not passed).
+	body := `{"article":{"title":"Rock news","keywords":["rock","guitar","tour"]}}`
+	resp := postJudgement(t, app, token, body)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var result map[string]any
+	require.NoError(t, readJSON(resp, &result))
+	assert.Equal(t, float64(1), result["candidate_count"])
+	first := result["judgements"].([]any)[0].(map[string]any)
+	assert.Equal(t, float64(1), first["overlap"])
+	assert.Equal(t, "discarded", first["decision"])
+	assert.Equal(t, false, first["passed"])
 }
 
 func TestIntegration_Judgement_NoKeywordOverlapYieldsNoCandidates(t *testing.T) {

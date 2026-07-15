@@ -34,11 +34,12 @@ type Querier interface {
 	// on the rows themselves; they just become invisible while a related side is inactive.
 	FindArticleFeedsByArticleAndUser(ctx context.Context, arg FindArticleFeedsByArticleAndUserParams) ([]ArticlesFeed, error)
 	// Judgement layer 1 (keyword overlap): returns every active feed (of any user) that shares at
-	// least one keyword with the article. Both sides are stored as JSON arrays of lowercase strings,
-	// so json_each expands each into rows and the join matches on exact keyword equality. DISTINCT
-	// collapses a feed that overlaps on several keywords into a single row. The parameter is the
-	// article's keywords as a JSON array TEXT.
-	FindCandidateFeedsByKeywords(ctx context.Context, jsonEach interface{}) ([]Feed, error)
+	// least one keyword with the article, along with overlap_count (how many distinct keywords matched).
+	// Both sides are stored as JSON arrays of lowercase strings, so json_each expands each into rows and
+	// the join matches on exact keyword equality. GROUP BY collapses a feed to one row and COUNT gives
+	// its overlap. The overlap feeds the triage (auto-associate / discard / send-to-AI) in layer 2. The
+	// parameter is the article's keywords as a JSON array TEXT.
+	FindCandidateFeedsByKeywords(ctx context.Context, jsonEach interface{}) ([]FindCandidateFeedsByKeywordsRow, error)
 	FindFeedByIDAndUser(ctx context.Context, arg FindFeedByIDAndUserParams) (Feed, error)
 	FindRefreshTokenByID(ctx context.Context, id string) (RefreshToken, error)
 	FindSourceByID(ctx context.Context, id string) (Source, error)

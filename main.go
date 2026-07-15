@@ -132,12 +132,14 @@ func main() {
 
 	judgers, judgementDefaultMode := buildJudgers()
 	judgementThreshold := parseThreshold(os.Getenv("JUDGEMENT_THRESHOLD"))
+	judgementAutoAssociateRatio := parseAutoAssociateRatio(os.Getenv("JUDGEMENT_AUTOASSOCIATE_RATIO"))
+	judgementMinMatches := parseMinMatches(os.Getenv("JUDGEMENT_MIN_MATCHES"))
 	defaultJudger := judgers[judgementDefaultMode]
 	if defaultJudger == nil {
 		log.Printf("JUDGEMENT_MODE %q not recognized (use local, groq or gemini); judgement disabled by default", judgementDefaultMode)
 		defaultJudger = ai.NewDisabledClient()
 	}
-	evaluator := judgement.NewEvaluator(defaultJudger, judgementThreshold)
+	evaluator := judgement.NewEvaluator(defaultJudger, judgementThreshold, judgementAutoAssociateRatio, judgementMinMatches)
 
 	// Language detection (lingua-go) is used by the treatment step; not AI, so no provider/mode.
 	detector := langdetect.New()
@@ -218,7 +220,7 @@ func main() {
 	// literally do not exist outside development (defense in depth beyond any runtime check).
 	if os.Getenv("ENVIRONMENT") == "development" {
 		articles.Post("/treatment", append(authMiddleware, articleendpoints.TreatArticle(keyworders, keywordsDefaultMode, detector, articleCtrl, runTx, clientURL, urlTreatmentVerbose))...)
-		articles.Post("/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, judgementDefaultMode, judgementThreshold, runTx))...)
+		articles.Post("/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, judgementDefaultMode, judgementThreshold, judgementAutoAssociateRatio, judgementMinMatches, runTx))...)
 		log.Println("Development mode: POST /v1/articles/treatment and /v1/articles/judgement enabled")
 	}
 
@@ -264,6 +266,10 @@ const (
 	defaultOllamaURL            = "http://localhost:11434"
 	defaultJudgementThreshold   = 70
 	defaultDiscoveryConcurrency = 1
+	// Layer-2 triage defaults: a feed whose keywords are >= 30% covered by the article auto-associates
+	// (no AI); a feed with fewer than 2 overlapping keywords (i.e. just 1) is discarded (no AI).
+	defaultJudgementAutoAssociateRatio = 0.30
+	defaultJudgementMinMatches         = 2
 )
 
 // buildModeClients pre-builds an AI client for every mode (local | groq | gemini). The same set of
@@ -367,6 +373,35 @@ func parseThreshold(s string) int {
 	if err != nil || n < 0 || n > 100 {
 		log.Printf("Invalid JUDGEMENT_THRESHOLD %q (want integer 0-100), using default %d", s, defaultJudgementThreshold)
 		return defaultJudgementThreshold
+	}
+	return n
+}
+
+// parseAutoAssociateRatio reads the layer-2 auto-associate ratio (0-1): a candidate feed whose
+// keywords are covered at least this fraction by the article is associated without an AI call. Falls
+// back to the default when unset or out of range.
+func parseAutoAssociateRatio(s string) float64 {
+	if s == "" {
+		return defaultJudgementAutoAssociateRatio
+	}
+	r, err := strconv.ParseFloat(s, 64)
+	if err != nil || r < 0 || r > 1 {
+		log.Printf("Invalid JUDGEMENT_AUTOASSOCIATE_RATIO %q (want float 0-1), using default %.2f", s, defaultJudgementAutoAssociateRatio)
+		return defaultJudgementAutoAssociateRatio
+	}
+	return r
+}
+
+// parseMinMatches reads the minimum keyword overlap for a candidate to reach the AI (fewer than this
+// is discarded without an AI call). Falls back to the default when unset or invalid.
+func parseMinMatches(s string) int {
+	if s == "" {
+		return defaultJudgementMinMatches
+	}
+	n, err := strconv.Atoi(s)
+	if err != nil || n < 1 {
+		log.Printf("Invalid JUDGEMENT_MIN_MATCHES %q (want integer >= 1), using default %d", s, defaultJudgementMinMatches)
+		return defaultJudgementMinMatches
 	}
 	return n
 }

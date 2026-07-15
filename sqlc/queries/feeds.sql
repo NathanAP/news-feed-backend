@@ -19,15 +19,18 @@ WHERE user_id = ? AND status = 1 AND removed_at IS NULL;
 
 -- name: FindCandidateFeedsByKeywords :many
 -- Judgement layer 1 (keyword overlap): returns every active feed (of any user) that shares at
--- least one keyword with the article. Both sides are stored as JSON arrays of lowercase strings,
--- so json_each expands each into rows and the join matches on exact keyword equality. DISTINCT
--- collapses a feed that overlaps on several keywords into a single row. The parameter is the
--- article's keywords as a JSON array TEXT.
-SELECT DISTINCT f.id, f.status, f.name, f.keywords, f.user_id, f.created_at, f.modified_at, f.removed_at
+-- least one keyword with the article, along with overlap_count (how many distinct keywords matched).
+-- Both sides are stored as JSON arrays of lowercase strings, so json_each expands each into rows and
+-- the join matches on exact keyword equality. GROUP BY collapses a feed to one row and COUNT gives
+-- its overlap. The overlap feeds the triage (auto-associate / discard / send-to-AI) in layer 2. The
+-- parameter is the article's keywords as a JSON array TEXT.
+SELECT f.id, f.status, f.name, f.keywords, f.user_id, f.created_at, f.modified_at, f.removed_at,
+       COUNT(DISTINCT fk.value) AS overlap_count
 FROM feeds f
 JOIN json_each(f.keywords) fk
 JOIN json_each(?) ak ON ak.value = fk.value
-WHERE f.status = 1 AND f.removed_at IS NULL;
+WHERE f.status = 1 AND f.removed_at IS NULL
+GROUP BY f.id;
 
 -- name: UpdateFeedByIDAndUser :one
 UPDATE feeds

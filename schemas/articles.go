@@ -63,10 +63,14 @@ type JudgeArticleRequest struct {
 	JudgementMode string `json:"judgement_mode"`
 }
 
-// FeedJudgement is the score of one candidate feed against the article.
+// FeedJudgement is the triage outcome of one candidate feed against the article. Decision is one of
+// auto_associated | judged | discarded; Overlap is how many keywords matched (layer 1); Score is only
+// meaningful when Decision == judged.
 type FeedJudgement struct {
 	FeedID   string `json:"feed_id"`
 	FeedName string `json:"feed_name"`
+	Overlap  int    `json:"overlap"`
+	Decision string `json:"decision"`
 	Score    int    `json:"score"`
 	Passed   bool   `json:"passed"`
 }

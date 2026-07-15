@@ -96,8 +96,9 @@ reescreve mais o corpo; iframes YouTube/Twitch permitidos por allowlist), nomeia
 keywords com uma **SLM/LLM** por modo (`KEYWORDS_MODE` = local/groq/gemini; inglês minúsculo; **texto
 puro** como input; mistura específicas + genéricas, máx. 30 — 0.36.2),
 grava o `article` (com `language_original`) e por fim **julga** a quais
-feeds ele pertence (camada 1 SQL por keywords + camada 2 IA por **`título + keywords`**, sem o corpo,
-vs `JUDGEMENT_THRESHOLD` — 0.36.2), gravando as associações em `articles_feeds`. **Tradução personalizada** on-demand por usuário já existe (0.23,
+feeds ele pertence (camada 1 SQL por keywords **com overlap** + camada 2 **triagem**: auto-associa
+overlap forte / descarta overlap 1 / IA só no borderline por `título + keywords` vs `JUDGEMENT_THRESHOLD`
+— envs `JUDGEMENT_AUTOASSOCIATE_RATIO`/`JUDGEMENT_MIN_MATCHES`, 0.36.4), gravando as associações em `articles_feeds`. **Tradução personalizada** on-demand por usuário já existe (0.23,
 LLM-only, read-only). Ainda **não** implementado: **resumo** por IA (depende de Redis), deploy,
 usuário administrador, exclusão de usuário.
 

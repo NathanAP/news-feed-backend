@@ -79,13 +79,22 @@ func (c *FeedController) List(ctx context.Context, q db.Querier, userID string) 
 	return feeds, nil
 }
 
+// FeedCandidate is a layer-1 judgement candidate: an active feed that shares at least one keyword
+// with the article, paired with OverlapCount (how many distinct keywords matched). The overlap is
+// the signal the layer-2 triage uses to decide auto-associate / discard / send-to-AI.
+type FeedCandidate struct {
+	Feed         db.Feed
+	OverlapCount int
+}
+
 // FindCandidatesByKeywords returns the active feeds (across all users) that share at least one
-// keyword with the given article keywords. This is the cheap first layer of judgement: it narrows
-// the whole feed set down to plausible candidates before the (expensive) AI scoring. Keywords are
-// normalized to the same lowercase JSON representation used for storage so equality matches.
-func (c *FeedController) FindCandidatesByKeywords(ctx context.Context, q db.Querier, keywords []string) ([]db.Feed, error) {
+// keyword with the given article keywords, each with its keyword-overlap count. This is the cheap
+// first layer of judgement: it narrows the whole feed set down to plausible candidates before the
+// (expensive) AI scoring. Keywords are normalized to the same lowercase JSON representation used for
+// storage so equality matches.
+func (c *FeedController) FindCandidatesByKeywords(ctx context.Context, q db.Querier, keywords []string) ([]FeedCandidate, error) {
 	if len(keywords) == 0 {
-		return []db.Feed{}, nil
+		return []FeedCandidate{}, nil
 	}
 
 	encodedKeywords, err := encodeKeywords(keywords)
@@ -93,14 +102,22 @@ func (c *FeedController) FindCandidatesByKeywords(ctx context.Context, q db.Quer
 		return nil, err
 	}
 
-	feeds, err := q.FindCandidateFeedsByKeywords(ctx, encodedKeywords)
+	rows, err := q.FindCandidateFeedsByKeywords(ctx, encodedKeywords)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find candidate feeds: %w", err)
 	}
-	if feeds == nil {
-		return []db.Feed{}, nil
+
+	candidates := make([]FeedCandidate, 0, len(rows))
+	for _, r := range rows {
+		candidates = append(candidates, FeedCandidate{
+			Feed: db.Feed{
+				ID: r.ID, Status: r.Status, Name: r.Name, Keywords: r.Keywords,
+				UserID: r.UserID, CreatedAt: r.CreatedAt, ModifiedAt: r.ModifiedAt, RemovedAt: r.RemovedAt,
+			},
+			OverlapCount: int(r.OverlapCount),
+		})
 	}
-	return feeds, nil
+	return candidates, nil
 }
 
 func (c *FeedController) Update(ctx context.Context, q db.Querier, id, userID, name string, keywords []string) (db.Feed, error) {

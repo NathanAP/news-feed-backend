@@ -51,7 +51,7 @@ func setupWithConcurrency(t *testing.T, aiClient ai.Client, concurrency int) (co
 	articleCtrl := controllers.NewArticleController()
 	feedCtrl := controllers.NewFeedController()
 	afCtrl := controllers.NewArticleFeedController()
-	evaluator := judgement.NewEvaluator(aiClient, 70)
+	evaluator := judgement.NewEvaluator(aiClient, 70, 0.30, 2)
 	detector := &servicemocks.MockLanguageDetector{}
 	// clientURL empty: url treatment is skipped for these tests (they assert on other behavior).
 	processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, detector, aiClient, evaluator, "", false, concurrency, false)
@@ -115,7 +115,7 @@ func TestIntegration_Processor_NullLanguageOnDetectionFailure(t *testing.T) {
 	require.NoError(t, err)
 
 	aiClient := &external.MockAIClient{}
-	evaluator := judgement.NewEvaluator(aiClient, 70)
+	evaluator := judgement.NewEvaluator(aiClient, 70, 0.30, 2)
 	processor := discovery.NewTreatmentProcessor(
 		runTx, controllers.NewArticleController(), controllers.NewFeedController(),
 		controllers.NewArticleFeedController(), failingDetector, aiClient, evaluator, "", false, 1, false,
@@ -147,7 +147,7 @@ func TestIntegration_Processor_RewritesInternalLinks(t *testing.T) {
 	require.NoError(t, err)
 
 	aiClient := &external.MockAIClient{}
-	evaluator := judgement.NewEvaluator(aiClient, 70)
+	evaluator := judgement.NewEvaluator(aiClient, 70, 0.30, 2)
 	processor := discovery.NewTreatmentProcessor(
 		runTx, controllers.NewArticleController(), controllers.NewFeedController(),
 		controllers.NewArticleFeedController(), &servicemocks.MockLanguageDetector{}, aiClient, evaluator,
@@ -194,13 +194,53 @@ func TestIntegration_Processor_SkipsExistingURL(t *testing.T) {
 	assert.Len(t, articles, 1, "existing url_original must not be re-created")
 }
 
-func TestIntegration_Processor_JudgesIntoMatchingFeed(t *testing.T) {
+// articleFeedAssociations returns the articles_feeds rows for a (user, article) pair.
+func articleFeedAssociations(t *testing.T, runTx controllers.TransactionRunner, userID, articleID string) []db.ArticlesFeed {
+	t.Helper()
+	var associations []db.ArticlesFeed
+	require.NoError(t, runTx(t.Context(), func(q db.Querier) error {
+		var e error
+		associations, e = q.FindArticleFeedsByArticleAndUser(t.Context(), db.FindArticleFeedsByArticleAndUserParams{
+			UserID: userID, ArticleID: articleID,
+		})
+		return e
+	}))
+	return associations
+}
+
+// The mock keyworder emits alpha..epsilon (5 keywords), so feeds below are crafted to land in a
+// specific triage band against those.
+
+func TestIntegration_Processor_AutoAssociatesStrongOverlap(t *testing.T) {
 	requireNotProduction(t)
 
-	runTx, queries, processor := setup(t, &external.MockAIClient{})
-	// Feed shares "alpha" with the mock's keywords (alpha..epsilon), so it survives layer 1; the
-	// mock's Judge returns 90 (>= threshold 70), so it must be associated.
-	userID, feedID := seedUserWithFeed(t, queries, `["alpha","rock","metal","music","concert"]`)
+	// Feed shares 3 of its 5 keywords (alpha,beta,gamma) → 60% >= 30% → auto-associated WITHOUT AI.
+	// The Judge would error if called, proving no AI ran.
+	noAI := &external.MockAIClient{
+		JudgeFn: func(_ context.Context, _ []string, _ string, _ []string) (int, error) {
+			return 0, assert.AnError
+		},
+	}
+	runTx, queries, processor := setup(t, noAI)
+	userID, feedID := seedUserWithFeed(t, queries, `["alpha","beta","gamma","music","concert"]`)
+
+	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{item("https://src.com/auto")}))
+
+	articles, err := queries.ListArticles(t.Context())
+	require.NoError(t, err)
+	require.Len(t, articles, 1)
+
+	associations := articleFeedAssociations(t, runTx, userID, articles[0].ID)
+	require.Len(t, associations, 1, "a strong-overlap feed must be auto-associated without AI")
+	assert.Equal(t, feedID, associations[0].FeedID)
+}
+
+func TestIntegration_Processor_JudgesBorderlineIntoFeed(t *testing.T) {
+	requireNotProduction(t)
+
+	runTx, queries, processor := setup(t, &external.MockAIClient{}) // default Judge score 90
+	// 7-keyword feed sharing alpha,beta (2/7 = 0.28 < 30%, overlap 2 >= min 2) → borderline → AI judges.
+	userID, feedID := seedUserWithFeed(t, queries, `["alpha","beta","k1","k2","k3","k4","k5"]`)
 
 	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{item("https://src.com/judged")}))
 
@@ -208,29 +248,22 @@ func TestIntegration_Processor_JudgesIntoMatchingFeed(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, articles, 1)
 
-	var associations []db.ArticlesFeed
-	require.NoError(t, runTx(t.Context(), func(q db.Querier) error {
-		var e error
-		associations, e = q.FindArticleFeedsByArticleAndUser(t.Context(), db.FindArticleFeedsByArticleAndUserParams{
-			UserID: userID, ArticleID: articles[0].ID,
-		})
-		return e
-	}))
-	require.Len(t, associations, 1, "matching feed above threshold must be associated")
+	associations := articleFeedAssociations(t, runTx, userID, articles[0].ID)
+	require.Len(t, associations, 1, "a borderline feed judged above threshold must be associated")
 	assert.Equal(t, feedID, associations[0].FeedID)
 }
 
 func TestIntegration_Processor_SkipsFeedBelowThreshold(t *testing.T) {
 	requireNotProduction(t)
 
-	// Judge returns 50, below the threshold of 70 → no association even though layer 1 matches.
+	// Judge returns 50, below the threshold of 70 → no association for the borderline feed.
 	lowScore := &external.MockAIClient{
 		JudgeFn: func(_ context.Context, _ []string, _ string, _ []string) (int, error) {
 			return 50, nil
 		},
 	}
 	runTx, queries, processor := setup(t, lowScore)
-	userID, _ := seedUserWithFeed(t, queries, `["alpha","rock","metal","music","concert"]`)
+	userID, _ := seedUserWithFeed(t, queries, `["alpha","beta","k1","k2","k3","k4","k5"]`) // borderline
 
 	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{item("https://src.com/lowscore")}))
 
@@ -238,15 +271,28 @@ func TestIntegration_Processor_SkipsFeedBelowThreshold(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, articles, 1)
 
-	var associations []db.ArticlesFeed
-	require.NoError(t, runTx(t.Context(), func(q db.Querier) error {
-		var e error
-		associations, e = q.FindArticleFeedsByArticleAndUser(t.Context(), db.FindArticleFeedsByArticleAndUserParams{
-			UserID: userID, ArticleID: articles[0].ID,
-		})
-		return e
-	}))
-	assert.Empty(t, associations, "a feed scored below the threshold must not be associated")
+	assert.Empty(t, articleFeedAssociations(t, runTx, userID, articles[0].ID), "a feed scored below the threshold must not be associated")
+}
+
+func TestIntegration_Processor_DiscardsWeakOverlap(t *testing.T) {
+	requireNotProduction(t)
+
+	// Feed shares only 1 keyword (alpha) → below min matches (2) → discarded WITHOUT AI, no association.
+	noAI := &external.MockAIClient{
+		JudgeFn: func(_ context.Context, _ []string, _ string, _ []string) (int, error) {
+			return 0, assert.AnError
+		},
+	}
+	runTx, queries, processor := setup(t, noAI)
+	userID, _ := seedUserWithFeed(t, queries, `["alpha","rock","metal","music","concert"]`)
+
+	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{item("https://src.com/weak")}))
+
+	articles, err := queries.ListArticles(t.Context())
+	require.NoError(t, err)
+	require.Len(t, articles, 1)
+
+	assert.Empty(t, articleFeedAssociations(t, runTx, userID, articles[0].ID), "a 1-keyword overlap must be discarded without AI")
 }
 
 func TestIntegration_Processor_ConcurrentPersistsAllArticles(t *testing.T) {

@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.36.3.0
+0.36.4.0
 
 ## Versão 0.1.0.0
 
@@ -555,6 +555,14 @@ Reforma do tratamento de notícias (PROJECT.md) quebrada em 3 fases.
 - [x] Reescrever o `parent` do iframe do Twitch para o host do `CLIENT_URL` no tratamento de embeds
     - O player do Twitch só reproduz quando o `parent` bate com o domínio que renderiza; o RSS traz o domínio da fonte (ou nada), então sem isso o embed renderizava mas não tocava (apontado pelo Claude do client)
     - `services/embedtreatment` passou a receber o `CLIENT_URL`, deriva o host (sem porta) e força `parent=<host>` no `src` do Twitch (`player.twitch.tv`/`clips.twitch.tv`), preservando os demais params. Pulado sem `CLIENT_URL`. YouTube não precisa
+
+## Versão 0.36.4.0
+
+- [x] Triagem da camada 2 do julgamento por overlap de keywords, pra desacoplar o custo de IA do total de feeds (300 users × 5 feeds estouraria a IA)
+    - Camada 1 (`FindCandidateFeedsByKeywords`) passou a devolver o **overlap** (COUNT + GROUP BY). O controller retorna `FeedCandidate{Feed, OverlapCount}`
+    - Triagem no `Evaluator`: `ratio ≥ JUDGEMENT_AUTOASSOCIATE_RATIO` (0.30) → auto-associa sem IA; overlap `< JUDGEMENT_MIN_MATCHES` (2, ou seja 1) → descarta sem IA; resto → IA (borderline)
+    - Filosofia de risco: falso positivo (auto-associar) é barato, falso negativo (descartar) é grave → descarte conservador (só 1 keyword). Ajuste fino de verdade = pesar keyword por especificidade/embeddings (futuro)
+    - Dry-run `POST /articles/judgement` mostra `overlap` + `decision` (auto_associated|judged|discarded) por candidato — ótimo pra calibrar
 
 ## Versão 0.36.3.0
 

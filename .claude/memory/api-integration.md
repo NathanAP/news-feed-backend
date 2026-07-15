@@ -51,14 +51,18 @@ O `content` da **tradução** (§5) segue exatamente estas mesmas regras (é re-
 - Um **feed** é uma coleção de **palavras-chave** (5 a 20, minúsculas, sem repetição). Quanto mais
   keywords, mais amplo o feed recebe.
 - A descoberta é automática (CRON no servidor). Cada notícia nova passa por **julgamento em 2 camadas**:
-    1. **Keywords** (SQL): feeds cujas keywords têm interseção com as da notícia viram candidatos.
-    2. **IA**: dá um `score` 0–100 de pertencimento por candidato; passa se ≥ um threshold do servidor.
-       Passou → a notícia é associada ao feed.
-- **Nível das keywords importa (dica para o usuário criar feeds):** a camada 1 casa por keyword
-  **exata**. As notícias recebem tanto termos específicos (`iron maiden`, `steve harris`) quanto
-  genéricos (`rock`, `metal`, `music`). Então um feed **genérico** (`rock`) recebe muita coisa; um feed
-  **específico** (`iron maiden`) recebe só o que menciona aquela entidade. Vale orientar o usuário a
-  escolher a granularidade conforme o quão amplo quer o feed.
+    1. **Keywords** (SQL): feeds cujas keywords têm interseção com as da notícia viram candidatos, com a
+       contagem de quantas bateram (overlap).
+    2. **Triagem + IA**: pelo overlap, o feed é **auto-associado** (cobre uma boa fração das keywords do
+       feed), **descartado** (bateu só 1 keyword) ou **julgado pela IA** (borderline) com um `score` vs
+       threshold. Passou → a notícia é associada ao feed.
+- **As keywords do feed são o que mais importa — o client deve ajudar o usuário a escolhê-las bem.** A
+  camada 1 casa por keyword **exata**. As notícias recebem termos específicos (`iron maiden`,
+  `steve harris`) e genéricos (`rock`, `metal`, `music`). Então:
+    - Feed **genérico** (`rock`, `metal`) recebe muita coisa (amplo).
+    - Feed **específico** (`iron maiden`) recebe só o que menciona aquela entidade (estreito).
+    - Keywords mal escolhidas = feed vazio ou lotado. Vale o client investir em UX para ensinar isso
+      (sugestões, exemplos, autocomplete de termos populares) — é o maior fator de qualidade do feed do usuário.
 - **Não é retroativo**: alterar as keywords de um feed **não** re-julga notícias já existentes; o
   julgamento só acontece na descoberta. Ou seja, ao criar/editar um feed, ele **não** volta a se
   preencher com notícias antigas — vai enchendo conforme a CRON descobre coisas novas.

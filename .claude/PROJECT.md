@@ -349,10 +349,12 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Esta etapa opera de acordo com as seguintes variáveis de ambiente:
     - `JUDGEMENT_MODE`: o modo atualmente utilizado durante esta etapa.
     - `JUDGEMENT_VERBOSE_MODE`: `boolean` que decide se os logs são exibidos no terminal ou não durante esta etapa.
-    - `JUDGEMENT_THRESHOLD`: `threshold` de julgamento para considerar notícias pertencentes a um feed.
+    - `JUDGEMENT_THRESHOLD`: `threshold` de score da IA para considerar notícias pertencentes a um feed.
+    - `JUDGEMENT_AUTOASSOCIATE_RATIO`: fração (0-1) das keywords do feed que a notícia precisa cobrir para ser auto-associada sem passar pela IA.
+    - `JUDGEMENT_MIN_MATCHES`: mínimo de keywords em comum para um candidato chegar na IA; abaixo disso é descartado também sem IA.
 - O julgamento funciona através de duas etapas:
-    - Comparação de palavras chave: utiliza filtros básicos no banco de dados para encontrar os principais feeds candidatos.
-    - Julgamento: julga se a notícia pertence aos candidatos selecionados.
+    - Comparação de palavras chave: filtro em SQL que encontra os feeds candidatos e conta quantas keywords cada um casou (overlap).
+    - Triagem + julgamento: usando o overlap, cada candidato é auto-associado (overlap alto), descartado (overlap trivial) ou enviado à IA (borderline). Isso mantém o custo de IA baixo mesmo quando uma notícia genérica casa muitos feeds.
     - Gravação no banco de dados: forma um registro da associção entre feed e notícia no banco de dados.
 - O julgamento de notícias nunca é feito de forma retroativa.
 - O julgamento de notícias só pode considerar feeds que estão ativos.
@@ -372,12 +374,17 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Essa filtragem é feita inteiramente em SQL.
     - As palavras-chave (tanto da notícia quanto dos feeds) são armazenadas como arrays JSON de strings minúsculas, então usamos `json_each` para expandir ambos os lados em linhas e um `JOIN` por igualdade exata de palavra-chave.
     - Um feed é candidato quando tem pelo menos uma palavra-chave em comum com a notícia.
-    - A query usa `DISTINCT` para não duplicar um feed que casou em várias palavras-chave (query `FindCandidateFeedsByKeywords`).
+    - A query agrupa por feed e **conta o overlap** (`COUNT(DISTINCT ...) AS overlap_count`) — esse número é o sinal usado pela triagem (query `FindCandidateFeedsByKeywords`).
 
-### Julgamento
+### Julgamento (triagem + IA)
 
-- A segunda etapa é feita atráves uma IA que define um `score` entre 0 e 100, julgando o quanto a notícia pertence a cada feed candidato. Um `threshold` é definido na variável de ambiente `JUDGEMENT_THRESHOLD` e comparado ao valor de `score` para definição do resultado.
-    - A IA julga a partir de `título + keywords` da notícia contra as keywords do feed. As keywords já destilam o conteúdo, e mandar o corpo por candidato era o maior custo de tokens do pipeline. Ao alterar isso, o `JUDGEMENT_THRESHOLD` deve ser re-calibrado.
+- O primeiro passo do julgamento passa por uma triagem barata baseada no overlap de keywords (o `ratio` é `overlap / nº de keywords do feed`):
+    - `ratio >= JUDGEMENT_AUTOASSOCIATE_RATIO` faz uma auto-associação sem IA, ou seja, overlap forte é sinal suficiente.
+    - overlap `< JUDGEMENT_MIN_MATCHES` faz descarte sem IA.
+    - o resto (bateu >= `JUDGEMENT_MIN_MATCHES` mas ratio < `JUDGEMENT_AUTOASSOCIATE_RATIO`) marca para borderline e vai para a IA.
+- Dessa forma o custo de IA não escala de forma notícias x feeds candidatos, a triagem tira o grosso (feeds fortes e feeds fracos) de graça e só manda o meio para a IA, desacoplando o custo do total de feeds.
+- Filosofia dos riscos: auto-associar errado (falso positivo) é chato mas recuperável; descartar errado (falso negativo) faz o usuário nunca ver a notícia. Por isso o descarte é conservador (só 1 keyword), enquanto o auto-associar usa uma fração; e o threshold/ratio são calibráveis por env. O ajuste fino "de verdade" (peso por especificidade da keyword / embeddings) é futuro.
+- A etapa de IA define um `score` entre 0 e 100 a partir de `título + keywords` da notícia contra as keywords do feed, comparado ao `JUDGEMENT_THRESHOLD`. Como o corpo não é enviado, o threshold deve ser re-calibrado quando esses parâmetros mudarem.
 
 ### Gravação da associação no banco de dados
 
