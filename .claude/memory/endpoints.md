@@ -140,7 +140,8 @@ interno — por isso jamais devem ser alcançáveis por um client.
   final grava `system.last_article_discovery_at` (informativo). Falha de IA no tratamento → não
   persiste, re-tenta na próxima run; falha no julgamento é best-effort (a notícia já está persistida,
   não é re-julgada — não-retroativo). Pula a run quando `app_status` está off. Logs gated por
-  `RSS_FEED_CRON_VERBOSE_MODE`.
+  `RSS_FEED_CRON_VERBOSE_MODE`. `DISCOVERY_MAX_ARTICLES` (default `-1` = sem cap) corta o lote da
+  varredura — freio bruto de rate limit para testes (produção fica `-1`).
 
 ## Paginação
 

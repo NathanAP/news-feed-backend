@@ -24,6 +24,9 @@ type DiscoveryRunner struct {
 	processor   discovery.Processor
 	httpClient  *http.Client
 	concurrency int
+	// maxArticles caps how many discovered items a single sweep hands to the processor (a blunt
+	// throttle to keep AI usage bounded while testing against a rate-limited provider). -1 = no cap.
+	maxArticles int
 	verbose     bool
 }
 
@@ -34,6 +37,7 @@ func NewDiscoveryRunner(
 	processor discovery.Processor,
 	httpClient *http.Client,
 	concurrency int,
+	maxArticles int,
 	verbose bool,
 ) *DiscoveryRunner {
 	return &DiscoveryRunner{
@@ -43,6 +47,7 @@ func NewDiscoveryRunner(
 		processor:   processor,
 		httpClient:  httpClient,
 		concurrency: concurrency,
+		maxArticles: maxArticles,
 		verbose:     verbose,
 	}
 }
@@ -83,6 +88,13 @@ func (r *DiscoveryRunner) Run(ctx context.Context) error {
 	r.log(fmt.Sprintf("@@@ DISCOVERY START - %d source(s) @@@", len(sources)), logger.ColorYellow)
 
 	all := r.fetchAll(ctx, sources)
+
+	// Optional throttle: cap the batch handed to the processor. A blunt lever to keep AI usage under
+	// a provider's rate limit while testing; -1 means no cap (the production value).
+	if r.maxArticles >= 0 && len(all) > r.maxArticles {
+		r.log(fmt.Sprintf("@@@ DISCOVERY CAP - processing %d of %d discovered item(s) (DISCOVERY_MAX_ARTICLES) @@@", r.maxArticles, len(all)), logger.ColorYellow)
+		all = all[:r.maxArticles]
+	}
 
 	if err := r.processor.Process(ctx, all); err != nil {
 		r.log(fmt.Sprintf("@@@ DISCOVERY PROCESSOR FAILED: %v @@@", err), logger.ColorRed)

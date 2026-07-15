@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.36.2.0
+0.36.3.0
 
 ## Versão 0.1.0.0
 
@@ -555,6 +555,11 @@ Reforma do tratamento de notícias (PROJECT.md) quebrada em 3 fases.
 - [x] Reescrever o `parent` do iframe do Twitch para o host do `CLIENT_URL` no tratamento de embeds
     - O player do Twitch só reproduz quando o `parent` bate com o domínio que renderiza; o RSS traz o domínio da fonte (ou nada), então sem isso o embed renderizava mas não tocava (apontado pelo Claude do client)
     - `services/embedtreatment` passou a receber o `CLIENT_URL`, deriva o host (sem porta) e força `parent=<host>` no `src` do Twitch (`player.twitch.tv`/`clips.twitch.tv`), preservando os demais params. Pulado sem `CLIENT_URL`. YouTube não precisa
+
+## Versão 0.36.3.0
+
+- [x] `DISCOVERY_MAX_ARTICLES`: cap de quantas notícias uma varredura da CRON entrega ao pipeline (`-1` = sem cap, padrão/produção)
+    - Freio bruto de rate limit para testar com Groq em dev sem estourar o TPM quando uma fonte traz muitas notícias de uma vez (ex.: Wikimetal com ~20). Corta o lote combinado antes do dedup, no `DiscoveryRunner`
 
 ## Versão 0.36.2.0
 

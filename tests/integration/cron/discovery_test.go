@@ -81,6 +81,7 @@ func TestIntegration_DiscoveryRunner_DiscoversAndAdvancesWatermark(t *testing.T)
 		proc,
 		mockClient,
 		1,
+		-1, // no article cap
 		false,
 	)
 
@@ -135,7 +136,8 @@ func TestIntegration_DiscoveryRunner_ConcurrentFetchCollectsAllSources(t *testin
 		controllers.NewSystemController(),
 		proc,
 		mockClient,
-		3, // concurrent sweep
+		3,  // concurrent sweep
+		-1, // no article cap
 		false,
 	)
 
@@ -144,6 +146,36 @@ func TestIntegration_DiscoveryRunner_ConcurrentFetchCollectsAllSources(t *testin
 	// SampleRSSFeed carries 1 item; 3 sources → 3 items merged into a single Process call.
 	require.Equal(t, 1, proc.calls)
 	assert.Len(t, proc.got, len(sourceIDs), "a concurrent sweep must collect every source's items")
+}
+
+func TestIntegration_DiscoveryRunner_CapsBatchWhenMaxArticlesSet(t *testing.T) {
+	requireNotProduction(t)
+
+	database := testutils.SetupTestDB(t)
+	queries := db.New(database)
+	runTx := controllers.NewTransactionRunner(database)
+
+	seedSource(t, queries, "01900000-0000-7000-8000-0000000000c3", feedURL)
+
+	mockClient := external.NewMockRSSClient(map[string]external.MockRSSResponse{
+		feedURL: {StatusCode: http.StatusOK, Body: external.SampleRSSFeedDated}, // 3 items
+	})
+	proc := &captureProcessor{}
+	runner := cronsvc.NewDiscoveryRunner(
+		runTx,
+		controllers.NewSourceController(),
+		controllers.NewSystemController(),
+		proc,
+		mockClient,
+		1,
+		2, // cap the sweep to 2 of the 3 discovered items
+		false,
+	)
+
+	require.NoError(t, runner.Run(t.Context()))
+
+	require.Equal(t, 1, proc.calls)
+	assert.Len(t, proc.got, 2, "DISCOVERY_MAX_ARTICLES must cap the batch handed to the processor")
 }
 
 func TestIntegration_DiscoveryRunner_SkipsWhenAppOff(t *testing.T) {
@@ -167,6 +199,7 @@ func TestIntegration_DiscoveryRunner_SkipsWhenAppOff(t *testing.T) {
 		proc,
 		mockClient,
 		1,
+		-1, // no article cap
 		false,
 	)
 

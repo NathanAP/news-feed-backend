@@ -245,6 +245,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - `DISCOVERY_CONCURRENCY`: quantas fontes (varredura de RSS) e quantas notícias (pipeline de tratamento + julgamento) são processadas em paralelo. Valor padrão e mínimo é `1` (sequencial). O paralelismo é feito por um worker pool interno de goroutines, limitado por este valor.
         - Em `development` mantém-se `1` (sequencial e determinístico); em `staging`/`production` sobe-se o valor, limitado pelo rate limit do provedor de IA.
         - O gargalo do pipeline é a latência de rede das chamadas de IA (2-3 por notícia), por isso a concorrência é o que aumenta o throughput. Ver a seção "Escalabilidade futura" no `ROADMAP.md` para a evolução planejada (fila distribuída + workers, dependente do Postgres).
+    - `DISCOVERY_MAX_ARTICLES`: cap de quantas notícias descobertas uma varredura entrega ao tratamento/julgamento. Valor `-1` (padrão) = sem cap (valor de ambiente de produção). É um freio para manter o uso de IA sob o rate limit do provedor durante testes; corta o lote combinado da varredura antes do dedup.
 - A descoberta de notícias deve acessar cada uma das fontes de notícias cadastradas no banco de dados, olhando pelo RSS de cada uma delas para decidir se há alguma nova notícia.
     - Uma notícia do RSS é considerada nova quando a URL original dela não está presente na nossa lista de notícias.
         - Ou seja, outras notícias já existentes não devem ser passadas adiante para o tratamento e julgamento de notícias.

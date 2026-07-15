@@ -236,8 +236,9 @@ func main() {
 	if os.Getenv("RSS_FEED_CRON_ACTIVE") == "true" {
 		cronVerbose := os.Getenv("RSS_FEED_CRON_VERBOSE_MODE") == "true"
 		discoveryConcurrency := parseConcurrency(os.Getenv("DISCOVERY_CONCURRENCY"))
+		discoveryMaxArticles := parseMaxArticles(os.Getenv("DISCOVERY_MAX_ARTICLES"))
 		processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, detector, defaultKeyworder, evaluator, clientURL, urlTreatmentVerbose, discoveryConcurrency, cronVerbose)
-		runner := cron.NewDiscoveryRunner(runTx, sourceCtrl, systemCtrl, processor, discoveryHTTPClient, discoveryConcurrency, cronVerbose)
+		runner := cron.NewDiscoveryRunner(runTx, sourceCtrl, systemCtrl, processor, discoveryHTTPClient, discoveryConcurrency, discoveryMaxArticles, cronVerbose)
 		scheduler, err := cron.NewScheduler(os.Getenv("RSS_FEED_CRON_SCHEDULE"), runner)
 		if err != nil {
 			log.Fatalf("Failed to set up discovery cron: %v", err)
@@ -337,6 +338,21 @@ func parseConcurrency(s string) int {
 	if err != nil || n < 1 {
 		log.Printf("Invalid DISCOVERY_CONCURRENCY %q (want integer >= 1), using default %d", s, defaultDiscoveryConcurrency)
 		return defaultDiscoveryConcurrency
+	}
+	return n
+}
+
+// parseMaxArticles reads the per-sweep cap on how many discovered items are handed to the pipeline.
+// -1 (the default) means no cap — the production value. A positive value throttles AI usage while
+// testing against a rate-limited provider. Invalid input falls back to -1 rather than crashing.
+func parseMaxArticles(s string) int {
+	if s == "" {
+		return -1
+	}
+	n, err := strconv.Atoi(s)
+	if err != nil || n < -1 {
+		log.Printf("Invalid DISCOVERY_MAX_ARTICLES %q (want integer >= -1), using default -1 (no cap)", s)
+		return -1
 	}
 	return n
 }
