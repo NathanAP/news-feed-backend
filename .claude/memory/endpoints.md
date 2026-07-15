@@ -104,7 +104,7 @@ do pipeline; **chamam a IA de verdade** (consomem quota), **não persistem** nad
 interno — por isso jamais devem ser alcançáveis por um client.
 
 - `POST /articles/treatment` — **dry-run** do tratamento. Body `{ article: { title, content, ... }, keywords_mode? }`. Roda detecção de idioma (lingua-go) + **tratamento de URLs** (reescreve links internos, leitura no banco) + **tratamento de embeds** (Instagram → link; `parent` do iframe do Twitch reescrito para o host do `CLIENT_URL`) + **sanitização do corpo cru** (bluemonday, iframes YouTube/Twitch por allowlist; todos determinísticos — a IA não toca no corpo desde a 0.34) → keywords (única etapa de IA). → 200 `{ content, keywords, keywords_mode, language_original, treatment_ms, keywords_ms }` (`content` é o corpo sanitizado; `treatment_ms` mede a sanitização) / 400 / 500 (falha da IA de keywords). O `keywords_mode` opcional (`local`|`groq`|`gemini`) troca o backend das keywords só nesta chamada (benchmark sem reiniciar; 400 se o modo não existe).
-- `POST /articles/judgement` — **dry-run** do julgamento por IA. Body `{ article: { title, content, keywords }, judgement_mode? }` (notícia já tratada; sem `id`). Camada 1: feeds candidatos por sobreposição de keywords (SQL `json_each`, feeds ativos de qualquer usuário); camada 2: `score` 0–100 da IA por candidato vs `JUDGEMENT_THRESHOLD`. → 200 `{ judgement_mode, threshold, candidate_count, judgements: [{ feed_id, feed_name, score, passed }], judgement_ms }` / 400 / 500. `judgement_mode` opcional (`local`|`groq`|`gemini`) troca o backend só nesta chamada (400 se inexistente).
+- `POST /articles/judgement` — **dry-run** do julgamento por IA. Body `{ article: { title, keywords }, judgement_mode? }` (sem `id`; **sem `content` desde a 0.36.2** — o corpo não é mais usado). Camada 1: feeds candidatos por sobreposição de keywords (SQL `json_each`, feeds ativos de qualquer usuário); camada 2: `score` 0–100 da IA por candidato (a partir de `título + keywords`, sem o corpo) vs `JUDGEMENT_THRESHOLD`. → 200 `{ judgement_mode, threshold, candidate_count, judgements: [{ feed_id, feed_name, score, passed }], judgement_ms }` / 400 / 500. `judgement_mode` opcional (`local`|`groq`|`gemini`) troca o backend só nesta chamada (400 se inexistente).
 
 ## Feeds (`/v1/feeds`) — auth, **recurso por-usuário**
 
@@ -133,9 +133,10 @@ interno — por isso jamais devem ser alcançáveis por um client.
   **trata** as novas (detecta o idioma com lingua-go + **reescreve links internos** (url treatment →
   `CLIENT_URL/articles/{id}`, 0.35) + **trata embeds** (Instagram → link; `parent` do Twitch → host do `CLIENT_URL`, 0.36) +
   **sanitiza o corpo cru do RSS** com bluemonday (iframes YouTube/Twitch por allowlist) — todos
-  determinísticos, a IA não toca no corpo desde a 0.34 — + SLM/LLM nomeia keywords),
-  **persiste** o `article` (com `language_original`) e por fim **julga** (camada 1 SQL por keywords + camada 2 IA vs
-  `JUDGEMENT_THRESHOLD`), gravando as associações aprovadas em `articles_feeds`; ao
+  determinísticos, a IA não toca no corpo desde a 0.34 — + SLM/LLM **nomeia keywords** (sobre o texto
+  puro; mistura termos específicos + genéricos desde a 0.36.2),
+  **persiste** o `article` (com `language_original`) e por fim **julga** (camada 1 SQL por keywords + camada 2 IA
+  por `título + keywords`, sem o corpo, vs `JUDGEMENT_THRESHOLD`), gravando as associações aprovadas em `articles_feeds`; ao
   final grava `system.last_article_discovery_at` (informativo). Falha de IA no tratamento → não
   persiste, re-tenta na próxima run; falha no julgamento é best-effort (a notícia já está persistida,
   não é re-julgada — não-retroativo). Pula a run quando `app_status` está off. Logs gated por

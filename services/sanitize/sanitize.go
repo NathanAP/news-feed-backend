@@ -8,10 +8,16 @@
 package sanitize
 
 import (
+	"html"
 	"regexp"
+	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
 )
+
+// textPolicy strips every tag, leaving only text — used to feed plain text to the AI (keywords),
+// which does not need the markup and would otherwise pay tokens for image/iframe/href URLs.
+var textPolicy = bluemonday.StrictPolicy()
 
 // embedSrc is the allowlist of trusted <iframe> embed providers (YouTube, Twitch). Only iframes whose
 // src matches are kept; every other iframe has its src stripped and is dropped. It never permits
@@ -65,6 +71,14 @@ func buildPolicy() *bluemonday.Policy {
 // links (safe schemes, rel=nofollow), images and allowlisted video embeds (YouTube/Twitch iframes).
 // Scripts, styles, non-allowlisted iframes, event handlers and unknown attributes are stripped; a
 // full HTML document is handled gracefully (wrappers removed, body content preserved).
-func Sanitize(html string) string {
-	return policy.Sanitize(html)
+func Sanitize(htmlContent string) string {
+	return policy.Sanitize(htmlContent)
+}
+
+// PlainText strips all HTML and returns the readable text, collapsed to single-spaced words. It is
+// what the keyword AI is fed: the model does not need markup, and dropping tags/URLs (image srcs,
+// iframe srcs, hrefs) cuts a large share of the input tokens with no loss of semantic signal.
+func PlainText(htmlContent string) string {
+	text := html.UnescapeString(textPolicy.Sanitize(htmlContent))
+	return strings.Join(strings.Fields(text), " ")
 }

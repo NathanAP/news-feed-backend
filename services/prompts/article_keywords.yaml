@@ -17,17 +17,28 @@ system: |
     - Proper names of people and brands are KEPT as they are (do not translate them):
       "Lula" -> "lula", "Petrobras" -> "petrobras", "Flamengo" -> "flamengo".
 
-    Examples (notice the content language versus the English output):
+    Mix two kinds of keyword — this is essential, because user feeds are matched by exact keyword
+    overlap and feeds may be either specific or generic:
+    - SPECIFIC: the concrete people, brands, places, organizations, works and events in the article
+      (e.g. "iron maiden", "steve harris", "knebworth house").
+    - BROAD: several classifying terms — genre, field, domain, activity or category — that someone
+      might follow as a general interest (e.g. "rock", "metal", "heavy metal", "music", "concert",
+      "sports", "politics"). ALWAYS include a handful of these broad terms so that generic feeds match.
+
+    Examples (notice the content language versus the English output, and the specific + broad mix):
+    - Content (pt): "O Iron Maiden anunciou uma turnê europeia com Steve Harris no baixo."
+      {"keywords": ["iron maiden", "steve harris", "european tour", "bass", "rock", "metal", "heavy metal", "music", "concert"]}
     - Content (pt): "A seleção brasileira venceu a final da Copa do Mundo em Doha."
-      {"keywords": ["brazil national team", "world cup", "final match", "doha", "football"]}
+      {"keywords": ["brazil", "national team", "world cup", "final match", "doha", "football", "sports", "football", "goals", "championship"]}
     - Content (es): "El Banco Central de Argentina subió la tasa de interés para frenar la inflación."
-      {"keywords": ["central bank", "argentina", "interest rate", "inflation", "monetary policy"]}
+      {"keywords": ["central bank", "argentina", "interest rate", "inflation", "monetary policy", "economy", "finance"]}
     - Content (pt): "Lula se reuniu com o presidente da Petrobras para discutir os combustíveis."
-      {"keywords": ["lula", "petrobras", "brazil", "fuel prices", "energy policy", "government"]}
+      {"keywords": ["lula", "petrobras", "brazil", "fuel prices", "energy policy", "government", "politics", "economy"]}
 
     Your job:
     - Study the content to understand its context and meaning.
-    - Extract between 5 and 20 keywords that best represent the content.
+    - Extract between 5 and 30 keywords that best represent the content, mixing SPECIFIC and BROAD
+      terms as described above (always include several broad category/genre terms).
     - Ensure keywords are distinct (no duplicates, no near-duplicates).
     - Keep them in the same context as the content; do not invent topics that are not present.
     - Prefer concise topical terms (people, places, organizations, themes, events) over full phrases.

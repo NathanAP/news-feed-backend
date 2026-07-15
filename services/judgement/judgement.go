@@ -40,8 +40,9 @@ func (e *Evaluator) Threshold() int { return e.threshold }
 // Evaluate scores the article against every candidate feed and marks those meeting the threshold.
 // It fails fast on the first AI error so the caller can decide how to react (the endpoint returns
 // 500; the CRON logs and skips the article). Candidates are typically the output of
-// FeedController.FindCandidatesByKeywords.
-func (e *Evaluator) Evaluate(ctx context.Context, candidates []db.Feed, title string, articleKeywords []string, content string) ([]Result, error) {
+// FeedController.FindCandidatesByKeywords. It judges from title + keywords only — the article body is
+// not needed (and not sent) at this layer.
+func (e *Evaluator) Evaluate(ctx context.Context, candidates []db.Feed, title string, articleKeywords []string) ([]Result, error) {
 	results := make([]Result, 0, len(candidates))
 	for _, feed := range candidates {
 		feedKeywords, err := controllers.DecodeKeywords(feed.Keywords)
@@ -49,7 +50,7 @@ func (e *Evaluator) Evaluate(ctx context.Context, candidates []db.Feed, title st
 			return nil, fmt.Errorf("failed to decode feed %s keywords: %w", feed.ID, err)
 		}
 
-		score, err := e.judger.Judge(ctx, feedKeywords, title, articleKeywords, content)
+		score, err := e.judger.Judge(ctx, feedKeywords, title, articleKeywords)
 		if err != nil {
 			return nil, fmt.Errorf("failed to judge feed %s: %w", feed.ID, err)
 		}

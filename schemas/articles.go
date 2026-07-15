@@ -4,7 +4,10 @@ import "time"
 
 const (
 	ArticleKeywordsMin = 5
-	ArticleKeywordsMax = 20
+	// ArticleKeywordsMax was raised to 30 (0.36.2) so the keyworder has room to emit broad
+	// category/genre terms alongside the specific ones — those broad terms are what let generic feeds
+	// match in the keyword-overlap layer.
+	ArticleKeywordsMax = 30
 )
 
 type CreateArticleRequest struct {
@@ -45,12 +48,11 @@ type ArticleTreatmentResponse struct {
 	KeywordsMs       int64    `json:"keywords_ms"`
 }
 
-// JudgeArticleInput is a treated article (as it exists right before judgement in the pipeline:
-// cleaned content plus assigned keywords) used as input to the judgement dry-run. It carries no id
-// on purpose, so simulations do not depend on an article being persisted first.
+// JudgeArticleInput is a treated article used as input to the judgement dry-run: judgement runs on
+// the title and keywords only (the body is not used since 0.36.2), and it carries no id on purpose,
+// so simulations do not depend on an article being persisted first.
 type JudgeArticleInput struct {
 	Title    string   `json:"title"`
-	Content  string   `json:"content"`
 	Keywords []string `json:"keywords"`
 }
 

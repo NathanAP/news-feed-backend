@@ -225,7 +225,7 @@ func TestIntegration_Processor_SkipsFeedBelowThreshold(t *testing.T) {
 
 	// Judge returns 50, below the threshold of 70 → no association even though layer 1 matches.
 	lowScore := &external.MockAIClient{
-		JudgeFn: func(_ context.Context, _ []string, _ string, _ []string, _ string) (int, error) {
+		JudgeFn: func(_ context.Context, _ []string, _ string, _ []string) (int, error) {
 			return 50, nil
 		},
 	}

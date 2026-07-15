@@ -82,7 +82,8 @@ func TreatArticle(keyworders map[string]ai.Keyworder, defaultMode string, detect
 		treatmentMs := time.Since(treatStart).Milliseconds()
 
 		kwStart := time.Now()
-		keywords, err := keyworder.Keywords(c.Context(), req.Article.Title, treated)
+		// Keywords run over the plain text (markup stripped), mirroring the CRON.
+		keywords, err := keyworder.Keywords(c.Context(), req.Article.Title, sanitize.PlainText(treated))
 		keywordsMs := time.Since(kwStart).Milliseconds()
 		if err != nil {
 			logger.Log(fmt.Sprintf("keywords failed: %v", err), logger.ColorRed)

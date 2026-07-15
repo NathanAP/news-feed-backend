@@ -54,6 +54,11 @@ O `content` da **tradução** (§5) segue exatamente estas mesmas regras (é re-
     1. **Keywords** (SQL): feeds cujas keywords têm interseção com as da notícia viram candidatos.
     2. **IA**: dá um `score` 0–100 de pertencimento por candidato; passa se ≥ um threshold do servidor.
        Passou → a notícia é associada ao feed.
+- **Nível das keywords importa (dica para o usuário criar feeds):** a camada 1 casa por keyword
+  **exata**. As notícias recebem tanto termos específicos (`iron maiden`, `steve harris`) quanto
+  genéricos (`rock`, `metal`, `music`). Então um feed **genérico** (`rock`) recebe muita coisa; um feed
+  **específico** (`iron maiden`) recebe só o que menciona aquela entidade. Vale orientar o usuário a
+  escolher a granularidade conforme o quão amplo quer o feed.
 - **Não é retroativo**: alterar as keywords de um feed **não** re-julga notícias já existentes; o
   julgamento só acontece na descoberta. Ou seja, ao criar/editar um feed, ele **não** volta a se
   preencher com notícias antigas — vai enchendo conforme a CRON descobre coisas novas.

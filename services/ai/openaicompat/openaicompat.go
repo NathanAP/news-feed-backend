@@ -65,13 +65,12 @@ func (c *Client) Keywords(ctx context.Context, title, content string) ([]string,
 	return ai.ParseKeywords(stripThinking(out))
 }
 
-func (c *Client) Judge(ctx context.Context, feedKeywords []string, title string, articleKeywords []string, content string) (int, error) {
+func (c *Client) Judge(ctx context.Context, feedKeywords []string, title string, articleKeywords []string) (int, error) {
 	// jsonMode forces the {"score": N} object, avoiding prose and the reasoning block.
 	out, err := c.chat(ctx, judgementPromptName, map[string]string{
 		"feed_keywords":    strings.Join(feedKeywords, ", "),
 		"title":            title,
 		"article_keywords": strings.Join(articleKeywords, ", "),
-		"content":          content,
 	}, true)
 	if err != nil {
 		return 0, err

@@ -39,11 +39,13 @@ type Keyworder interface {
 	Keywords(ctx context.Context, title, content string) ([]string, error)
 }
 
-// Judger scores how strongly an article belongs to a feed (0-100), given the feed's keywords and
-// the article's title, keywords and content. It is the second judgement layer (after the cheap
-// keyword-overlap filter), so the caller passes only feeds that already survived stage 1.
+// Judger scores how strongly an article belongs to a feed (0-100), given the feed's keywords and the
+// article's title and keywords. It is the second judgement layer (after the cheap keyword-overlap
+// filter), so the caller passes only feeds that already survived stage 1. It deliberately does NOT
+// take the article body: the keywords already distil the content, so title+keywords is enough signal
+// and avoids sending the (large) body once per candidate feed.
 type Judger interface {
-	Judge(ctx context.Context, feedKeywords []string, title string, articleKeywords []string, content string) (int, error)
+	Judge(ctx context.Context, feedKeywords []string, title string, articleKeywords []string) (int, error)
 }
 
 // Translator translates an article's title and content into the target language (an English
@@ -73,7 +75,7 @@ func (disabledClient) Keywords(context.Context, string, string) ([]string, error
 	return nil, ErrDisabled
 }
 
-func (disabledClient) Judge(context.Context, []string, string, []string, string) (int, error) {
+func (disabledClient) Judge(context.Context, []string, string, []string) (int, error) {
 	return 0, ErrDisabled
 }
 

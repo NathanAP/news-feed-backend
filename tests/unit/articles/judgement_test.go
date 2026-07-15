@@ -72,7 +72,7 @@ func postJudgement(t *testing.T, app *fiber.App, body string, authed bool) *http
 	return resp
 }
 
-const validJudgeBody = `{"article":{"title":"Some News","content":"body","keywords":["alpha","beta","gamma","delta","epsilon"]}}`
+const validJudgeBody = `{"article":{"title":"Some News","keywords":["alpha","beta","gamma","delta","epsilon"]}}`
 
 func TestJudgeArticle_Success(t *testing.T) {
 	requireNotProduction(t)
@@ -99,7 +99,7 @@ func TestJudgeArticle_ModeOverride(t *testing.T) {
 	requireNotProduction(t)
 
 	app := judgementApp(&mockJudgeFeedCtrl{}, &external.MockAIClient{})
-	body := `{"judgement_mode":"gemini","article":{"title":"T","content":"c","keywords":["a","b","c","d","e"]}}`
+	body := `{"judgement_mode":"gemini","article":{"title":"T","keywords":["a","b","c","d","e"]}}`
 	resp := postJudgement(t, app, body, true)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -112,7 +112,7 @@ func TestJudgeArticle_BelowThreshold(t *testing.T) {
 	requireNotProduction(t)
 
 	lowScore := &external.MockAIClient{
-		JudgeFn: func(_ context.Context, _ []string, _ string, _ []string, _ string) (int, error) {
+		JudgeFn: func(_ context.Context, _ []string, _ string, _ []string) (int, error) {
 			return 40, nil
 		},
 	}
@@ -148,7 +148,7 @@ func TestJudgeArticle_UnknownMode(t *testing.T) {
 	requireNotProduction(t)
 
 	app := judgementApp(&mockJudgeFeedCtrl{}, &external.MockAIClient{})
-	body := `{"judgement_mode":"bogus","article":{"title":"T","content":"c","keywords":["a","b","c","d","e"]}}`
+	body := `{"judgement_mode":"bogus","article":{"title":"T","keywords":["a","b","c","d","e"]}}`
 	resp := postJudgement(t, app, body, true)
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
@@ -157,15 +157,7 @@ func TestJudgeArticle_MissingTitle(t *testing.T) {
 	requireNotProduction(t)
 
 	app := judgementApp(&mockJudgeFeedCtrl{}, &external.MockAIClient{})
-	resp := postJudgement(t, app, `{"article":{"content":"c","keywords":["a","b","c","d","e"]}}`, true)
-	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
-}
-
-func TestJudgeArticle_MissingContent(t *testing.T) {
-	requireNotProduction(t)
-
-	app := judgementApp(&mockJudgeFeedCtrl{}, &external.MockAIClient{})
-	resp := postJudgement(t, app, `{"article":{"title":"T","keywords":["a","b","c","d","e"]}}`, true)
+	resp := postJudgement(t, app, `{"article":{"keywords":["a","b","c","d","e"]}}`, true)
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
@@ -173,7 +165,7 @@ func TestJudgeArticle_MissingKeywords(t *testing.T) {
 	requireNotProduction(t)
 
 	app := judgementApp(&mockJudgeFeedCtrl{}, &external.MockAIClient{})
-	resp := postJudgement(t, app, `{"article":{"title":"T","content":"c"}}`, true)
+	resp := postJudgement(t, app, `{"article":{"title":"T"}}`, true)
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
@@ -197,7 +189,7 @@ func TestJudgeArticle_AIFailure(t *testing.T) {
 	requireNotProduction(t)
 
 	failing := &external.MockAIClient{
-		JudgeFn: func(_ context.Context, _ []string, _ string, _ []string, _ string) (int, error) {
+		JudgeFn: func(_ context.Context, _ []string, _ string, _ []string) (int, error) {
 			return 0, ai.ErrInvalidScore
 		},
 	}

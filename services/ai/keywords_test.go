@@ -2,6 +2,8 @@ package ai
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -39,8 +41,12 @@ func TestParseKeywords_TooFew(t *testing.T) {
 }
 
 func TestParseKeywords_TooMany(t *testing.T) {
-	many := `["k1","k2","k3","k4","k5","k6","k7","k8","k9","k10","k11","k12","k13","k14","k15","k16","k17","k18","k19","k20","k21"]`
-	_, err := ParseKeywords(many)
+	// Over the 30-keyword max (0.36.2): 31 distinct keywords.
+	items := make([]string, 31)
+	for i := range items {
+		items[i] = fmt.Sprintf("%q", fmt.Sprintf("k%d", i))
+	}
+	_, err := ParseKeywords("[" + strings.Join(items, ",") + "]")
 	assert.ErrorIs(t, err, ErrInvalidKeywords)
 }
 

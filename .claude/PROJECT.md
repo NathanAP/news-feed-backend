@@ -200,10 +200,12 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
         - Entretanto, os endpoints de criação e alteração de notícias devem obrigar o valor a ser passado.
 - Quando descobertas, as notícias passam por um julgamento através de uma inteligência artificial para definir palavras-chave às quais ela pertence. As palavras-chave definidas servirão como base para saber em quais feeds ela aparecerá ou não.
     - Esse processo deve ser disparado automaticamente após cada criação de notícias.
-- As notícias devem possuir pelo menos 5 palavras-chave com limite de 20.
+- As notícias devem possuir pelo menos 5 palavras-chave com limite de 30.
     - Palavras-chave não podem estar repetidas.
     - O campo de palavras-chave é uma lista de `string` (no formato `JSON array (TEXT)`).
     - Quanto mais palavras-chave uma notícia tem, mais amplo vai ser a distribuição aos feeds durante o julgamento.
+    - As palavras-chave devem misturar termos específicos (pessoas, marcas, lugares, eventos) e genéricos (gênero/categoria/domínio, ex.: `rock`, `metal`, `music`, `sports`).
+        - Os genéricos são o que permite a um feed genérico casar uma notícia de entidades específicas na camada 1 do julgamento mais facilmente.
 - Alterar as palavras-chave de uma notícia não faz com que um novo julgamento aconteça.
 - As notícias estão diretamente ligadas à uma fonte de notícias, por isso é obrigatório também passar uma referência (`source_id`) à qual ela pertence.
     - Este campo é obrigatório e imutável.
@@ -328,6 +330,8 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - `KEYWORDS_VERBOSE_MODE`: `boolean` que decide se os logs são exibidos no terminal ou não durante esta etapa.
 - As palavras-chave nomeadas devem estar em inglês para facilitar o entendimento de quais notícias estão relacionadas.
 - As palavras-chave devem ser armazenadas em letras minúsculas.
+- A IA recebe o texto puro do conteúdo sem HTML para economizar tokens. O conteúdo gravado continua sendo o HTML sanitizado.
+- O prompt pede uma mistura de termos específicos + genéricos (ver regra de palavras-chave em "Notícias").
 
 ### Gravação da notícia no banco de dados
 
@@ -354,11 +358,11 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Um endpoint de teste para esse processo pode ser encontrado em `POST base_url/v1/articles/judgement`.
     - Deve simular os exatos mesmos processos que rodaria na CRON.
     - Deve permitir a troca de modo na etapa de julgamento através de uma chave chamada `judgement_mode` no body, aceitando os valores disponibilizados na descrição da etapa.
-    - Esse endpoint é **exclusivo do modo de desenvolvimento** (`ENVIRONMENT=development`): a rota nem sequer é registrada fora de dev (mesmo padrão do `dev-login`), pois é uma ferramenta interna que chama a IA de verdade e jamais deve ser alcançada por clientes.
+    - Esse endpoint é exclusivo do modo de desenvolvimento, ou seja, a rota nem sequer é registrada fora de dev (mesmo padrão do `dev-login`), pois é uma ferramenta interna que chama a IA de verdade e jamais deve ser alcançada por clientes.
     - Esse endpoint é considerada uma dry-run, ou seja, ela não cria ou altera nenhum registro do banco de dados.
     - O body deste endpoint deve aceitar um `json` contendo os dados necessários para se fazer a simulação de um julgamento.
         - Evite a necessidade de passar um `id` de notícias válido, assim poderemos fazer simulações mais rapidamente.
-        - Como a camada 1 compara palavras-chave e a camada 2 usa o conteúdo, o body carrega a notícia já tratada: `title`, `content` e `keywords` (a saída do tratamento). Assim nenhum registro precisa existir no banco.
+        - A camada 1 compara palavras-chave e a camada 2 usa `título + keywords`.
     - Esse endpoint responde os dados do julgamento de notícias antes da gravação no banco de dados, ou seja, até a penúltima etapa.
 
 ### Comparação de palavras chave
@@ -372,6 +376,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 ### Julgamento
 
 - A segunda etapa é feita atráves uma IA que define um `score` entre 0 e 100, julgando o quanto a notícia pertence a cada feed candidato. Um `threshold` é definido na variável de ambiente `JUDGEMENT_THRESHOLD` e comparado ao valor de `score` para definição do resultado.
+    - A IA julga a partir de `título + keywords` da notícia contra as keywords do feed. As keywords já destilam o conteúdo, e mandar o corpo por candidato era o maior custo de tokens do pipeline. Ao alterar isso, o `JUDGEMENT_THRESHOLD` deve ser re-calibrado.
 
 ### Gravação da associação no banco de dados
 

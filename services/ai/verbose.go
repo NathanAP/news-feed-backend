@@ -52,11 +52,11 @@ type verboseJudger struct {
 	label string
 }
 
-func (v verboseJudger) Judge(ctx context.Context, feedKeywords []string, title string, articleKeywords []string, content string) (int, error) {
+func (v verboseJudger) Judge(ctx context.Context, feedKeywords []string, title string, articleKeywords []string) (int, error) {
 	logger.Print(fmt.Sprintf("@@@ JUDGEMENT START - %s @@@", v.label), logger.ColorCyan)
 	start := time.Now()
 
-	score, err := v.inner.Judge(ctx, feedKeywords, title, articleKeywords, content)
+	score, err := v.inner.Judge(ctx, feedKeywords, title, articleKeywords)
 
 	elapsed := time.Since(start).Round(time.Millisecond)
 	if err != nil {

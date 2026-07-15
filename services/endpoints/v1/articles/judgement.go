@@ -15,9 +15,9 @@ import (
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
-// JudgeArticle is a dry-run of the judgement step: it takes a treated article (title, content and
-// keywords) and, exactly as the CRON would, runs layer 1 (candidate feeds by keyword overlap, a
-// read-only DB query) then layer 2 (AI relevance score per candidate) and reports each score with
+// JudgeArticle is a dry-run of the judgement step: it takes a treated article (title and keywords)
+// and, exactly as the CRON would, runs layer 1 (candidate feeds by keyword overlap, a read-only DB
+// query) then layer 2 (AI relevance score per candidate) and reports each score with
 // whether it cleared the threshold. The judgement backend is chosen by the configured default mode,
 // or overridden per call via the body's `judgement_mode` (local | groq | gemini). It stops at the
 // penultimate step: it does NOT write any articles_feeds association. It does call the AI for real
@@ -33,9 +33,6 @@ func JudgeArticle(feedCtrl controllers.FeedControllerInterface, judgers map[stri
 		}
 		if strings.TrimSpace(req.Article.Title) == "" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "article.title is required"})
-		}
-		if strings.TrimSpace(req.Article.Content) == "" {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "article.content is required"})
 		}
 		if len(req.Article.Keywords) == 0 {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "article.keywords is required"})
@@ -67,7 +64,7 @@ func JudgeArticle(feedCtrl controllers.FeedControllerInterface, judgers map[stri
 		// Layer 2: AI scoring against each candidate.
 		evaluator := judgement.NewEvaluator(judger, threshold)
 		start := time.Now()
-		results, err := evaluator.Evaluate(c.Context(), candidates, req.Article.Title, req.Article.Keywords, req.Article.Content)
+		results, err := evaluator.Evaluate(c.Context(), candidates, req.Article.Title, req.Article.Keywords)
 		judgementMs := time.Since(start).Milliseconds()
 		if err != nil {
 			logger.Log(fmt.Sprintf("judgement failed: %v", err), logger.ColorRed)

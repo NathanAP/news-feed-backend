@@ -93,10 +93,11 @@ Descoberta via CRON (0.19) + **tratamento e persistência** (0.20/0.21) + **julg
 internos** (url treatment → `CLIENT_URL/articles/{id}`, 0.35), **converte embeds via script** (Instagram
 → link, 0.36) e **sanitiza o corpo cru do RSS** (bluemonday, determinístico — desde a 0.34 a IA não
 reescreve mais o corpo; iframes YouTube/Twitch permitidos por allowlist), nomeia
-keywords com uma **SLM/LLM** por modo (`KEYWORDS_MODE` = local/groq/gemini, em inglês minúsculo),
+keywords com uma **SLM/LLM** por modo (`KEYWORDS_MODE` = local/groq/gemini; inglês minúsculo; **texto
+puro** como input; mistura específicas + genéricas, máx. 30 — 0.36.2),
 grava o `article` (com `language_original`) e por fim **julga** a quais
-feeds ele pertence (camada 1 SQL por keywords + camada 2 IA vs `JUDGEMENT_THRESHOLD`), gravando as
-associações em `articles_feeds`. **Tradução personalizada** on-demand por usuário já existe (0.23,
+feeds ele pertence (camada 1 SQL por keywords + camada 2 IA por **`título + keywords`**, sem o corpo,
+vs `JUDGEMENT_THRESHOLD` — 0.36.2), gravando as associações em `articles_feeds`. **Tradução personalizada** on-demand por usuário já existe (0.23,
 LLM-only, read-only). Ainda **não** implementado: **resumo** por IA (depende de Redis), deploy,
 usuário administrador, exclusão de usuário.
 

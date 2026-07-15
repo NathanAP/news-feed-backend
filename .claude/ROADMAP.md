@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.36.1.0
+0.36.2.0
 
 ## Versão 0.1.0.0
 
@@ -555,6 +555,17 @@ Reforma do tratamento de notícias (PROJECT.md) quebrada em 3 fases.
 - [x] Reescrever o `parent` do iframe do Twitch para o host do `CLIENT_URL` no tratamento de embeds
     - O player do Twitch só reproduz quando o `parent` bate com o domínio que renderiza; o RSS traz o domínio da fonte (ou nada), então sem isso o embed renderizava mas não tocava (apontado pelo Claude do client)
     - `services/embedtreatment` passou a receber o `CLIENT_URL`, deriva o host (sem porta) e força `parent=<host>` no `src` do Twitch (`player.twitch.tv`/`clips.twitch.tv`), preservando os demais params. Pulado sem `CLIENT_URL`. YouTube não precisa
+
+## Versão 0.36.2.0
+
+Redução de tokens de IA + correção de recall no julgamento (a camada 1 deixava de trazer feeds que encaixariam).
+
+- [x] Camada 1 (recall): o keyworder passa a emitir também termos **genéricos** (gênero/categoria) junto dos específicos, para que feeds genéricos casem notícias de entidades específicas no overlap exato de keywords
+    - Limite de keywords da notícia subiu de 20 para **30** (`ArticleKeywordsMax`) para dar espaço aos genéricos; prompt `article_keywords` reescrito com a regra específico+genérico e exemplos
+- [x] Keywords recebem **texto puro** (HTML removido via `sanitize.PlainText`) em vez do HTML — corta tokens de URL de imagem/iframe/href sem perder sinal. Conteúdo gravado continua HTML
+- [x] Camada 2 (precisão + tokens): o julgamento **deixa de enviar o corpo** da notícia; julga por `título + keywords` (`ai.Judger` sem o param `content`, prompt reescrito). Isso mata o multiplicador (corpo × nº de candidatos) que estourava o rate limit do Groq
+    - O `JUDGEMENT_THRESHOLD` precisa ser **re-calibrado** manualmente no dry-run (a escala dos scores muda sem o corpo)
+    - Dry-run `POST /articles/judgement` não aceita mais `article.content` (só `title` + `keywords`)
 
 ## Futuro
 

@@ -172,7 +172,9 @@ func (p *TreatmentProcessor) processOne(ctx context.Context, article DiscoveredA
 	// no error): the body is never rewritten by a model, only stripped of unsafe/unknown markup.
 	content := sanitize.Sanitize(body)
 
-	keywords, err := p.keyworder.Keywords(ctx, article.Title, content)
+	// Keywords run over the plain text (markup stripped): the model does not need the HTML and it
+	// keeps the input tokens down. The stored article keeps the full sanitized HTML (content above).
+	keywords, err := p.keyworder.Keywords(ctx, article.Title, sanitize.PlainText(content))
 	if err != nil {
 		p.log(fmt.Sprintf("    keywords failed for %s: %v", article.URLOriginal, err), logger.ColorRed)
 		return
@@ -213,7 +215,7 @@ func (p *TreatmentProcessor) judge(ctx context.Context, article db.Article, keyw
 		return
 	}
 
-	results, err := p.evaluator.Evaluate(ctx, candidates, article.Title, keywords, article.Content)
+	results, err := p.evaluator.Evaluate(ctx, candidates, article.Title, keywords)
 	if err != nil {
 		p.log(fmt.Sprintf("    judge failed for %s: %v", article.ID, err), logger.ColorRed)
 		return
