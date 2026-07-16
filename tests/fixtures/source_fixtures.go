@@ -10,7 +10,7 @@ import (
 func NewTestSource() db.Source {
 	return db.Source{
 		ID:         "01900000-0000-7000-8000-000000000010",
-		Status:     1,
+		Status:     true,
 		Name:       "Test Source",
 		Url:        "https://example.com",
 		UrlRss:     "https://example.com/rss.xml",
@@ -23,7 +23,7 @@ func NewTestSource() db.Source {
 func NewTestSourceAlt() db.Source {
 	return db.Source{
 		ID:         "01900000-0000-7000-8000-000000000011",
-		Status:     1,
+		Status:     true,
 		Name:       "Other Source",
 		Url:        "https://other-source.com",
 		UrlRss:     "https://other-source.com/feed.xml",

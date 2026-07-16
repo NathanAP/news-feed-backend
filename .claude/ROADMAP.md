@@ -178,6 +178,19 @@ Executada em 3 etapas (mesma versão; só está concluída no fim da Etapa 3):
       o `bool`. Reescrever a regra de teste do `conventions.md`: "instância em memória" → database
       temporário por teste, descartado ao fim. `task ta` passa a exigir Docker rodando. `test_manager` roda aqui.
 - [ ] **Etapa 3 — seed e documentação.** `cmd/seed`, CLAUDE.md, `rules/structure.md`, `versions/`, `memory/`.
+      (O grosso do `cmd/seed` — driver e dialeto — foi puxado para a Etapa 1: sem ele o `task sdfull`
+      não rodava e não havia como verificar a Etapa 1.)
+- [ ] **Etapa 4 — UTC no sistema de tipos.** Fecha a dívida aberta na Etapa 1. O pgx materializa
+      `TIMESTAMPTZ` em `time.Local`, então a API passou a serializar `...-03:00` em vez de `...Z`,
+      violando a convenção de datas (o instante certo, a representação errada, variando por host).
+      `timezone=UTC` no DSN **não resolve**: muda a sessão do servidor, não o fuso em que o pgx
+      materializa o valor em Go. A Etapa 1 corrigiu com `time.Local = time.UTC` no `main.go` e no
+      seed — funciona e está verificado, mas é mutação de global do runtime e a garantia é implícita.
+      Esta etapa troca isso por garantia no tipo: um `utctime.Time` (+ `NullTime`) com `Scan` forçando
+      `.UTC()` e `MarshalJSON` em RFC3339, plugado via `overrides` do `sqlc.yaml` para `timestamptz`.
+      Ripple esperado: todo model, schema, fixture, mock e comparação de data em teste.
+      A decidir no planejamento da etapa: se o tipo se paga frente a manter o `time.Local` (que é o
+      que a maioria dos serviços Go em produção faz). Definido junto, não unilateralmente.
 
 Fora do escopo desta versão (candidatos naturais logo depois, viabilizados por ela): filtragens e
 paginações que hoje acontecem em Go em vez de SQL.

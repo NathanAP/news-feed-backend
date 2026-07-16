@@ -32,9 +32,9 @@ func TestE2E_Callback_SuccessfulLogin(t *testing.T) {
 	assert.Equal(t, "E2E User", user.Name)
 	assert.True(t, user.Picture.Valid)
 	assert.Equal(t, "https://example.com/pic.jpg", user.Picture.String)
-	assert.Equal(t, int64(1), user.Status)
+	assert.True(t, user.Status)
 	assert.Equal(t, user.ID, rt.UserID)
-	assert.Equal(t, int64(1), rt.Status)
+	assert.True(t, rt.Status)
 	assert.NotEmpty(t, accessToken)
 }
 

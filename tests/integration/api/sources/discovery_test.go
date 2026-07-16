@@ -1,6 +1,7 @@
 package sources_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 	"testing"
@@ -78,7 +79,7 @@ func TestIntegration_SourceDiscovery_DeduplicatesExisting(t *testing.T) {
 		Title:       "Fresh News",
 		Content:     "# already here",
 		UrlOriginal: "https://example.com/fresh",
-		Keywords:    `["a","b","c","d","e"]`,
+		Keywords:    json.RawMessage(`["a","b","c","d","e"]`),
 		SourceID:    id,
 	})
 	require.NoError(t, err)

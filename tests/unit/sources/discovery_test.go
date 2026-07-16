@@ -19,7 +19,7 @@ const discoveryFeedURL = "https://feed.example.com/rss.xml"
 func sourceWithFeed() *mockSourceCtrl {
 	return &mockSourceCtrl{
 		findByIDFn: func(_ context.Context, _ db.Querier, id string) (db.Source, error) {
-			return db.Source{ID: id, Status: 1, Url: "https://example.com", UrlRss: discoveryFeedURL}, nil
+			return db.Source{ID: id, Status: true, Url: "https://example.com", UrlRss: discoveryFeedURL}, nil
 		},
 	}
 }

@@ -10,10 +10,6 @@ import (
 // exists (seeded by the migration), so this only ever updates it. Tests use it to simulate the
 // application going under maintenance (false) or being brought back online (true).
 func SetAppStatus(ctx context.Context, q db.Querier, active bool) error {
-	status := int64(0)
-	if active {
-		status = 1
-	}
-	_, err := q.UpdateSystemAppStatus(ctx, status)
+	_, err := q.UpdateSystemAppStatus(ctx, active)
 	return err
 }

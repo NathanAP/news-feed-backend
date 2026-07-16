@@ -12,7 +12,6 @@ import (
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 	testutils "github.com/nathanap/news-feed-backend/tests/utils"
-	_ "modernc.org/sqlite"
 )
 
 // TestWithTransaction_Integration_RollsBackOnError proves the orphan-prevention guarantee:

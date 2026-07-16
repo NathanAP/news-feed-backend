@@ -164,8 +164,12 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Ao alterar um endpoint existente na API, o teste unitário correspondente deve ser atualizado para refletir as mudanças feitas, garantindo que a funcionalidade continue funcionando corretamente e que o código continue testável.
 - Ao remover um endpoint existente na API, o teste unitário correspondente deve ser removido também, garantindo que o código continue limpo e que não haja testes desnecessários para endpoints que não existem mais.
 - A alteração de qualquer arquivo em `fixtures`, `integration`, `mocks` ou `unit` deve acionar uma rotina de testes completa para garantir que as mudanças feitas não afetaram negativamente a funcionalidade da aplicação e que o código continua funcionando corretamente.
-- Cada teste individual deve conter sua própria instância do banco de dados em memória, ou seja, se no teste A foi criado um usuário, o teste B não o verá. Caso o teste B precise de um usuário, ele deve criar novamente este usuário na sua própria instância.
+- Cada teste individual deve conter seu próprio banco de dados temporário, ou seja, se no teste A foi criado um usuário, o teste B não o verá. Caso o teste B precise de um usuário, ele deve criar novamente este usuário no seu próprio banco.
     - Boas `fixtures` são essenciais para esta regra ser seguida.
+    - Ao fim do teste, o banco dele é descartado. Nada que um teste criou sobrevive a ele.
+    - O isolamento é obtido assim: o `SetupTestDB` (em `raiz/tests/utils/db.go`) sobe um container PostgreSQL descartável, aplica as migrações **uma vez** num banco template e cada teste clona esse template (`CREATE DATABASE ... TEMPLATE`) para ter o seu. Clonar é uma cópia de arquivos dentro do servidor, então o teste não paga a migração inteira.
+    - Como consequência, **rodar testes exige o Docker ligado**. O PostgreSQL não tem modo "em memória" (o SQLite tinha), então banco temporário de verdade é a forma de manter o isolamento que esta regra exige.
+    - O container é compartilhado por toda a execução (o `go test` roda cada pacote num processo separado e em paralelo; sem isso, cada pacote subiria um PostgreSQL próprio). Ao fim da suíte o próprio testcontainers o destrói, então nada sobra na máquina. O `task test-db-clean` existe só para o caso de uma execução ser interrompida de forma abrupta e o container ficar órfão.
 
 ## Sobre a pasta fixtures
 

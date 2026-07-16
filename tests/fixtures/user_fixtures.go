@@ -14,7 +14,7 @@ func NewTestUser() db.User {
 		Email:       "test@example.com",
 		Name:        "Test User",
 		Picture:     sql.NullString{String: "https://example.com/photo.jpg", Valid: true},
-		Status:      1,
+		Status:      true,
 		LastLoginAt: sql.NullTime{Valid: false},
 		CreatedAt:   time.Date(2026, 6, 19, 12, 0, 0, 0, time.UTC),
 		ModifiedAt:  sql.NullTime{Valid: false},

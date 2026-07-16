@@ -2,6 +2,7 @@ package discovery_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
@@ -18,7 +19,6 @@ import (
 	"github.com/nathanap/news-feed-backend/tests/mocks/external"
 	servicemocks "github.com/nathanap/news-feed-backend/tests/mocks/services"
 	testutils "github.com/nathanap/news-feed-backend/tests/utils"
-	_ "modernc.org/sqlite"
 )
 
 const sourceID = "01900000-0000-7000-8000-0000000000e1"
@@ -69,7 +69,7 @@ func seedUserWithFeed(t *testing.T, queries db.Querier, keywords string) (userID
 
 	feed := fixtures.NewTestFeed(user.ID)
 	created, err := queries.CreateFeed(t.Context(), db.CreateFeedParams{
-		ID: feed.ID, Name: feed.Name, Keywords: keywords, UserID: user.ID,
+		ID: feed.ID, Name: feed.Name, Keywords: json.RawMessage(keywords), UserID: user.ID,
 	})
 	require.NoError(t, err)
 	return user.ID, created.ID
@@ -95,7 +95,10 @@ func TestIntegration_Processor_PersistsTreatedArticle(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, articles, 1)
 	assert.Equal(t, "raw content", articles[0].Content) // sanitized raw body (no HTML to strip → unchanged)
-	assert.Equal(t, `["alpha","beta","gamma","delta","epsilon"]`, articles[0].Keywords)
+	// JSONEq, not Equal: keywords are JSONB, and Postgres stores the parsed value rather than the
+	// text it was given — it re-renders on read (notably with a space after each comma), so the exact
+	// bytes are not ours to assert on. What matters is that the same JSON array came back.
+	assert.JSONEq(t, `["alpha","beta","gamma","delta","epsilon"]`, string(articles[0].Keywords))
 	assert.Equal(t, "https://src.com/a1", articles[0].UrlOriginal)
 	require.True(t, articles[0].LanguageOriginal.Valid, "detected language must be persisted")
 	assert.Equal(t, "pt", articles[0].LanguageOriginal.String) // from the mock detector
@@ -142,7 +145,7 @@ func TestIntegration_Processor_RewritesInternalLinks(t *testing.T) {
 	const existingID = "01900000-0000-7000-8000-0000000000f1"
 	_, err = queries.CreateArticle(t.Context(), db.CreateArticleParams{
 		ID: existingID, Title: "Existing", Content: "x",
-		UrlOriginal: "https://src.com/existing", Keywords: `["a","b","c","d","e"]`, SourceID: sourceID,
+		UrlOriginal: "https://src.com/existing", Keywords: json.RawMessage(`["a","b","c","d","e"]`), SourceID: sourceID,
 	})
 	require.NoError(t, err)
 
@@ -183,7 +186,7 @@ func TestIntegration_Processor_SkipsExistingURL(t *testing.T) {
 	// Pre-create the article, then process the same url → must not duplicate.
 	_, err := queries.CreateArticle(t.Context(), db.CreateArticleParams{
 		ID: "01900000-0000-7000-8000-0000000000e2", Title: "Existing", Content: "x",
-		UrlOriginal: "https://src.com/dup", Keywords: `["a","b","c","d","e"]`, SourceID: sourceID,
+		UrlOriginal: "https://src.com/dup", Keywords: json.RawMessage(`["a","b","c","d","e"]`), SourceID: sourceID,
 	})
 	require.NoError(t, err)
 

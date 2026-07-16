@@ -19,7 +19,6 @@ import (
 	"github.com/nathanap/news-feed-backend/tests/fixtures"
 	"github.com/nathanap/news-feed-backend/tests/mocks/external"
 	testutils "github.com/nathanap/news-feed-backend/tests/utils"
-	_ "modernc.org/sqlite"
 )
 
 const feedURL = "https://cron-feed.com/rss.xml"

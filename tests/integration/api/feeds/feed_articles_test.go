@@ -1,6 +1,7 @@
 package feeds_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -39,7 +40,7 @@ func seedArticleInFeed(t *testing.T, queries db.Querier, suffix, sourceID, feedI
 		Title:       "Article " + suffix,
 		Content:     "content " + suffix,
 		UrlOriginal: "https://article-" + suffix + ".example.com",
-		Keywords:    "[]",
+		Keywords:    json.RawMessage("[]"),
 		SourceID:    sourceID,
 	})
 	require.NoError(t, err)

@@ -97,7 +97,7 @@ func TestGetArticle_IsReadFalseWhenUnread(t *testing.T) {
 	afCtrl := &mockArticleFeedCtrl{
 		findByArticleAndUserFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ArticlesFeed, error) {
 			return []db.ArticlesFeed{
-				{ID: "af-1", ArticleID: "a1", FeedID: "f1", IsRead: 0, CreatedAt: time.Now()},
+				{ID: "af-1", ArticleID: "a1", FeedID: "f1", IsRead: false, CreatedAt: time.Now()},
 			}, nil
 		},
 	}
@@ -116,8 +116,8 @@ func TestGetArticle_IsReadTrueWhenAllRead(t *testing.T) {
 	afCtrl := &mockArticleFeedCtrl{
 		findByArticleAndUserFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ArticlesFeed, error) {
 			return []db.ArticlesFeed{
-				{ID: "af-1", IsRead: 1, CreatedAt: time.Now()},
-				{ID: "af-2", IsRead: 1, CreatedAt: time.Now(), ModifiedAt: sql.NullTime{Valid: true, Time: time.Now()}},
+				{ID: "af-1", IsRead: true, CreatedAt: time.Now()},
+				{ID: "af-2", IsRead: true, CreatedAt: time.Now(), ModifiedAt: sql.NullTime{Valid: true, Time: time.Now()}},
 			}, nil
 		},
 	}
@@ -137,8 +137,8 @@ func TestGetArticle_IsReadFalseWhenMixedReadState(t *testing.T) {
 	afCtrl := &mockArticleFeedCtrl{
 		findByArticleAndUserFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ArticlesFeed, error) {
 			return []db.ArticlesFeed{
-				{ID: "af-1", IsRead: 1, CreatedAt: time.Now()},
-				{ID: "af-2", IsRead: 0, CreatedAt: time.Now()},
+				{ID: "af-1", IsRead: true, CreatedAt: time.Now()},
+				{ID: "af-2", IsRead: false, CreatedAt: time.Now()},
 			}, nil
 		},
 	}

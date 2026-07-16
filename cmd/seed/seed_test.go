@@ -13,7 +13,6 @@ import (
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 	testutils "github.com/nathanap/news-feed-backend/tests/utils"
-	_ "modernc.org/sqlite"
 )
 
 func strPtr(s string) *string { return &s }

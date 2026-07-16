@@ -1,6 +1,7 @@
 package articles_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 	"testing"
@@ -48,7 +49,7 @@ func seedFeed(t *testing.T, queries db.Querier, userID, keywords string) string 
 	t.Helper()
 	feed := fixtures.NewTestFeed(userID)
 	created, err := queries.CreateFeed(t.Context(), db.CreateFeedParams{
-		ID: feed.ID, Name: feed.Name, Keywords: keywords, UserID: userID,
+		ID: feed.ID, Name: feed.Name, Keywords: json.RawMessage(keywords), UserID: userID,
 	})
 	require.NoError(t, err)
 	return created.ID

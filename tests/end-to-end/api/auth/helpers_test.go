@@ -23,7 +23,6 @@ import (
 	"github.com/nathanap/news-feed-backend/tests/mocks/external"
 	jwtmock "github.com/nathanap/news-feed-backend/tests/mocks/services"
 	testutils "github.com/nathanap/news-feed-backend/tests/utils"
-	_ "modernc.org/sqlite"
 )
 
 const e2eRefreshExpiry = 30 * 24 * time.Hour

@@ -12,7 +12,7 @@ func NewTestArticleFeed(articleID, feedID string) db.ArticlesFeed {
 		ID:         "01900000-0000-7000-8000-000000000050",
 		ArticleID:  articleID,
 		FeedID:     feedID,
-		IsRead:     0,
+		IsRead:     false,
 		CreatedAt:  time.Date(2026, 6, 29, 12, 0, 0, 0, time.UTC),
 		ModifiedAt: sql.NullTime{Valid: false},
 	}

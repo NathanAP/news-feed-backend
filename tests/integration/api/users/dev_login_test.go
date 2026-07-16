@@ -16,7 +16,6 @@ import (
 	db "github.com/nathanap/news-feed-backend/sqlc"
 	jwtmock "github.com/nathanap/news-feed-backend/tests/mocks/services"
 	testutils "github.com/nathanap/news-feed-backend/tests/utils"
-	_ "modernc.org/sqlite"
 )
 
 func setupDevLoginApp(t *testing.T) (*fiber.App, db.Querier) {

@@ -27,7 +27,7 @@ func judgeCandidate(id string, feedKeywords []string, overlap int) controllers.F
 	feed := fixtures.NewTestFeed("01900000-0000-7000-8000-000000000009")
 	feed.ID = id
 	kw, _ := json.Marshal(feedKeywords)
-	feed.Keywords = string(kw)
+	feed.Keywords = kw
 	return controllers.FeedCandidate{Feed: feed, OverlapCount: overlap}
 }
 

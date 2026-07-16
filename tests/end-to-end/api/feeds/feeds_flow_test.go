@@ -22,7 +22,6 @@ import (
 	"github.com/nathanap/news-feed-backend/tests/mocks/external"
 	jwtmock "github.com/nathanap/news-feed-backend/tests/mocks/services"
 	testutils "github.com/nathanap/news-feed-backend/tests/utils"
-	_ "modernc.org/sqlite"
 )
 
 func requireNotProduction(t *testing.T) {
@@ -194,7 +193,7 @@ func TestE2E_Feeds_FetchArticles(t *testing.T) {
 	require.NoError(t, err)
 	_, err = queries.CreateArticle(context.Background(), db.CreateArticleParams{
 		ID: "01900000-0000-7000-8000-0000000e0002", Title: "E2E Article", Content: "content",
-		UrlOriginal: "https://e2e-article.example.com", Keywords: "[]", SourceID: "01900000-0000-7000-8000-0000000e0001",
+		UrlOriginal: "https://e2e-article.example.com", Keywords: json.RawMessage("[]"), SourceID: "01900000-0000-7000-8000-0000000e0001",
 	})
 	require.NoError(t, err)
 	_, err = queries.CreateArticleFeed(context.Background(), db.CreateArticleFeedParams{
@@ -261,7 +260,7 @@ func TestE2E_Feeds_CheckForNewArticles(t *testing.T) {
 	require.NoError(t, err)
 	_, err = queries.CreateArticle(context.Background(), db.CreateArticleParams{
 		ID: "01900000-0000-7000-8000-0000000c0002", Title: "Check Article", Content: "content",
-		UrlOriginal: "https://check-article.example.com", Keywords: "[]", SourceID: "01900000-0000-7000-8000-0000000c0001",
+		UrlOriginal: "https://check-article.example.com", Keywords: json.RawMessage("[]"), SourceID: "01900000-0000-7000-8000-0000000c0001",
 	})
 	require.NoError(t, err)
 	_, err = queries.CreateArticleFeed(context.Background(), db.CreateArticleFeedParams{

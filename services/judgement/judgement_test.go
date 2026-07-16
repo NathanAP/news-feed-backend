@@ -2,6 +2,7 @@ package judgement_test
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,7 +26,10 @@ func (s *stubJudger) Judge(_ context.Context, _ []string, _ string, _ []string) 
 }
 
 func candidate(feedKeywordsJSON string, overlap int) controllers.FeedCandidate {
-	return controllers.FeedCandidate{Feed: db.Feed{ID: "feed-1", Keywords: feedKeywordsJSON}, OverlapCount: overlap}
+	return controllers.FeedCandidate{
+		Feed:         db.Feed{ID: "feed-1", Keywords: json.RawMessage(feedKeywordsJSON)},
+		OverlapCount: overlap,
+	}
 }
 
 func eval(judger *stubJudger) *judgement.Evaluator {

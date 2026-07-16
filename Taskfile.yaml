@@ -179,9 +179,17 @@ tasks:
             - go test ./tests/end-to-end/... -v
 
     test-all:
-        desc: Run all tests (unit + integration + end-to-end)
+        desc: Run all tests (unit + integration + end-to-end). Requires Docker running.
         aliases: [ta]
         cmds:
             - task: test-units
             - task: test-integration
             - task: test-end-to-end
+
+    # The suite tears its own container down; this is for when a run is interrupted hard enough
+    # that testcontainers' reaper does not get to it and the container is left orphaned.
+    test-db-clean:
+        desc: Remove an orphaned test Postgres container left by an interrupted run
+        aliases: [tdc]
+        cmds:
+            - docker rm -f news-feed-test-postgres

@@ -2,6 +2,7 @@ package feeds_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"testing"
 	"time"
@@ -56,19 +57,19 @@ func buildFeedArticlesApp(feedCtrl controllers.FeedControllerInterface, afCtrl c
 	return app
 }
 
-func afRow(id, title string, createdAt time.Time, isRead int64) db.ListArticlesByFeedForUserRow {
+func afRow(id, title string, createdAt time.Time, isRead bool) db.ListArticlesByFeedForUserRow {
 	return db.ListArticlesByFeedForUserRow{
 		ID:              id,
-		Status:          1,
+		Status:          true,
 		Title:           title,
 		Content:         "content",
 		UrlOriginal:     "https://example.com/" + id,
-		Keywords:        "[]",
+		Keywords:        json.RawMessage("[]"),
 		SourceID:        "01900000-0000-7000-8000-000000000010",
 		CreatedAt:       createdAt,
 		IsRead:          isRead,
 		SourceName:      "Example News",
-		SourceStatus:    1,
+		SourceStatus:    true,
 		SourceUrl:       "https://source.example.com",
 		SourceUrlRss:    "https://source.example.com/rss",
 		SourceCreatedAt: createdAt,
@@ -117,8 +118,8 @@ func TestUnit_FeedArticles_FiltersByIsRead(t *testing.T) {
 
 	afCtrl := &mockAFCtrl{listByFeedFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ListArticlesByFeedForUserRow, error) {
 		return []db.ListArticlesByFeedForUserRow{
-			afRow("a-read", "Read one", time.Now().UTC(), 1),
-			afRow("a-unread", "Unread one", time.Now().UTC(), 0),
+			afRow("a-read", "Read one", time.Now().UTC(), true),
+			afRow("a-unread", "Unread one", time.Now().UTC(), false),
 		}, nil
 	}}
 	app := buildFeedArticlesApp(&mockFeedCtrl{}, afCtrl)
@@ -141,8 +142,8 @@ func TestUnit_FeedArticles_FiltersByPeriod(t *testing.T) {
 	jul := time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC)
 	afCtrl := &mockAFCtrl{listByFeedFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ListArticlesByFeedForUserRow, error) {
 		return []db.ListArticlesByFeedForUserRow{
-			afRow("jul", "July", jul, 0),
-			afRow("jun", "June", jun, 0),
+			afRow("jul", "July", jul, false),
+			afRow("jun", "June", jun, false),
 		}, nil
 	}}
 	app := buildFeedArticlesApp(&mockFeedCtrl{}, afCtrl)
@@ -162,7 +163,7 @@ func TestUnit_FeedArticles_EnvelopeAndIsRead(t *testing.T) {
 	requireNotProduction(t)
 
 	afCtrl := &mockAFCtrl{listByFeedFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ListArticlesByFeedForUserRow, error) {
-		return []db.ListArticlesByFeedForUserRow{afRow("a-1", "One", time.Now().UTC(), 0)}, nil
+		return []db.ListArticlesByFeedForUserRow{afRow("a-1", "One", time.Now().UTC(), false)}, nil
 	}}
 	app := buildFeedArticlesApp(&mockFeedCtrl{}, afCtrl)
 
@@ -183,7 +184,7 @@ func TestUnit_FeedArticles_WithSourcesTrue_PopulatesSource(t *testing.T) {
 	requireNotProduction(t)
 
 	afCtrl := &mockAFCtrl{listByFeedFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ListArticlesByFeedForUserRow, error) {
-		return []db.ListArticlesByFeedForUserRow{afRow("a-1", "One", time.Now().UTC(), 0)}, nil
+		return []db.ListArticlesByFeedForUserRow{afRow("a-1", "One", time.Now().UTC(), false)}, nil
 	}}
 	app := buildFeedArticlesApp(&mockFeedCtrl{}, afCtrl)
 
@@ -202,7 +203,7 @@ func TestUnit_FeedArticles_WithSourcesNotTrue_OmitsSource(t *testing.T) {
 	requireNotProduction(t)
 
 	afCtrl := &mockAFCtrl{listByFeedFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ListArticlesByFeedForUserRow, error) {
-		return []db.ListArticlesByFeedForUserRow{afRow("a-1", "One", time.Now().UTC(), 0)}, nil
+		return []db.ListArticlesByFeedForUserRow{afRow("a-1", "One", time.Now().UTC(), false)}, nil
 	}}
 	app := buildFeedArticlesApp(&mockFeedCtrl{}, afCtrl)
 

@@ -45,25 +45,21 @@ func (m *mockSystemCtrl) Get(ctx context.Context, q db.Querier) (db.System, erro
 	if m.getFn != nil {
 		return m.getFn(ctx, q)
 	}
-	return db.System{ID: testSystemID, AppStatus: 1}, nil
+	return db.System{ID: testSystemID, AppStatus: true}, nil
 }
 
 func (m *mockSystemCtrl) UpdateAppStatus(ctx context.Context, q db.Querier, active bool) (db.System, error) {
 	if m.updateAppStatusFn != nil {
 		return m.updateAppStatusFn(ctx, q, active)
 	}
-	status := int64(0)
-	if active {
-		status = 1
-	}
-	return db.System{ID: testSystemID, AppStatus: status}, nil
+	return db.System{ID: testSystemID, AppStatus: active}, nil
 }
 
 func (m *mockSystemCtrl) UpdateLastArticleDiscovery(ctx context.Context, q db.Querier, at time.Time) (db.System, error) {
 	if m.updateLastArticleDiscovery != nil {
 		return m.updateLastArticleDiscovery(ctx, q, at)
 	}
-	return db.System{ID: testSystemID, AppStatus: 1}, nil
+	return db.System{ID: testSystemID, AppStatus: true}, nil
 }
 
 var _ controllers.SystemControllerInterface = (*mockSystemCtrl)(nil)

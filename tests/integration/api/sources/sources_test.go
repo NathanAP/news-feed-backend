@@ -20,7 +20,6 @@ import (
 	"github.com/nathanap/news-feed-backend/tests/mocks/external"
 	jwtmock "github.com/nathanap/news-feed-backend/tests/mocks/services"
 	testutils "github.com/nathanap/news-feed-backend/tests/utils"
-	_ "modernc.org/sqlite"
 )
 
 func requireNotProduction(t *testing.T) {
@@ -549,7 +548,7 @@ func seedArticleForSource(t *testing.T, queries db.Querier, id, urlOriginal, sou
 		Title:       "Cascade Article",
 		Content:     "# Cascade",
 		UrlOriginal: urlOriginal,
-		Keywords:    `["a","b","c","d","e"]`,
+		Keywords:    json.RawMessage(`["a","b","c","d","e"]`),
 		SourceID:    sourceID,
 	})
 	require.NoError(t, err)

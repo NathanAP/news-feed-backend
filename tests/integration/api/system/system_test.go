@@ -21,7 +21,6 @@ import (
 	"github.com/nathanap/news-feed-backend/tests/fixtures"
 	jwtmock "github.com/nathanap/news-feed-backend/tests/mocks/services"
 	testutils "github.com/nathanap/news-feed-backend/tests/utils"
-	_ "modernc.org/sqlite"
 )
 
 func requireNotProduction(t *testing.T) {
