@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/nathanap/news-feed-backend/services/utctime"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
@@ -33,7 +34,7 @@ func (c *RefreshTokenController) Create(ctx context.Context, q db.Querier, userI
 	token, err := q.CreateRefreshToken(ctx, db.CreateRefreshTokenParams{
 		ID:        id.String(),
 		UserID:    userID,
-		ExpiresAt: time.Now().Add(c.expiry),
+		ExpiresAt: utctime.New(time.Now().Add(c.expiry)),
 	})
 	if err != nil {
 		return db.RefreshToken{}, fmt.Errorf("failed to create refresh token: %w", err)
@@ -51,7 +52,7 @@ func (c *RefreshTokenController) FindByID(ctx context.Context, q db.Querier, id 
 		return db.RefreshToken{}, fmt.Errorf("failed to find refresh token: %w", err)
 	}
 
-	if time.Now().After(token.ExpiresAt) {
+	if time.Now().After(token.ExpiresAt.Time) {
 		return db.RefreshToken{}, ErrRefreshTokenExpired
 	}
 
@@ -61,7 +62,7 @@ func (c *RefreshTokenController) FindByID(ctx context.Context, q db.Querier, id 
 func (c *RefreshTokenController) Extend(ctx context.Context, q db.Querier, id string) error {
 	if err := q.ExtendRefreshToken(ctx, db.ExtendRefreshTokenParams{
 		ID:        id,
-		ExpiresAt: time.Now().Add(c.expiry),
+		ExpiresAt: utctime.New(time.Now().Add(c.expiry)),
 	}); err != nil {
 		return fmt.Errorf("failed to extend refresh token: %w", err)
 	}

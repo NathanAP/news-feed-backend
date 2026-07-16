@@ -7,9 +7,9 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
-	"time"
+
+	utctime "github.com/nathanap/news-feed-backend/services/utctime"
 )
 
 const countActiveFeedsByUser = `-- name: CountActiveFeedsByUser :one
@@ -69,15 +69,15 @@ GROUP BY f.id
 `
 
 type FindCandidateFeedsByKeywordsRow struct {
-	ID           string          `json:"id"`
-	Status       bool            `json:"status"`
-	Name         string          `json:"name"`
-	Keywords     json.RawMessage `json:"keywords"`
-	UserID       string          `json:"user_id"`
-	CreatedAt    time.Time       `json:"created_at"`
-	ModifiedAt   sql.NullTime    `json:"modified_at"`
-	RemovedAt    sql.NullTime    `json:"removed_at"`
-	OverlapCount int64           `json:"overlap_count"`
+	ID           string           `json:"id"`
+	Status       bool             `json:"status"`
+	Name         string           `json:"name"`
+	Keywords     json.RawMessage  `json:"keywords"`
+	UserID       string           `json:"user_id"`
+	CreatedAt    utctime.Time     `json:"created_at"`
+	ModifiedAt   utctime.NullTime `json:"modified_at"`
+	RemovedAt    utctime.NullTime `json:"removed_at"`
+	OverlapCount int64            `json:"overlap_count"`
 }
 
 // Judgement layer 1 (keyword overlap): returns every active feed (of any user) that shares at

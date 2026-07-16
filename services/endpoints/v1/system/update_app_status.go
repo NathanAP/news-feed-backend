@@ -40,18 +40,11 @@ func UpdateAppStatus(ctrl controllers.SystemControllerInterface, runTx controlle
 }
 
 func toSystemResponse(s db.System) schemas.SystemResponse {
-	resp := schemas.SystemResponse{
-		ID:        s.ID,
-		AppStatus: s.AppStatus,
-		CreatedAt: s.CreatedAt,
+	return schemas.SystemResponse{
+		ID:                     s.ID,
+		AppStatus:              s.AppStatus,
+		CreatedAt:              s.CreatedAt.Time,
+		LastArticleDiscoveryAt: s.LastArticleDiscoveryAt.Ptr(),
+		ModifiedAt:             s.ModifiedAt.Ptr(),
 	}
-	if s.LastArticleDiscoveryAt.Valid {
-		t := s.LastArticleDiscoveryAt.Time
-		resp.LastArticleDiscoveryAt = &t
-	}
-	if s.ModifiedAt.Valid {
-		t := s.ModifiedAt.Time
-		resp.ModifiedAt = &t
-	}
-	return resp
 }

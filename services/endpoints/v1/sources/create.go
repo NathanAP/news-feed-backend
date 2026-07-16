@@ -68,16 +68,13 @@ func isValidURL(raw string) bool {
 
 func toSourceResponse(s db.Source) schemas.SourceResponse {
 	resp := schemas.SourceResponse{
-		ID:        s.ID,
-		Status:    s.Status,
-		Name:      s.Name,
-		URL:       s.Url,
-		URLRss:    s.UrlRss,
-		CreatedAt: s.CreatedAt,
-	}
-	if s.ModifiedAt.Valid {
-		t := s.ModifiedAt.Time
-		resp.ModifiedAt = &t
+		ID:         s.ID,
+		Status:     s.Status,
+		Name:       s.Name,
+		URL:        s.Url,
+		URLRss:     s.UrlRss,
+		CreatedAt:  s.CreatedAt.Time,
+		ModifiedAt: s.ModifiedAt.Ptr(),
 	}
 	return resp
 }

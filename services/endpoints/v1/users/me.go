@@ -19,7 +19,7 @@ func GetMe() fiber.Handler {
 			Email:     claims.Email,
 			Name:      claims.Name,
 			Picture:   claims.Picture,
-			CreatedAt: claims.CreatedAt,
+			CreatedAt: claims.CreatedAt.Time,
 		})
 	}
 }

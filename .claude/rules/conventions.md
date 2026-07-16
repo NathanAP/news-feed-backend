@@ -122,6 +122,10 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 
 - Todas as datas devem ser tratadas como UTC nesta aplicação.
 - Bancos de dados salvam datas sempre no fuso horário UTC.
+- **Datas vindas do banco já são UTC por garantia de tipo**: as colunas `timestamptz` são geradas pelo sqlc como `utctime.Time`/`utctime.NullTime` (pacote `raiz/services/utctime`, plugado via `overrides` no `sqlc.yaml`), cujo `Scan` converte para UTC e cujo `MarshalJSON` sempre emite `Z`. Não é preciso (nem se deve) chamar `.UTC()` nelas de novo.
+    - O motivo de existir: o driver entrega um `timestamptz` como `time.Time` no fuso **local do processo**. Sem o tipo, o formato de data da resposta passaria a depender de como o relógio da máquina está configurado — e um servidor em UTC esconderia o problema até alguém subir num host com outro fuso.
+- **Datas geradas em Go** (não vindas do banco) precisam de `.UTC()` explícito antes de ir para uma resposta ou log — o tipo não alcança elas. Exemplos no código: `time.Now().UTC()` em `health.go`, `cron.go` e no `logger`.
+    - Exceções que não precisam: valores usados só para medir duração (`time.Since`) e datas de JWT (`jwt.NewNumericDate` é epoch em segundos, portanto sem fuso).
 - Endpoints que recebem em valor de data em algum header, body ou query devem garantir que o valor está em UTC, mesmo que uma conversão seja necessária.
 - Endpoints que respondem valores de data devem garantir que o valor está em UTC.
 

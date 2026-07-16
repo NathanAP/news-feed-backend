@@ -1,9 +1,9 @@
 package fixtures
 
 import (
-	"database/sql"
 	"time"
 
+	"github.com/nathanap/news-feed-backend/services/utctime"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
@@ -14,9 +14,9 @@ func NewTestSource() db.Source {
 		Name:       "Test Source",
 		Url:        "https://example.com",
 		UrlRss:     "https://example.com/rss.xml",
-		CreatedAt:  time.Date(2026, 6, 25, 12, 0, 0, 0, time.UTC),
-		ModifiedAt: sql.NullTime{Valid: false},
-		RemovedAt:  sql.NullTime{Valid: false},
+		CreatedAt:  utctime.New(time.Date(2026, 6, 25, 12, 0, 0, 0, time.UTC)),
+		ModifiedAt: utctime.NullTime{},
+		RemovedAt:  utctime.NullTime{},
 	}
 }
 
@@ -27,8 +27,8 @@ func NewTestSourceAlt() db.Source {
 		Name:       "Other Source",
 		Url:        "https://other-source.com",
 		UrlRss:     "https://other-source.com/feed.xml",
-		CreatedAt:  time.Date(2026, 6, 25, 12, 0, 0, 0, time.UTC),
-		ModifiedAt: sql.NullTime{Valid: false},
-		RemovedAt:  sql.NullTime{Valid: false},
+		CreatedAt:  utctime.New(time.Date(2026, 6, 25, 12, 0, 0, 0, time.UTC)),
+		ModifiedAt: utctime.NullTime{},
+		RemovedAt:  utctime.NullTime{},
 	}
 }

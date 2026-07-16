@@ -1,10 +1,10 @@
 package fixtures
 
 import (
-	"database/sql"
 	"encoding/json"
 	"time"
 
+	"github.com/nathanap/news-feed-backend/services/utctime"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
@@ -17,9 +17,9 @@ func NewTestArticle() db.Article {
 		UrlOriginal: "https://example.com/news/test-article",
 		Keywords:    json.RawMessage(`["metallica","rock","metal","music","concert"]`),
 		SourceID:    NewTestSource().ID,
-		CreatedAt:   time.Date(2026, 6, 26, 12, 0, 0, 0, time.UTC),
-		ModifiedAt:  sql.NullTime{Valid: false},
-		RemovedAt:   sql.NullTime{Valid: false},
+		CreatedAt:   utctime.New(time.Date(2026, 6, 26, 12, 0, 0, 0, time.UTC)),
+		ModifiedAt:  utctime.NullTime{},
+		RemovedAt:   utctime.NullTime{},
 	}
 }
 
@@ -32,8 +32,8 @@ func NewTestArticleAlt() db.Article {
 		UrlOriginal: "https://other-site.com/news/another",
 		Keywords:    json.RawMessage(`["anime","naruto","cosplay","manga","japan"]`),
 		SourceID:    NewTestSource().ID,
-		CreatedAt:   time.Date(2026, 6, 26, 12, 0, 0, 0, time.UTC),
-		ModifiedAt:  sql.NullTime{Valid: false},
-		RemovedAt:   sql.NullTime{Valid: false},
+		CreatedAt:   utctime.New(time.Date(2026, 6, 26, 12, 0, 0, 0, time.UTC)),
+		ModifiedAt:  utctime.NullTime{},
+		RemovedAt:   utctime.NullTime{},
 	}
 }

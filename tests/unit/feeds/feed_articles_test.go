@@ -14,6 +14,7 @@ import (
 	"github.com/nathanap/news-feed-backend/middlewares"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	feedendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/feeds"
+	"github.com/nathanap/news-feed-backend/services/utctime"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 	jwtmock "github.com/nathanap/news-feed-backend/tests/mocks/services"
 )
@@ -66,13 +67,13 @@ func afRow(id, title string, createdAt time.Time, isRead bool) db.ListArticlesBy
 		UrlOriginal:     "https://example.com/" + id,
 		Keywords:        json.RawMessage("[]"),
 		SourceID:        "01900000-0000-7000-8000-000000000010",
-		CreatedAt:       createdAt,
+		CreatedAt:       utctime.New(createdAt),
 		IsRead:          isRead,
 		SourceName:      "Example News",
 		SourceStatus:    true,
 		SourceUrl:       "https://source.example.com",
 		SourceUrlRss:    "https://source.example.com/rss",
-		SourceCreatedAt: createdAt,
+		SourceCreatedAt: utctime.New(createdAt),
 	}
 }
 

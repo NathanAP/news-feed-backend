@@ -2,7 +2,9 @@
 
 Este arquivo descreve a organização de pastas atual do projeto. Ele é um guia para entender onde cada parte do código deve ser colocada.
 
-Mostramos apenas a hierarquia de pastas com uma descrição em parênteses. Arquivos individuais e arquivos ignorados pelo git (temporários, configuração local, banco local, etc.) não são listados aqui.
+Mostramos apenas a hierarquia de pastas com uma descrição em parênteses. Arquivos individuais e arquivos ignorados pelo git (temporários, configuração local, etc.) não são listados aqui.
+
+O banco não aparece nesta árvore: desde a 0.37 é PostgreSQL (cliente-servidor), com os dados num volume do Docker em vez de um arquivo dentro do repositório.
 
 ```
 /                              (raiz: main.go, go.mod/go.sum, schema.sql, sqlc.yaml,
@@ -13,7 +15,7 @@ Mostramos apenas a hierarquia de pastas com uma descrição em parênteses. Arqu
 ├── logger                     (sistema de log global, controlado por VERBOSE_MODE)
 ├── middlewares                (middlewares HTTP: auth JWT, guard de manutenção por app_status)
 ├── migrations                 (migrações goose up/down, embutidas via embed)
-├── pgadmin4                   (arquivos de configuração do pgAdmin4)
+├── pgadmin4                   (config do pgAdmin4: servers.json pré-registra o servidor de dev, sem a senha)
 ├── schemas                    (DTOs de request/response da API)
 │   └── enums                  (enums de fonte única: language, ai_personality)
 ├── services                   (regras de negócio e integrações)
@@ -49,5 +51,5 @@ Mostramos apenas a hierarquia de pastas com uma descrição em parênteses. Arqu
     │   ├── external           (Google OAuth2, Gemini, RSS)
     │   ├── repositories       (dados do banco de dados)
     │   └── services           (serviços internos, como geração de JWT)
-    └── utils                  (utilitários gerais de teste)
+    └── utils                  (utilitários gerais de teste; db.go sobe o Postgres descartável e dá um database por teste)
 ```

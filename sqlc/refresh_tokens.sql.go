@@ -7,7 +7,8 @@ package db
 
 import (
 	"context"
-	"time"
+
+	utctime "github.com/nathanap/news-feed-backend/services/utctime"
 )
 
 const createRefreshToken = `-- name: CreateRefreshToken :one
@@ -17,9 +18,9 @@ RETURNING id, user_id, status, expires_at, created_at, modified_at, removed_at
 `
 
 type CreateRefreshTokenParams struct {
-	ID        string    `json:"id"`
-	UserID    string    `json:"user_id"`
-	ExpiresAt time.Time `json:"expires_at"`
+	ID        string       `json:"id"`
+	UserID    string       `json:"user_id"`
+	ExpiresAt utctime.Time `json:"expires_at"`
 }
 
 func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error) {
@@ -44,8 +45,8 @@ WHERE id = $2 AND status = TRUE AND removed_at IS NULL
 `
 
 type ExtendRefreshTokenParams struct {
-	ExpiresAt time.Time `json:"expires_at"`
-	ID        string    `json:"id"`
+	ExpiresAt utctime.Time `json:"expires_at"`
+	ID        string       `json:"id"`
 }
 
 func (q *Queries) ExtendRefreshToken(ctx context.Context, arg ExtendRefreshTokenParams) error {

@@ -46,16 +46,10 @@ func main() {
 		log.Println("No .env file found, using environment variables")
 	}
 
-	// Pin the process to UTC. Every date in this application is UTC (conventions.md), and the
-	// database stores TIMESTAMPTZ, but pgx hands a scanned timestamptz back as a time.Time in
-	// time.Local — so on a machine set to, say, -03:00 the API would serialize `...-03:00` instead
-	// of `...Z`. The instant would be right and the offset explicit, but the wire format would
-	// contradict the convention and vary by host. Setting this once, before any connection or
-	// handler exists, makes the guarantee global: no endpoint can forget to call .UTC(), and the
-	// logs agree with the responses. It must stay above every other statement in main for that
-	// reason. (Setting the server's timezone on the DSN does not help: it changes the session, not
-	// the zone pgx materializes the Go value in.)
-	time.Local = time.UTC
+	// Bootstrap logging goes through the standard logger, which stamps lines in the host's timezone by
+	// default. Everything else in this application is UTC (conventions.md), so a log line saying 16:08
+	// next to a response saying 19:08Z is a trap for whoever is reading both at once.
+	log.SetFlags(log.LstdFlags | log.LUTC)
 
 	logger.Setup()
 

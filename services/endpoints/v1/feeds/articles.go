@@ -142,33 +142,26 @@ func rowToArticleResponse(row db.ListArticlesByFeedForUserRow, withSources bool)
 		URLOriginal: row.UrlOriginal,
 		Keywords:    keywords,
 		SourceID:    row.SourceID,
-		CreatedAt:   row.CreatedAt,
+		CreatedAt:   row.CreatedAt.Time,
+		ModifiedAt:  row.ModifiedAt.Ptr(),
 	}
 	if row.LanguageOriginal.Valid {
 		l := row.LanguageOriginal.String
 		resp.LanguageOriginal = &l
 	}
-	if row.ModifiedAt.Valid {
-		t := row.ModifiedAt.Time
-		resp.ModifiedAt = &t
-	}
 	isRead := row.IsRead
 	resp.IsRead = &isRead
 
 	if withSources {
-		source := schemas.SourceResponse{
-			ID:        row.SourceID,
-			Status:    row.SourceStatus,
-			Name:      row.SourceName,
-			URL:       row.SourceUrl,
-			URLRss:    row.SourceUrlRss,
-			CreatedAt: row.SourceCreatedAt,
+		resp.Source = &schemas.SourceResponse{
+			ID:         row.SourceID,
+			Status:     row.SourceStatus,
+			Name:       row.SourceName,
+			URL:        row.SourceUrl,
+			URLRss:     row.SourceUrlRss,
+			CreatedAt:  row.SourceCreatedAt.Time,
+			ModifiedAt: row.SourceModifiedAt.Ptr(),
 		}
-		if row.SourceModifiedAt.Valid {
-			t := row.SourceModifiedAt.Time
-			source.ModifiedAt = &t
-		}
-		resp.Source = &source
 	}
 	return resp, nil
 }

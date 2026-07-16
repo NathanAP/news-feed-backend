@@ -11,15 +11,20 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
 
 ## Stack
 
-- **Go** + **Fiber** (web) + **SQLite** (`modernc.org/sqlite`, driver puro Go)
-- **goose** (migrações, embutidas via `embed`) · **sqlc** (queries tipadas)
+- **Go** + **Fiber** (web) + **PostgreSQL 18** (driver `jackc/pgx/v5` via `database/sql`; SQLite saiu na 0.37)
+- **goose** (migrações, embutidas via `embed`) · **sqlc** (queries tipadas, `engine: postgresql`)
 - **JWT** (auth Bearer) · **OAuth2 Google** (login) · **gofeed** (RSS) · **cron** · **lingua-go** (detecção de idioma)
-- **Gemini 2.5 Flash** (IA, futuro) · **testify** (testes) · **Bruno** (coleção de requisições)
+- **Gemini 2.5 Flash** (IA, futuro) · **testify** + **testcontainers-go** (testes) · **Bruno** (coleção de requisições)
 
 ## Arquitetura (camadas)
 
-- `main.go` — bootstrap: carrega `.env`, abre o SQLite, roda migrações, instancia
-  controllers e registra rotas.
+- `main.go` — bootstrap: carrega `.env`, põe o logger padrão em UTC (`log.LUTC`), conecta no Postgres
+  (`DATABASE_URL`), roda migrações, instancia controllers e registra rotas.
+- `services/utctime/` — `Time`/`NullTime`, os tipos das colunas `timestamptz` (plugados via
+  `overrides` no `sqlc.yaml`). Existem porque o pgx materializa `timestamptz` no fuso **local do
+  processo**: sem eles o formato de data da API dependeria do relógio do host (`-03:00` em vez de `Z`).
+  O `Scan` normaliza na fronteira e o `MarshalJSON` sempre emite `Z`. Data **gerada em Go** (não vinda
+  do banco) o tipo não alcança — precisa de `.UTC()` explícito (ver `conventions.md`, datas).
 - `migrations/` — SQL goose (up/down). `schema.sql` — espelho do schema para o sqlc.
 - `sqlc/` — código gerado (models, querier, `*.sql.go`) + `queries/*.sql`. Desde a 0.30, gerado
   rodando o `sqlc` real (`task sg` / `sqlc generate`, binário `v1.31.1`) — não há `sqlc generate`
@@ -108,26 +113,38 @@ Toda escrita passa por `WithTransaction` (`services/controllers/transaction.go`)
 dono de commit/rollback. Controllers são passos intermediários que recebem `q db.Querier` e
 nunca finalizam. Quem orquestra o caso de uso (rota/middleware) abre a transação no topo.
 
-O DSN de produção (`main.go`) carrega `_pragma=busy_timeout(5000)` + `_pragma=journal_mode(WAL)`
-(0.28.1.0): sob escrita concorrente (pipeline da 0.27 com `DISCOVERY_CONCURRENCY > 1`, ou a cron
-sobreposta às requisições de API) o writer **espera** o lock em vez de falhar com `SQLITE_BUSY`. O
-teto de single-writer do SQLite permanece — escrita concorrente real + réplicas dependem do Postgres
-(ROADMAP "Escalabilidade futura"). Violação de UNIQUE é detectada por código de resultado tipado do
-driver (`controllers.isUniqueViolation`, `SQLITE_CONSTRAINT_UNIQUE`), não por texto do erro.
+Com o Postgres (0.37) **caiu o teto de single-writer** do SQLite: escrita concorrente é real, e os
+pragmas `busy_timeout`/`journal_mode(WAL)` que existiam no DSN deixaram de fazer sentido e saíram. Isso
+destrava o `DISCOVERY_CONCURRENCY > 1` de verdade, múltiplas réplicas da API e a seção "Escalabilidade
+futura" (fila + workers) do ROADMAP. Violação de UNIQUE continua detectada por erro **tipado** do
+driver (`controllers.isUniqueViolation`), agora via `*pgconn.PgError` + SQLSTATE `23505` — nunca por
+texto do erro.
 
 ## Como rodar
 
-`task ls` (sobe local) · `task ta` (todos os testes) · `task tu`/`ti`/`te2e` (por camada) ·
-`task va` (vet). Porta em `API_PORT`. Banco local em `db/news_feed.db` (descartável: se uma
-migração `NOT NULL` quebrar o boot por dado antigo, basta apagar o arquivo).
+`task dbs` (sobe Postgres + pgAdmin4 — **pré-requisito**) · `task ls` (sobe a API local) ·
+`task ta` (todos os testes) · `task tu`/`ti`/`te2e` (por camada) · `task va` (vet). Porta em `API_PORT`.
+
+O banco **não é mais um arquivo**: é o servidor Postgres do compose, com os dados no volume
+`postgres_data`. `task dd` (down) preserva o volume; `task dp` (prune) o apaga — é o "começar do zero".
+Inspeção via pgAdmin4 em `localhost:5050` (servidor `news-feed` já pré-registrado; pede a senha).
+
+**Testes exigem Docker ligado**: o Postgres não tem modo em memória, então o `SetupTestDB`
+(`tests/utils/db.go`) sobe um container descartável via testcontainers, migra um database **template**
+uma vez e cada teste **clona** o template para ter o seu (`CREATE DATABASE ... TEMPLATE`), dropado no
+fim. Um container serve a execução inteira (o `go test` roda os pacotes em paralelo, em processos
+separados; sem isso seriam 14 Postgres simultâneos) e o reaper do testcontainers o destrói ao fim —
+nada sobra. Suíte completa a frio: ~40s.
 
 **Seed de dev** (`ENVIRONMENT=development`): `task sdfull` popula o banco (usuário dev, sources,
 feeds, artigos, associações) e imprime um token; `task sdl` só emite o token. `cmd/` é exclusivo de
 dev (ver `.claude/memory/cmd.md`). Login do dev sem OAuth: CLI `task sdl` ou `POST /v1/users/dev-login`
 (rota registrada só em `development`).
 
-**Docker**: `task ds` (`docker compose up -d --build`) sobe a **API** (Dockerfile multi-stage,
-binário Go puro `CGO_ENABLED=0`, healthcheck em `/health`) + **sqlite-web** (`:8080`, espera a API
-ficar healthy). Banco em volume `./db` (compartilhado com host/seed). Em Docker use
-`KEYWORDS_MODE=groq|gemini` (Ollama local do host não é alcançável por `localhost` no container;
-`host.docker.internal` disponível via `extra_hosts`).
+**Docker**: `task ds` (`docker compose up -d --build`) sobe **Postgres 18** (volume `postgres_data`,
+healthcheck `pg_isready`) + a **API** (Dockerfile multi-stage, binário Go puro `CGO_ENABLED=0` — o pgx
+também é Go puro; healthcheck em `/health`; só inicia depois do banco healthy, pois migra no boot) +
+**pgAdmin4** (`:5050`). Só o banco é obrigatório em Docker; a API roda igual no host via `task ls`
+(o compose sobrescreve o `DATABASE_URL` do `.env`, que aponta para `localhost`, com o host `postgres`
+da rede interna). Em Docker use `KEYWORDS_MODE=groq|gemini` (Ollama local do host não é alcançável por
+`localhost` no container; `host.docker.internal` disponível via `extra_hosts`).

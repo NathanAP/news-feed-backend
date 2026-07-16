@@ -7,92 +7,93 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
-	"time"
+
+	utctime "github.com/nathanap/news-feed-backend/services/utctime"
 )
 
 type Article struct {
-	ID               string          `json:"id"`
-	Status           bool            `json:"status"`
-	Title            string          `json:"title"`
-	Content          string          `json:"content"`
-	UrlOriginal      string          `json:"url_original"`
-	Keywords         json.RawMessage `json:"keywords"`
-	SourceID         string          `json:"source_id"`
-	LanguageOriginal sql.NullString  `json:"language_original"`
-	CreatedAt        time.Time       `json:"created_at"`
-	ModifiedAt       sql.NullTime    `json:"modified_at"`
-	RemovedAt        sql.NullTime    `json:"removed_at"`
+	ID               string           `json:"id"`
+	Status           bool             `json:"status"`
+	Title            string           `json:"title"`
+	Content          string           `json:"content"`
+	UrlOriginal      string           `json:"url_original"`
+	Keywords         json.RawMessage  `json:"keywords"`
+	SourceID         string           `json:"source_id"`
+	LanguageOriginal sql.NullString   `json:"language_original"`
+	CreatedAt        utctime.Time     `json:"created_at"`
+	ModifiedAt       utctime.NullTime `json:"modified_at"`
+	RemovedAt        utctime.NullTime `json:"removed_at"`
 }
 
 type ArticlesFeed struct {
-	ID         string       `json:"id"`
-	ArticleID  string       `json:"article_id"`
-	FeedID     string       `json:"feed_id"`
-	IsRead     bool         `json:"is_read"`
-	CreatedAt  time.Time    `json:"created_at"`
-	ModifiedAt sql.NullTime `json:"modified_at"`
+	ID         string           `json:"id"`
+	ArticleID  string           `json:"article_id"`
+	FeedID     string           `json:"feed_id"`
+	IsRead     bool             `json:"is_read"`
+	CreatedAt  utctime.Time     `json:"created_at"`
+	ModifiedAt utctime.NullTime `json:"modified_at"`
 }
 
 type Feed struct {
-	ID         string          `json:"id"`
-	Status     bool            `json:"status"`
-	Name       string          `json:"name"`
-	Keywords   json.RawMessage `json:"keywords"`
-	UserID     string          `json:"user_id"`
-	CreatedAt  time.Time       `json:"created_at"`
-	ModifiedAt sql.NullTime    `json:"modified_at"`
-	RemovedAt  sql.NullTime    `json:"removed_at"`
+	ID         string           `json:"id"`
+	Status     bool             `json:"status"`
+	Name       string           `json:"name"`
+	Keywords   json.RawMessage  `json:"keywords"`
+	UserID     string           `json:"user_id"`
+	CreatedAt  utctime.Time     `json:"created_at"`
+	ModifiedAt utctime.NullTime `json:"modified_at"`
+	RemovedAt  utctime.NullTime `json:"removed_at"`
 }
 
 type RefreshToken struct {
-	ID         string       `json:"id"`
-	UserID     string       `json:"user_id"`
-	Status     bool         `json:"status"`
-	ExpiresAt  time.Time    `json:"expires_at"`
-	CreatedAt  time.Time    `json:"created_at"`
-	ModifiedAt sql.NullTime `json:"modified_at"`
-	RemovedAt  sql.NullTime `json:"removed_at"`
+	ID         string           `json:"id"`
+	UserID     string           `json:"user_id"`
+	Status     bool             `json:"status"`
+	ExpiresAt  utctime.Time     `json:"expires_at"`
+	CreatedAt  utctime.Time     `json:"created_at"`
+	ModifiedAt utctime.NullTime `json:"modified_at"`
+	RemovedAt  utctime.NullTime `json:"removed_at"`
 }
 
 type Source struct {
-	ID         string       `json:"id"`
-	Status     bool         `json:"status"`
-	Name       string       `json:"name"`
-	Url        string       `json:"url"`
-	UrlRss     string       `json:"url_rss"`
-	CreatedAt  time.Time    `json:"created_at"`
-	ModifiedAt sql.NullTime `json:"modified_at"`
-	RemovedAt  sql.NullTime `json:"removed_at"`
+	ID         string           `json:"id"`
+	Status     bool             `json:"status"`
+	Name       string           `json:"name"`
+	Url        string           `json:"url"`
+	UrlRss     string           `json:"url_rss"`
+	CreatedAt  utctime.Time     `json:"created_at"`
+	ModifiedAt utctime.NullTime `json:"modified_at"`
+	RemovedAt  utctime.NullTime `json:"removed_at"`
 }
 
 type System struct {
-	ID                     string       `json:"id"`
-	AppStatus              bool         `json:"app_status"`
-	LastArticleDiscoveryAt sql.NullTime `json:"last_article_discovery_at"`
-	CreatedAt              time.Time    `json:"created_at"`
-	ModifiedAt             sql.NullTime `json:"modified_at"`
+	ID                     string           `json:"id"`
+	AppStatus              bool             `json:"app_status"`
+	LastArticleDiscoveryAt utctime.NullTime `json:"last_article_discovery_at"`
+	CreatedAt              utctime.Time     `json:"created_at"`
+	ModifiedAt             utctime.NullTime `json:"modified_at"`
 }
 
 type User struct {
-	ID          string         `json:"id"`
-	GoogleID    string         `json:"google_id"`
-	Email       string         `json:"email"`
-	Name        string         `json:"name"`
-	Picture     sql.NullString `json:"picture"`
-	Status      bool           `json:"status"`
-	LastLoginAt sql.NullTime   `json:"last_login_at"`
-	CreatedAt   time.Time      `json:"created_at"`
-	ModifiedAt  sql.NullTime   `json:"modified_at"`
-	RemovedAt   sql.NullTime   `json:"removed_at"`
+	ID          string           `json:"id"`
+	GoogleID    string           `json:"google_id"`
+	Email       string           `json:"email"`
+	Name        string           `json:"name"`
+	Picture     sql.NullString   `json:"picture"`
+	Status      bool             `json:"status"`
+	LastLoginAt utctime.NullTime `json:"last_login_at"`
+	CreatedAt   utctime.Time     `json:"created_at"`
+	ModifiedAt  utctime.NullTime `json:"modified_at"`
+	RemovedAt   utctime.NullTime `json:"removed_at"`
 }
 
 type UserPreference struct {
-	ID                  string         `json:"id"`
-	UserID              string         `json:"user_id"`
-	Status              bool           `json:"status"`
-	LanguageToTranslate sql.NullString `json:"language_to_translate"`
-	AiPersonality       string         `json:"ai_personality"`
-	CreatedAt           time.Time      `json:"created_at"`
-	ModifiedAt          sql.NullTime   `json:"modified_at"`
-	RemovedAt           sql.NullTime   `json:"removed_at"`
+	ID                  string           `json:"id"`
+	UserID              string           `json:"user_id"`
+	Status              bool             `json:"status"`
+	LanguageToTranslate sql.NullString   `json:"language_to_translate"`
+	AiPersonality       string           `json:"ai_personality"`
+	CreatedAt           utctime.Time     `json:"created_at"`
+	ModifiedAt          utctime.NullTime `json:"modified_at"`
+	RemovedAt           utctime.NullTime `json:"removed_at"`
 }

@@ -1,9 +1,9 @@
 package fixtures
 
 import (
-	"database/sql"
 	"time"
 
+	"github.com/nathanap/news-feed-backend/services/utctime"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
@@ -13,7 +13,7 @@ func NewTestArticleFeed(articleID, feedID string) db.ArticlesFeed {
 		ArticleID:  articleID,
 		FeedID:     feedID,
 		IsRead:     false,
-		CreatedAt:  time.Date(2026, 6, 29, 12, 0, 0, 0, time.UTC),
-		ModifiedAt: sql.NullTime{Valid: false},
+		CreatedAt:  utctime.New(time.Date(2026, 6, 29, 12, 0, 0, 0, time.UTC)),
+		ModifiedAt: utctime.NullTime{},
 	}
 }

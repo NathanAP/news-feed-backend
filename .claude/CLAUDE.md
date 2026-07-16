@@ -121,20 +121,26 @@ e são chamados direto da raiz). Rodar `task` (ou `task help`) lista tudo. Alias
 - `task setup` — instala ferramentas (sqlc, task), baixa deps e puxa o SLM de keywords no Ollama.
 - `task ollama-pull` (`op`) — só puxa o modelo SLM local (`qwen3:4b`).
 
-**Rodar local (sem Docker):**
+**Banco (sempre em Docker):**
+
+- `task db-start` (`dbs`) — sobe só o PostgreSQL + pgAdmin4 (`:5050`). É o que o `task ls` precisa.
+- `task db-down` (`dbd`) — para os dois. Os dados ficam no volume `postgres_data` e sobrevivem.
+
+**Rodar a API local (com o banco no Docker):**
 
 - `task local-start` (`ls`) — build + sobe em background; logs em `./tmp/`. Migrações rodam no boot.
 - `task local-logs` (`ll`) — acompanha os logs em tempo real.
 - `task local-restart` (`lr`) · `task local-down` (`ld`) — reinicia · para.
 - `go run main.go` — roda em foreground (útil pra ver o log direto no terminal).
 
-**Docker:**
+**Docker (stack completo):**
 
-- `task docker-start` (`ds`) — sobe API + PostgreSQL + PgAdmin4 via compose. `dr` (restart) · `dfr` (rebuild) · `dd` (down) · `dp` (prune).
+- `task docker-start` (`ds`) — sobe API + PostgreSQL + PgAdmin4 via compose. `dr` (restart) · `dfr` (rebuild) · `dd` (down, **preserva os dados**) · `dp` (prune, **apaga o volume**).
 
-**Testes e qualidade:**
+**Testes e qualidade** (testes exigem Docker ligado — sobem um Postgres descartável):
 
 - `task test-all` (`ta`) — todos os testes. Por camada: `tu` (unit) · `ti` (integração) · `te2e` (end-to-end).
+- `task test-db-clean` (`tdc`) — remove um container de teste órfão (só se uma execução for interrompida).
 - `task vet-all` (`va`) — `go vet ./...`. `task fmt` (`f`) — `gofmt`. `task sqlc-generate` (`sg`) — regenera o sqlc.
 
 **Seed de dev** (só com `ENVIRONMENT=development`):
@@ -156,10 +162,14 @@ task setup
 # 3. Configura o ambiente: copie e preencha os segredos
 cp .env.example .env   # defina JWT_SECRET_KEY e as chaves que for usar (Google/Groq)
 
-# 4. Suba a API (migrações rodam automaticamente no boot)
-task ls                # ou `go run main.go` para rodar em foreground
+# 4. Suba o banco (PostgreSQL + pgAdmin4). Precisa do Docker ligado.
+task dbs
 
-# 5. (dev) Popule o banco e obtenha um token para o Bruno/client
+# 5. Suba a API (migrações rodam automaticamente no boot)
+task ls                # ou `go run main.go` para rodar em foreground
+                       # (ou `task ds` para subir tudo — banco e API — no compose)
+
+# 6. (dev) Popule o banco e obtenha um token para o Bruno/client
 task sdfull            # ou `task sdl` só para imprimir um token
 ```
 
@@ -169,3 +179,9 @@ Sem client web ainda, o token de dev sai do `task sdl`/`task sdfull` ou do `POST
 ## Porta
 
 - A porta da API está presente na variável de ambiente `API_PORT`.
+- O PostgreSQL responde na `5432` e o pgAdmin4 na `5050` (ambos do docker-compose).
+
+## Banco de dados
+
+- O PostgreSQL é cliente-servidor, os dados vivem no volume Docker `postgres_data`, e a conexão inteira vem da variável de ambiente `DATABASE_URL`.
+- Só o banco de dados exige Docker. A API roda no host (`task ls`) ou no compose (`task ds`) — o compose sobrescreve a `DATABASE_URL` para o host `postgres` da rede interna.

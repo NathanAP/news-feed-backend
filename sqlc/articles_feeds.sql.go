@@ -9,7 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"time"
+
+	utctime "github.com/nathanap/news-feed-backend/services/utctime"
 )
 
 const countUnreadArticlesByFeedForUser = `-- name: CountUnreadArticlesByFeedForUser :many
@@ -163,23 +164,23 @@ type ListArticlesByFeedForUserParams struct {
 }
 
 type ListArticlesByFeedForUserRow struct {
-	ID               string          `json:"id"`
-	Status           bool            `json:"status"`
-	Title            string          `json:"title"`
-	Content          string          `json:"content"`
-	UrlOriginal      string          `json:"url_original"`
-	Keywords         json.RawMessage `json:"keywords"`
-	SourceID         string          `json:"source_id"`
-	LanguageOriginal sql.NullString  `json:"language_original"`
-	CreatedAt        time.Time       `json:"created_at"`
-	ModifiedAt       sql.NullTime    `json:"modified_at"`
-	IsRead           bool            `json:"is_read"`
-	SourceName       string          `json:"source_name"`
-	SourceStatus     bool            `json:"source_status"`
-	SourceUrl        string          `json:"source_url"`
-	SourceUrlRss     string          `json:"source_url_rss"`
-	SourceCreatedAt  time.Time       `json:"source_created_at"`
-	SourceModifiedAt sql.NullTime    `json:"source_modified_at"`
+	ID               string           `json:"id"`
+	Status           bool             `json:"status"`
+	Title            string           `json:"title"`
+	Content          string           `json:"content"`
+	UrlOriginal      string           `json:"url_original"`
+	Keywords         json.RawMessage  `json:"keywords"`
+	SourceID         string           `json:"source_id"`
+	LanguageOriginal sql.NullString   `json:"language_original"`
+	CreatedAt        utctime.Time     `json:"created_at"`
+	ModifiedAt       utctime.NullTime `json:"modified_at"`
+	IsRead           bool             `json:"is_read"`
+	SourceName       string           `json:"source_name"`
+	SourceStatus     bool             `json:"source_status"`
+	SourceUrl        string           `json:"source_url"`
+	SourceUrlRss     string           `json:"source_url_rss"`
+	SourceCreatedAt  utctime.Time     `json:"source_created_at"`
+	SourceModifiedAt utctime.NullTime `json:"source_modified_at"`
 }
 
 // Returns the active articles associated with a feed, each with its is_read state for that feed

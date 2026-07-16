@@ -19,8 +19,9 @@ ambientes, e cada comando recusa rodar fora de `ENVIRONMENT=development`.
   `articles`). Artigos não têm `url_original` (gerado aleatório por run) nem `source_id` (ligado às
   sources existentes no banco).
 - Escreve **através dos controllers da API** (mesmas regras: UUID v7, encode de keywords, limite de
-  feeds, etc.). Acha a raiz via `go.mod`, abre `db/news_feed.db` e roda migrações (funciona em banco
-  zerado).
+  feeds, etc.). Acha a raiz via `go.mod`, conecta no Postgres pela `DATABASE_URL` (a mesma da API) e
+  roda migrações (funciona em banco zerado). Exige, portanto, o banco no ar (`task dbs`). Como o
+  `main.go`, fixa `time.Local = time.UTC` antes de tocar no banco.
 - Estrutura: `main.go` (dispatcher + wiring dos controllers), `seed.go` (guard de ambiente, raiz,
   abertura+migração do DB, `report`), `examples.go` (structs + loader), e um `dev_*.go` por comando.
 

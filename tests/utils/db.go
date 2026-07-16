@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -42,6 +44,8 @@ const (
 	// Guards template creation across processes: the packages run in parallel and would otherwise
 	// race to create and migrate the template. Any constant works; it only has to be shared.
 	templateLockID = 8675309
+	// How many times to retry joining the shared container. See runContainerWithRetry.
+	containerStartAttempts = 5
 )
 
 var (
@@ -97,17 +101,11 @@ func SetupTestDB(t testing.TB) *sql.DB {
 func startContainerAndTemplate() (string, error) {
 	ctx := context.Background()
 
-	container, err := postgres.Run(ctx, testImage,
-		postgres.WithDatabase(adminDB),
-		postgres.WithUsername(adminUser),
-		postgres.WithPassword(adminPassword),
-		testcontainers.WithReuseByName(testContainerName),
-		testcontainers.WithWaitStrategy(
-			wait.ForListeningPort("5432/tcp").WithStartupTimeout(60*time.Second),
-		),
-	)
+	pinDockerHost()
+
+	container, err := runContainerWithRetry(ctx)
 	if err != nil {
-		return "", fmt.Errorf("failed to start the postgres container: %w", err)
+		return "", err
 	}
 
 	host, err := container.Host(ctx)
@@ -126,6 +124,57 @@ func startContainerAndTemplate() (string, error) {
 		return "", err
 	}
 	return admin, nil
+}
+
+// pinDockerHost makes sure DOCKER_HOST is set before testcontainers looks for the daemon.
+//
+// Without it, testcontainers walks a chain of fallbacks to find the endpoint — its properties file,
+// the docker context, the default socket — and the last link is rootless detection, which is a hard
+// error on Windows ("rootless Docker is not supported on Windows"). `go test` runs the packages in
+// parallel, so a dozen processes read the docker context at the same instant; when that read loses
+// the race the chain runs to the end and the whole package fails at setup. It is intermittent by
+// nature: the suite passed several times before this surfaced.
+//
+// Asking Docker itself for the endpoint keeps this cross-platform (npipe on Windows, a unix socket
+// elsewhere) instead of hardcoding a path per OS. If the lookup fails we leave DOCKER_HOST alone and
+// let testcontainers try its chain — no worse than before.
+func pinDockerHost() {
+	if os.Getenv("DOCKER_HOST") != "" {
+		return
+	}
+	out, err := exec.Command("docker", "context", "inspect", "--format", "{{.Endpoints.docker.Host}}").Output()
+	if err != nil {
+		return
+	}
+	if host := strings.TrimSpace(string(out)); host != "" {
+		os.Setenv("DOCKER_HOST", host)
+	}
+}
+
+// runContainerWithRetry starts (or joins) the shared container, retrying a few times. The retry
+// covers the other side of the same parallel burst: two processes can race to create the container
+// and one loses with a name conflict. When Docker is genuinely down every attempt fails and the last
+// error surfaces.
+func runContainerWithRetry(ctx context.Context) (*postgres.PostgresContainer, error) {
+	var lastErr error
+	for attempt := 0; attempt < containerStartAttempts; attempt++ {
+		container, err := postgres.Run(ctx, testImage,
+			postgres.WithDatabase(adminDB),
+			postgres.WithUsername(adminUser),
+			postgres.WithPassword(adminPassword),
+			testcontainers.WithReuseByName(testContainerName),
+			testcontainers.WithWaitStrategy(
+				wait.ForListeningPort("5432/tcp").WithStartupTimeout(60*time.Second),
+			),
+		)
+		if err == nil {
+			return container, nil
+		}
+		lastErr = err
+		time.Sleep(time.Duration(attempt+1) * 500 * time.Millisecond)
+	}
+	return nil, fmt.Errorf("failed to start the postgres container after %d attempts (is Docker running?): %w",
+		containerStartAttempts, lastErr)
 }
 
 // ensureTemplate creates and migrates the template database exactly once, even when several test

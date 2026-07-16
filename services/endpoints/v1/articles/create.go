@@ -128,15 +128,12 @@ func toArticleResponse(a db.Article) (schemas.ArticleResponse, error) {
 		URLOriginal: a.UrlOriginal,
 		Keywords:    keywords,
 		SourceID:    a.SourceID,
-		CreatedAt:   a.CreatedAt,
+		CreatedAt:   a.CreatedAt.Time,
+		ModifiedAt:  a.ModifiedAt.Ptr(),
 	}
 	if a.LanguageOriginal.Valid {
 		l := a.LanguageOriginal.String
 		resp.LanguageOriginal = &l
-	}
-	if a.ModifiedAt.Valid {
-		t := a.ModifiedAt.Time
-		resp.ModifiedAt = &t
 	}
 	return resp, nil
 }

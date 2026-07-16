@@ -2,7 +2,6 @@ package cron_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"os"
@@ -15,6 +14,7 @@ import (
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	cronsvc "github.com/nathanap/news-feed-backend/services/cron"
 	"github.com/nathanap/news-feed-backend/services/discovery"
+	"github.com/nathanap/news-feed-backend/services/utctime"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 	"github.com/nathanap/news-feed-backend/tests/fixtures"
 	"github.com/nathanap/news-feed-backend/tests/mocks/external"
@@ -63,10 +63,8 @@ func TestIntegration_DiscoveryRunner_DiscoversAndAdvancesWatermark(t *testing.T)
 	seedSource(t, queries, "01900000-0000-7000-8000-0000000000c1", feedURL)
 
 	// Seed an old watermark so we can assert the run advances it at the end.
-	_, err := queries.UpdateSystemLastArticleDiscovery(t.Context(), sql.NullTime{
-		Time:  time.Date(2025, 1, 8, 0, 0, 0, 0, time.UTC),
-		Valid: true,
-	})
+	_, err := queries.UpdateSystemLastArticleDiscovery(t.Context(),
+		utctime.NewNull(time.Date(2025, 1, 8, 0, 0, 0, 0, time.UTC)))
 	require.NoError(t, err)
 
 	mockClient := external.NewMockRSSClient(map[string]external.MockRSSResponse{

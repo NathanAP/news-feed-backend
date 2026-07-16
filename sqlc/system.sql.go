@@ -7,7 +7,8 @@ package db
 
 import (
 	"context"
-	"database/sql"
+
+	utctime "github.com/nathanap/news-feed-backend/services/utctime"
 )
 
 const getSystem = `-- name: GetSystem :one
@@ -53,7 +54,7 @@ SET last_article_discovery_at = $1, modified_at = CURRENT_TIMESTAMP
 RETURNING id, app_status, last_article_discovery_at, created_at, modified_at
 `
 
-func (q *Queries) UpdateSystemLastArticleDiscovery(ctx context.Context, lastArticleDiscoveryAt sql.NullTime) (System, error) {
+func (q *Queries) UpdateSystemLastArticleDiscovery(ctx context.Context, lastArticleDiscoveryAt utctime.NullTime) (System, error) {
 	row := q.db.QueryRowContext(ctx, updateSystemLastArticleDiscovery, lastArticleDiscoveryAt)
 	var i System
 	err := row.Scan(

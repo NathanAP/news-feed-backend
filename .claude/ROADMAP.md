@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.36.4.0
+0.37.1.0
 
 ## Versão 0.29.0.0
 
@@ -143,7 +143,7 @@ Redução de tokens de IA + correção de recall no julgamento (a camada 1 deixa
 
 ## Versão 0.37.0.0
 
-- [ ] Postgres 18 ao invés de SQLite
+- [x] Postgres 18 ao invés de SQLite
 
 O SQLite sempre foi o desvio: a stack (`CLAUDE.md`) já declarava PostgreSQL + pgadmin4, e a pasta
 `pgadmin4/` existe vazia desde então. O contrato da API **não muda** (`status` nunca foi filtro exposto e
@@ -166,34 +166,32 @@ Decisões fechadas:
 
 Executada em 3 etapas (mesma versão; só está concluída no fim da Etapa 3):
 
-- [ ] **Etapa 1 — a aplicação roda.** Compose com `postgres:18-alpine` + pgadmin4 (volume + healthcheck),
+- [x] **Etapa 1 — a aplicação roda.** Compose com `postgres:18-alpine` + pgadmin4 (volume + healthcheck),
       migração inicial única, `schema.sql`, `sqlc.yaml` (engine postgresql), queries reescritas (`?` → `$N`,
       `json_each` → `jsonb_array_elements_text`), regeneração do sqlc, `main.go` (driver, DSN, fora os
       pragmas WAL/busy_timeout, goose dialeto `postgres`), `sqlite_errors.go` → `postgres_errors.go`
       (`*pgconn.PgError`, SQLSTATE `23505`), ripple `int` → `bool` (19 sites em 11 arquivos).
       Ao fim: API sobe e é testável pelo Bruno. `task ta` fica vermelho — planejado.
-- [ ] **Etapa 2 — os testes voltam.** `tests/utils/db.go` sobe PG via `testcontainers-go`; migração roda
+- [x] **Etapa 2 — os testes voltam.** `tests/utils/db.go` sobe PG via `testcontainers-go`; migração roda
       uma vez num database template e cada teste clona via `CREATE DATABASE ... TEMPLATE` (isolamento
       total sem pagar a migração por teste); container morre no fim da suíte. Fixtures e mocks acompanham
       o `bool`. Reescrever a regra de teste do `conventions.md`: "instância em memória" → database
       temporário por teste, descartado ao fim. `task ta` passa a exigir Docker rodando. `test_manager` roda aqui.
-- [ ] **Etapa 3 — seed e documentação.** `cmd/seed`, CLAUDE.md, `rules/structure.md`, `versions/`, `memory/`.
+- [x] **Etapa 3 — seed e documentação.** `cmd/seed`, CLAUDE.md, `rules/structure.md`, `versions/`, `memory/`.
       (O grosso do `cmd/seed` — driver e dialeto — foi puxado para a Etapa 1: sem ele o `task sdfull`
       não rodava e não havia como verificar a Etapa 1.)
-- [ ] **Etapa 4 — UTC no sistema de tipos.** Fecha a dívida aberta na Etapa 1. O pgx materializa
-      `TIMESTAMPTZ` em `time.Local`, então a API passou a serializar `...-03:00` em vez de `...Z`,
-      violando a convenção de datas (o instante certo, a representação errada, variando por host).
-      `timezone=UTC` no DSN **não resolve**: muda a sessão do servidor, não o fuso em que o pgx
-      materializa o valor em Go. A Etapa 1 corrigiu com `time.Local = time.UTC` no `main.go` e no
-      seed — funciona e está verificado, mas é mutação de global do runtime e a garantia é implícita.
-      Esta etapa troca isso por garantia no tipo: um `utctime.Time` (+ `NullTime`) com `Scan` forçando
-      `.UTC()` e `MarshalJSON` em RFC3339, plugado via `overrides` do `sqlc.yaml` para `timestamptz`.
-      Ripple esperado: todo model, schema, fixture, mock e comparação de data em teste.
-      A decidir no planejamento da etapa: se o tipo se paga frente a manter o `time.Local` (que é o
-      que a maioria dos serviços Go em produção faz). Definido junto, não unilateralmente.
+- [x] **Etapa 4 — UTC no sistema de tipos** (entregue na **0.37.1.0**, ver `versions/`). Fecha a dívida
+      aberta na Etapa 1: o `time.Local = time.UTC` foi **removido** e a garantia passou para o tipo
+      `utctime.Time`/`NullTime` (`services/utctime`), plugado via `overrides` do `sqlc.yaml` nas
+      colunas `timestamptz`. Decidido fazer porque a convenção passa a depender do compilador em vez
+      da disciplina de lembrar a linha em cada novo entrypoint (o `cmd/seed` já tinha precisado dela).
 
 Fora do escopo desta versão (candidatos naturais logo depois, viabilizados por ela): filtragens e
 paginações que hoje acontecem em Go em vez de SQL.
+
+## Versão 0.38.0.0
+
+- [ ] Revisão
 
 ## Futuro
 

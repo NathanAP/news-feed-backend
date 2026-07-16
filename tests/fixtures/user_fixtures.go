@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/nathanap/news-feed-backend/services/utctime"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
@@ -15,10 +16,10 @@ func NewTestUser() db.User {
 		Name:        "Test User",
 		Picture:     sql.NullString{String: "https://example.com/photo.jpg", Valid: true},
 		Status:      true,
-		LastLoginAt: sql.NullTime{Valid: false},
-		CreatedAt:   time.Date(2026, 6, 19, 12, 0, 0, 0, time.UTC),
-		ModifiedAt:  sql.NullTime{Valid: false},
-		RemovedAt:   sql.NullTime{Valid: false},
+		LastLoginAt: utctime.NullTime{},
+		CreatedAt:   utctime.New(time.Date(2026, 6, 19, 12, 0, 0, 0, time.UTC)),
+		ModifiedAt:  utctime.NullTime{},
+		RemovedAt:   utctime.NullTime{},
 	}
 }
 

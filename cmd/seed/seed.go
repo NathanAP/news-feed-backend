@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
@@ -43,10 +42,6 @@ func (r *report) print(command string) {
 func requireDevEnvironment() error {
 	// Best-effort: env vars may already be set without a .env file.
 	_ = godotenv.Load(filepath.Join(mustProjectRoot(), ".env"))
-
-	// Same reason as main.go: pgx materializes timestamptz in time.Local, and every date here is
-	// UTC. Without this the seed would print and compare dates in the host's zone.
-	time.Local = time.UTC
 
 	if env := os.Getenv("ENVIRONMENT"); env != devEnvironment {
 		return fmt.Errorf("seed commands only run when ENVIRONMENT=%s (got %q)", devEnvironment, env)

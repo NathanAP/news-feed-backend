@@ -81,16 +81,13 @@ func toFeedResponse(f db.Feed) (schemas.FeedResponse, error) {
 	}
 
 	resp := schemas.FeedResponse{
-		ID:        f.ID,
-		Status:    f.Status,
-		Name:      f.Name,
-		Keywords:  keywords,
-		UserID:    f.UserID,
-		CreatedAt: f.CreatedAt,
-	}
-	if f.ModifiedAt.Valid {
-		t := f.ModifiedAt.Time
-		resp.ModifiedAt = &t
+		ID:         f.ID,
+		Status:     f.Status,
+		Name:       f.Name,
+		Keywords:   keywords,
+		UserID:     f.UserID,
+		CreatedAt:  f.CreatedAt.Time,
+		ModifiedAt: f.ModifiedAt.Ptr(),
 	}
 	return resp, nil
 }

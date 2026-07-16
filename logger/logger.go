@@ -82,6 +82,8 @@ func RouteEnd(path string) {
 	Log(fmt.Sprintf("@@@ ROUTE END - %s - %s @@@", path, now()), ColorYellow)
 }
 
+// now stamps log lines. Explicitly UTC so the logs agree with the timestamps the API returns and with
+// what is stored, instead of following whatever timezone the host happens to be set to.
 func now() string {
-	return time.Now().Format("2006-01-02 15:04:05")
+	return time.Now().UTC().Format("2006-01-02 15:04:05")
 }

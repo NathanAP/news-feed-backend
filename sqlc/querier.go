@@ -6,8 +6,9 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
+
+	utctime "github.com/nathanap/news-feed-backend/services/utctime"
 )
 
 type Querier interface {
@@ -80,7 +81,7 @@ type Querier interface {
 	UpdateFeedByIDAndUser(ctx context.Context, arg UpdateFeedByIDAndUserParams) (Feed, error)
 	UpdateSource(ctx context.Context, arg UpdateSourceParams) (Source, error)
 	UpdateSystemAppStatus(ctx context.Context, appStatus bool) (System, error)
-	UpdateSystemLastArticleDiscovery(ctx context.Context, lastArticleDiscoveryAt sql.NullTime) (System, error)
+	UpdateSystemLastArticleDiscovery(ctx context.Context, lastArticleDiscoveryAt utctime.NullTime) (System, error)
 	UpdateUserLastLogin(ctx context.Context, id string) error
 	UpdateUserPreferences(ctx context.Context, arg UpdateUserPreferencesParams) (UserPreference, error)
 }

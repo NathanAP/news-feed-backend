@@ -13,3 +13,18 @@ sql:
         out: "./sqlc"
         emit_json_tags: true
         emit_interface: true
+        # Every timestamptz becomes a utctime type instead of time.Time/sql.NullTime. pgx materializes
+        # a scanned timestamptz in time.Local, so without this the API's date format would depend on
+        # the host's timezone. See services/utctime for the full reasoning.
+        overrides:
+          - db_type: "timestamptz"
+            go_type:
+              import: "github.com/nathanap/news-feed-backend/services/utctime"
+              package: "utctime"
+              type: "Time"
+          - db_type: "timestamptz"
+            nullable: true
+            go_type:
+              import: "github.com/nathanap/news-feed-backend/services/utctime"
+              package: "utctime"
+              type: "NullTime"
