@@ -157,7 +157,31 @@ has_next_page, has_previous_page } }`. Query `page` (≥1) e `page_size` (1–10
 - **Manutenção**: quando o servidor está desligado (`app_status=false`), **toda rota responde `503`**
   (exceto `GET /v1/health`), inclusive antes da autenticação. Trate `503` como "app em manutenção".
 - **CORS**: só as origens configuradas no servidor (`CORS_ALLOWED_ORIGINS`). Auth é Bearer — **sem
-  cookies/credentials**.
+  cookies/credentials**. Os headers que o client pode enviar também são configurados no servidor
+  (`CORS_ALLOWED_HEADERS`, padrão `Authorization,Content-Type`): um header que o preflight não permite
+  é um header que o browser se recusa a enviar.
+
+## 9. Enquanto a API estiver atrás de um túnel ngrok (ambiente de teste)
+
+Não existe deploy hospedado ainda: em teste, a API roda na máquina do dev e é exposta por um túnel
+ngrok (`https://<algo>.ngrok-free.dev`). Isso tem **uma consequência para o client**.
+
+No plano free, o ngrok intercepta toda requisição com **User-Agent de browser** e devolve uma página de
+aviso em HTML (status `200`, `text/html`, **sem headers de CORS**) — inclusive o seu XHR, que sai com
+UA de Chrome. O sintoma é enganoso: parece erro de CORS ("No 'Access-Control-Allow-Origin' header"),
+mas a API nem foi alcançada. O preflight `OPTIONS` passa normalmente (o ngrok não o intercepta), então
+só o request de verdade falha.
+
+**O que fazer:** enviar o header `ngrok-skip-browser-warning: true` nas requisições.
+
+**Condicionalmente**, e isso importa: em produção, sem túnel, a API **não** vai permitir esse header e
+o preflight quebra. Amarre o envio à URL base da API ser a do túnel — não mande sempre.
+
+Não adianta abrir a URL do ngrok no navegador e clicar em "Visit Site": aquilo grava um cookie no
+domínio do ngrok, e o XHR é cross-origin sem credenciais, então o cookie nunca acompanha.
+
+Quando a API sair do túnel (deploy de verdade ou outro túnel sem interstitial), esse header deixa de
+ser necessário e deve ser removido.
 - **`GET /v1/health`** (sem auth) devolve `{ status, version, app_status, server_time }` — útil para um
   healthcheck/tela de status no client.
 

@@ -78,7 +78,9 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
   lista (`GET /v1/{model}`) responde `{ docs, pagination }` (`page`/`page_size` na query). Em memória
   sobre a lista já filtrada (revisitar com SQL LIMIT/OFFSET quando/se escalar — pós-Postgres).
 - `middlewares/` — `auth.go` (parse JWT + valida sessão); `app_status.go` (guard de manutenção
-  global: 503 quando `system.app_status=0`, exceto `/health` e o toggle).
+  global: 503 quando `system.app_status` é falso, exceto `/health` e o toggle); `cors.go`
+  (`CORS_ALLOWED_ORIGINS` + `CORS_ALLOWED_HEADERS`, ambos de env; origens vazias = fail-closed;
+  headers vazios = default `Authorization,Content-Type`).
 - `tests/` — `unit/`, `integration/api/`, `end-to-end/api/`, `fixtures/`, `mocks/`, `utils/`.
 
 ## Domínios já implementados

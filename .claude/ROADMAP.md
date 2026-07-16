@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.37.1.0
+0.37.2.0
 
 ## Versão 0.29.0.0
 
@@ -193,17 +193,23 @@ paginações que hoje acontecem em Go em vez de SQL.
 
 - [ ] Revisão
 
+## Versão 0.39.0.0
+
+- [ ] Fazer com que as filtragens sejam feitas através de SQL ao invés de Go
+- [ ] Fazer com que as paginações sejam feitas através de SQL ao invés de Go
+
+## Versão 0.40.0.0
+
+- [ ] Sugestão de keywords
+    -   1. sempre as mais "populares" dentre as notícias (quais keywords aparece mais vezes nas notícias)
+    -   2. as mais próximas de acordo com o que a pessoa selecionou (quais keywords aparecem junto com as que o usuário já selecionou)
+    - Nunca estar sem sugestões (se a saída do passo 2 for vazio, voltar ao passo 1)
+
 ## Futuro
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 
 - Aumentar o verbose mode (+++++++++++++++++++++ logs)
-- Filtragens estão acontecendo via Go (ao invés de SQL)
-- Paginações estão acontecendo via Go (ao invés de SQL)
-- Trazer sugestões de keywords
-    - Primeiro sempre as mais "populares" dentre as notícias
-    - Depois as mais próximas de acordo com o que a pessoa selecionou
-    - Nunca estar sem sugestões
 - TlDraw do banco de dados
 - Preparar ambiente staging + production
 - Denunciar conteúdo
