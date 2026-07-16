@@ -588,6 +588,10 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
 - Trocar para Postgres
 - Filtragens estão acontecendo via Go (ao invés de SQL)
 - Paginações estão acontecendo via Go (ao invés de SQL)
+- Trazer sugestões de keywords
+    - Primeiro sempre as mais "populares" dentre as notícias
+    - Depois as mais próximas de acordo com o que a pessoa selecionou
+    - Nunca estar sem sugestões
 - TlDraw do banco de dados
 - Preparar ambiente staging + production
 - Denunciar conteúdo
