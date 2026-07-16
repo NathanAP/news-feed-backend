@@ -13,6 +13,7 @@ Mostramos apenas a hierarquia de pastas com uma descrição em parênteses. Arqu
 ├── logger                     (sistema de log global, controlado por VERBOSE_MODE)
 ├── middlewares                (middlewares HTTP: auth JWT, guard de manutenção por app_status)
 ├── migrations                 (migrações goose up/down, embutidas via embed)
+├── pgadmin4                   (arquivos de configuração do pgAdmin4)
 ├── schemas                    (DTOs de request/response da API)
 │   └── enums                  (enums de fonte única: language, ai_personality)
 ├── services                   (regras de negócio e integrações)

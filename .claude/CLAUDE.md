@@ -1,6 +1,6 @@
 # Resumo
 
-API SQLite com Go para um feed de notícias personalizado usando fontes RSS.
+API em Go para um feed de notícias personalizado usando fontes RSS.
 
 # Regras de desenvolvimento
 
@@ -82,8 +82,8 @@ Você tem liberdade para acessar qualquer arquivo da pasta `.claude`.
 
 - `GoLang`: linguagem base.
 - `Fiber`: framework web.
-- `SQLite3`: banco de dados.
-- `sqlite-web`: interface de visualização do banco de dados.
+- `PostgreSQL`: banco de dados.
+- `pgadmin4`: interface de visualização do banco de dados.
 - `goose`: migrações do banco de dados.
 - `sqlc`: operações SQL.
 - `jwt`: autenticação Bearer.
@@ -118,7 +118,7 @@ e são chamados direto da raiz). Rodar `task` (ou `task help`) lista tudo. Alias
 
 **Setup (uma vez):**
 
-- `task setup` — instala ferramentas (sqlc, task, sqlite-web), baixa deps e puxa o SLM de keywords no Ollama.
+- `task setup` — instala ferramentas (sqlc, task), baixa deps e puxa o SLM de keywords no Ollama.
 - `task ollama-pull` (`op`) — só puxa o modelo SLM local (`qwen3:4b`).
 
 **Rodar local (sem Docker):**
@@ -130,11 +130,7 @@ e são chamados direto da raiz). Rodar `task` (ou `task help`) lista tudo. Alias
 
 **Docker:**
 
-- `task docker-start` (`ds`) — sobe API + sqlite-web via compose. `dr` (restart) · `dfr` (rebuild) · `dd` (down) · `dp` (prune).
-
-**Banco:**
-
-- `task db` — abre o sqlite-web em `http://localhost:8080`.
+- `task docker-start` (`ds`) — sobe API + PostgreSQL + PgAdmin4 via compose. `dr` (restart) · `dfr` (rebuild) · `dd` (down) · `dp` (prune).
 
 **Testes e qualidade:**
 
@@ -154,7 +150,7 @@ Do zero, com um clone limpo:
 # 1. Ferramenta de build (uma vez, se ainda não tiver o `task`)
 go install github.com/go-task/task/v3/cmd/task@latest
 
-# 2. Instala deps, sqlc, sqlite-web e o SLM local
+# 2. Instala deps, sqlc e o SLM local
 task setup
 
 # 3. Configura o ambiente: copie e preencha os segredos

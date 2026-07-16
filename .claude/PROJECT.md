@@ -22,7 +22,7 @@ Um feed de notícias hiper personalizado que coleta e filtra notícias baseado n
 - Filtragem dual-layer: palavras-chave rápidas + IA inteligente
 - Personalização de notícias: personaliza notícias de acordo com as preferências do usuário
 - Endpoints REST: API simples e intuitiva
-- Banco SQLite integrado: zero dependencies de infraestrutura
+- Banco PostgreSQL integrado: zero dependencies de infraestrutura
 
 ## Público alvo
 
@@ -518,7 +518,7 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
 
 ### Utils
 
-- Servem como scripts utilitários para a execução de testes. Sinta-se livre para criar qualquer utilidade aqui, como subir uma instância SQLite temporária com as migrações, por exemplo.
+- Servem como scripts utilitários para a execução de testes. Sinta-se livre para criar qualquer utilidade aqui, como subir uma instância PostgreSQL temporária com as migrações, por exemplo.
 
 ## Paginação
 
