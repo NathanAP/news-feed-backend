@@ -122,7 +122,7 @@ func toArticleResponse(a db.Article) (schemas.ArticleResponse, error) {
 
 	resp := schemas.ArticleResponse{
 		ID:          a.ID,
-		Status:      a.Status == 1,
+		Status:      a.Status,
 		Title:       a.Title,
 		Content:     a.Content,
 		URLOriginal: a.UrlOriginal,

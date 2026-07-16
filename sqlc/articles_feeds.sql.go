@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"time"
 )
 
@@ -15,12 +16,12 @@ const countUnreadArticlesByFeedForUser = `-- name: CountUnreadArticlesByFeedForU
 SELECT f.id AS feed_id, COUNT(af.id) AS unread_count
 FROM feeds f
 JOIN articles_feeds af ON af.feed_id = f.id
-    AND af.is_read = 0
+    AND af.is_read = FALSE
 JOIN articles a ON a.id = af.article_id
-    AND a.status = 1
+    AND a.status = TRUE
     AND a.removed_at IS NULL
-WHERE f.user_id = ?
-    AND f.status = 1
+WHERE f.user_id = $1
+    AND f.status = TRUE
     AND f.removed_at IS NULL
 GROUP BY f.id
 `
@@ -32,10 +33,10 @@ type CountUnreadArticlesByFeedForUserRow struct {
 
 // Counts the unread articles of every active feed owned by the user, for the
 // check-for-new-articles poll endpoint. A junction record only counts when BOTH sides are active
-// (the feed and the article), matching junction-validity rules, and only unread rows (is_read = 0)
-// are counted. The inner joins plus the is_read filter mean a feed with no unread articles produces
-// no group and is simply absent from the result (the caller renders it as no news). NOTE: keep this
-// comment ASCII only -- sqlc miscounts multibyte UTF-8 bytes here and truncates the tail of the SQL.
+// (the feed and the article), matching junction-validity rules, and only unread rows are counted.
+// The inner joins plus the is_read filter mean a feed with no unread articles produces no group and
+// is simply absent from the result (the caller renders it as no news). NOTE: keep this comment ASCII
+// only -- sqlc miscounts multibyte UTF-8 bytes here and truncates the tail of the SQL.
 func (q *Queries) CountUnreadArticlesByFeedForUser(ctx context.Context, userID string) ([]CountUnreadArticlesByFeedForUserRow, error) {
 	rows, err := q.db.QueryContext(ctx, countUnreadArticlesByFeedForUser, userID)
 	if err != nil {
@@ -61,7 +62,7 @@ func (q *Queries) CountUnreadArticlesByFeedForUser(ctx context.Context, userID s
 
 const createArticleFeed = `-- name: CreateArticleFeed :one
 INSERT INTO articles_feeds (id, article_id, feed_id)
-VALUES (?, ?, ?)
+VALUES ($1, $2, $3)
 RETURNING id, article_id, feed_id, is_read, created_at, modified_at
 `
 
@@ -89,13 +90,13 @@ const findArticleFeedsByArticleAndUser = `-- name: FindArticleFeedsByArticleAndU
 SELECT af.id, af.article_id, af.feed_id, af.is_read, af.created_at, af.modified_at
 FROM articles_feeds af
 JOIN feeds f ON f.id = af.feed_id
-    AND f.user_id = ?
-    AND f.status = 1
+    AND f.user_id = $1
+    AND f.status = TRUE
     AND f.removed_at IS NULL
 JOIN articles a ON a.id = af.article_id
-    AND a.status = 1
+    AND a.status = TRUE
     AND a.removed_at IS NULL
-WHERE af.article_id = ?
+WHERE af.article_id = $2
 `
 
 type FindArticleFeedsByArticleAndUserParams struct {
@@ -143,16 +144,16 @@ SELECT a.id, a.status, a.title, a.content, a.url_original, a.keywords, a.source_
     s.created_at AS source_created_at, s.modified_at AS source_modified_at
 FROM articles_feeds af
 JOIN feeds f ON f.id = af.feed_id
-    AND f.user_id = ?
-    AND f.status = 1
+    AND f.user_id = $1
+    AND f.status = TRUE
     AND f.removed_at IS NULL
 JOIN articles a ON a.id = af.article_id
-    AND a.status = 1
+    AND a.status = TRUE
     AND a.removed_at IS NULL
 JOIN sources s ON s.id = a.source_id
-    AND s.status = 1
+    AND s.status = TRUE
     AND s.removed_at IS NULL
-WHERE af.feed_id = ?
+WHERE af.feed_id = $2
 ORDER BY a.created_at DESC
 `
 
@@ -162,23 +163,23 @@ type ListArticlesByFeedForUserParams struct {
 }
 
 type ListArticlesByFeedForUserRow struct {
-	ID               string         `json:"id"`
-	Status           int64          `json:"status"`
-	Title            string         `json:"title"`
-	Content          string         `json:"content"`
-	UrlOriginal      string         `json:"url_original"`
-	Keywords         string         `json:"keywords"`
-	SourceID         string         `json:"source_id"`
-	LanguageOriginal sql.NullString `json:"language_original"`
-	CreatedAt        time.Time      `json:"created_at"`
-	ModifiedAt       sql.NullTime   `json:"modified_at"`
-	IsRead           int64          `json:"is_read"`
-	SourceName       string         `json:"source_name"`
-	SourceStatus     int64          `json:"source_status"`
-	SourceUrl        string         `json:"source_url"`
-	SourceUrlRss     string         `json:"source_url_rss"`
-	SourceCreatedAt  time.Time      `json:"source_created_at"`
-	SourceModifiedAt sql.NullTime   `json:"source_modified_at"`
+	ID               string          `json:"id"`
+	Status           bool            `json:"status"`
+	Title            string          `json:"title"`
+	Content          string          `json:"content"`
+	UrlOriginal      string          `json:"url_original"`
+	Keywords         json.RawMessage `json:"keywords"`
+	SourceID         string          `json:"source_id"`
+	LanguageOriginal sql.NullString  `json:"language_original"`
+	CreatedAt        time.Time       `json:"created_at"`
+	ModifiedAt       sql.NullTime    `json:"modified_at"`
+	IsRead           bool            `json:"is_read"`
+	SourceName       string          `json:"source_name"`
+	SourceStatus     bool            `json:"source_status"`
+	SourceUrl        string          `json:"source_url"`
+	SourceUrlRss     string          `json:"source_url_rss"`
+	SourceCreatedAt  time.Time       `json:"source_created_at"`
+	SourceModifiedAt sql.NullTime    `json:"source_modified_at"`
 }
 
 // Returns the active articles associated with a feed, each with its is_read state for that feed
@@ -232,16 +233,16 @@ func (q *Queries) ListArticlesByFeedForUser(ctx context.Context, arg ListArticle
 
 const markArticleAsReadForUser = `-- name: MarkArticleAsReadForUser :exec
 UPDATE articles_feeds
-SET is_read = 1, modified_at = CURRENT_TIMESTAMP
-WHERE article_id = ?
-  AND is_read = 0
+SET is_read = TRUE, modified_at = CURRENT_TIMESTAMP
+WHERE article_id = $1
+  AND is_read = FALSE
   AND article_id IN (
       SELECT id FROM articles
-      WHERE status = 1 AND removed_at IS NULL
+      WHERE status = TRUE AND removed_at IS NULL
   )
   AND feed_id IN (
       SELECT id FROM feeds
-      WHERE user_id = ? AND status = 1 AND removed_at IS NULL
+      WHERE user_id = $2 AND status = TRUE AND removed_at IS NULL
   )
 `
 
@@ -250,9 +251,9 @@ type MarkArticleAsReadForUserParams struct {
 	UserID    string `json:"user_id"`
 }
 
-// Marks is_read = 1 on all unread articles_feeds records for a given article and user.
-// Idempotent: already-read records (is_read = 1) are not touched. Both related rows must
-// be active: the article and the feed.
+// Marks is_read on all unread articles_feeds records for a given article and user.
+// Idempotent: already-read records are not touched. Both related rows must be active:
+// the article and the feed.
 func (q *Queries) MarkArticleAsReadForUser(ctx context.Context, arg MarkArticleAsReadForUserParams) error {
 	_, err := q.db.ExecContext(ctx, markArticleAsReadForUser, arg.ArticleID, arg.UserID)
 	return err

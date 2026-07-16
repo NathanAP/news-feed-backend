@@ -42,7 +42,7 @@ func UpdateAppStatus(ctrl controllers.SystemControllerInterface, runTx controlle
 func toSystemResponse(s db.System) schemas.SystemResponse {
 	resp := schemas.SystemResponse{
 		ID:        s.ID,
-		AppStatus: s.AppStatus == 1,
+		AppStatus: s.AppStatus,
 		CreatedAt: s.CreatedAt,
 	}
 	if s.LastArticleDiscoveryAt.Valid {

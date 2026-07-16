@@ -82,7 +82,7 @@ func toFeedResponse(f db.Feed) (schemas.FeedResponse, error) {
 
 	resp := schemas.FeedResponse{
 		ID:        f.ID,
-		Status:    f.Status == 1,
+		Status:    f.Status,
 		Name:      f.Name,
 		Keywords:  keywords,
 		UserID:    f.UserID,

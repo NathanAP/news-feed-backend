@@ -12,7 +12,7 @@ import (
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (id, google_id, email, name, picture)
-VALUES (?, ?, ?, ?, ?)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING id, google_id, email, name, picture, status, last_login_at, created_at, modified_at, removed_at
 `
 
@@ -50,7 +50,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 
 const findUserByGoogleID = `-- name: FindUserByGoogleID :one
 SELECT id, google_id, email, name, picture, status, last_login_at, created_at, modified_at, removed_at FROM users
-WHERE google_id = ? AND status = 1 AND removed_at IS NULL
+WHERE google_id = $1 AND status = TRUE AND removed_at IS NULL
 LIMIT 1
 `
 
@@ -74,7 +74,7 @@ func (q *Queries) FindUserByGoogleID(ctx context.Context, googleID string) (User
 
 const findUserByID = `-- name: FindUserByID :one
 SELECT id, google_id, email, name, picture, status, last_login_at, created_at, modified_at, removed_at FROM users
-WHERE id = ? AND status = 1 AND removed_at IS NULL
+WHERE id = $1 AND status = TRUE AND removed_at IS NULL
 LIMIT 1
 `
 
@@ -98,8 +98,8 @@ func (q *Queries) FindUserByID(ctx context.Context, id string) (User, error) {
 
 const softDeleteUser = `-- name: SoftDeleteUser :exec
 UPDATE users
-SET status = 0, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
-WHERE id = ? AND removed_at IS NULL
+SET status = FALSE, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
+WHERE id = $1 AND removed_at IS NULL
 `
 
 func (q *Queries) SoftDeleteUser(ctx context.Context, id string) error {
@@ -110,7 +110,7 @@ func (q *Queries) SoftDeleteUser(ctx context.Context, id string) error {
 const updateUserLastLogin = `-- name: UpdateUserLastLogin :exec
 UPDATE users
 SET last_login_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
-WHERE id = ? AND status = 1 AND removed_at IS NULL
+WHERE id = $1 AND status = TRUE AND removed_at IS NULL
 `
 
 func (q *Queries) UpdateUserLastLogin(ctx context.Context, id string) error {

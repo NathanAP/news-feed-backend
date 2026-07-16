@@ -4,12 +4,19 @@ services:
         build: .
         ports:
             - "3000:3000"
-        volumes:
-            # Bind-mount the SQLite database so it persists across restarts and is shared with sqlite-web
-            # (and with host-run seed commands: seeding on the host writes to the same file).
-            - ./db:/app/db
         env_file:
             - .env
+        environment:
+            # Overrides the DATABASE_URL from .env. That one points at localhost, which is what the
+            # API needs when it runs on the host (`task ls`); inside the compose network the database
+            # answers to the service name instead. Keeping both means the same .env serves both ways
+            # of running the API, which is the point: only the database is Docker-mandatory.
+            DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+        depends_on:
+            # The API runs migrations on boot, so it must not start before Postgres accepts
+            # connections — otherwise the first boot races the database and dies.
+            postgres:
+                condition: service_healthy
         # Lets the container reach services running on the host (e.g. a native Ollama) via
         # `host.docker.internal`. Automatic on Docker Desktop; this makes it work on Linux too. In Docker
         # prefer KEYWORDS_MODE=groq|gemini; only set OLLAMA_BASE_URL=http://host.docker.internal:11434 if
@@ -31,21 +38,52 @@ services:
             start_period: 10s
         restart: unless-stopped
 
-    # SQLite web UI for inspecting the database. Development convenience.
-    # Configured via the image's documented interface (SQLITE_DATABASE env + /data mount); it defaults
-    # to binding 0.0.0.0:8080, so no command override is needed (overriding it breaks the entrypoint).
-    sqlite-web:
-        container_name: news-feed-sqlite-web
-        image: coleifer/sqlite-web
+    postgres:
+        container_name: news-feed-postgres
+        image: postgres:18-alpine
         ports:
-            - "8080:8080"
-        volumes:
-            - ./db:/data
+            # Published so the API can also run on the host (`task ls`) and so any client (pgAdmin,
+            # psql, a GUI) can reach it directly.
+            - "5432:5432"
         environment:
-            SQLITE_DATABASE: news_feed.db
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_DB: ${POSTGRES_DB}
+        volumes:
+            # Mounted at the parent rather than at PGDATA directly: the postgres:18 image places the
+            # data under a version-scoped path, and mounting the parent persists it either way.
+            - postgres_data:/var/lib/postgresql
+        healthcheck:
+            # pg_isready is the image's own readiness probe. It gates the API's depends_on above.
+            test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+            interval: 5s
+            timeout: 3s
+            retries: 10
+            start_period: 5s
+        restart: unless-stopped
+
+    # Database UI, development convenience — the stack's declared inspector (CLAUDE.md).
+    pgadmin4:
+        container_name: news-feed-pgadmin4
+        image: dpage/pgadmin4
+        ports:
+            - "5050:80"
+        environment:
+            PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+            PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+            # Single-user desktop mode: no login screen for a local dev tool.
+            PGADMIN_CONFIG_SERVER_MODE: "False"
+            PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+        volumes:
+            # servers.json pre-registers the connection so the server tree is already there on first
+            # open. It holds no password on purpose — pgAdmin prompts for it.
+            - ./pgadmin4/servers.json:/pgadmin4/servers.json:ro
+            - pgadmin_data:/var/lib/pgadmin
         depends_on:
-            # Wait until the API is healthy — by then it has created and migrated the database file, so
-            # sqlite-web does not race to open a non-existent file on first boot.
-            api:
+            postgres:
                 condition: service_healthy
         restart: unless-stopped
+
+volumes:
+    postgres_data:
+    pgadmin_data:

@@ -26,7 +26,7 @@ func Check(systemCtrl controllers.SystemControllerInterface, runTx controllers.T
 			if err != nil {
 				return err
 			}
-			appStatus = system.AppStatus == 1
+			appStatus = system.AppStatus
 			return nil
 		}); err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

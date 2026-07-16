@@ -69,7 +69,7 @@ func (r *DiscoveryRunner) Run(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		active = system.AppStatus == 1
+		active = system.AppStatus
 		if !active {
 			return nil
 		}

@@ -11,7 +11,7 @@ import (
 
 const createSource = `-- name: CreateSource :one
 INSERT INTO sources (id, name, url, url_rss)
-VALUES (?, ?, ?, ?)
+VALUES ($1, $2, $3, $4)
 RETURNING id, status, name, url, url_rss, created_at, modified_at, removed_at
 `
 
@@ -45,7 +45,7 @@ func (q *Queries) CreateSource(ctx context.Context, arg CreateSourceParams) (Sou
 
 const findSourceByID = `-- name: FindSourceByID :one
 SELECT id, status, name, url, url_rss, created_at, modified_at, removed_at FROM sources
-WHERE id = ? AND status = 1 AND removed_at IS NULL
+WHERE id = $1 AND status = TRUE AND removed_at IS NULL
 LIMIT 1
 `
 
@@ -67,7 +67,7 @@ func (q *Queries) FindSourceByID(ctx context.Context, id string) (Source, error)
 
 const listSources = `-- name: ListSources :many
 SELECT id, status, name, url, url_rss, created_at, modified_at, removed_at FROM sources
-WHERE status = 1 AND removed_at IS NULL
+WHERE status = TRUE AND removed_at IS NULL
 ORDER BY created_at DESC
 `
 
@@ -105,8 +105,8 @@ func (q *Queries) ListSources(ctx context.Context) ([]Source, error) {
 
 const softDeleteSource = `-- name: SoftDeleteSource :exec
 UPDATE sources
-SET status = 0, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
-WHERE id = ? AND removed_at IS NULL
+SET status = FALSE, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
+WHERE id = $1 AND removed_at IS NULL
 `
 
 func (q *Queries) SoftDeleteSource(ctx context.Context, id string) error {
@@ -116,8 +116,8 @@ func (q *Queries) SoftDeleteSource(ctx context.Context, id string) error {
 
 const updateSource = `-- name: UpdateSource :one
 UPDATE sources
-SET name = ?, url = ?, url_rss = ?, modified_at = CURRENT_TIMESTAMP
-WHERE id = ? AND status = 1 AND removed_at IS NULL
+SET name = $1, url = $2, url_rss = $3, modified_at = CURRENT_TIMESTAMP
+WHERE id = $4 AND status = TRUE AND removed_at IS NULL
 RETURNING id, status, name, url, url_rss, created_at, modified_at, removed_at
 `
 

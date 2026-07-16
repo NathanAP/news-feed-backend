@@ -6,47 +6,48 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"time"
 )
 
 type Article struct {
-	ID               string         `json:"id"`
-	Status           int64          `json:"status"`
-	Title            string         `json:"title"`
-	Content          string         `json:"content"`
-	UrlOriginal      string         `json:"url_original"`
-	Keywords         string         `json:"keywords"`
-	SourceID         string         `json:"source_id"`
-	LanguageOriginal sql.NullString `json:"language_original"`
-	CreatedAt        time.Time      `json:"created_at"`
-	ModifiedAt       sql.NullTime   `json:"modified_at"`
-	RemovedAt        sql.NullTime   `json:"removed_at"`
+	ID               string          `json:"id"`
+	Status           bool            `json:"status"`
+	Title            string          `json:"title"`
+	Content          string          `json:"content"`
+	UrlOriginal      string          `json:"url_original"`
+	Keywords         json.RawMessage `json:"keywords"`
+	SourceID         string          `json:"source_id"`
+	LanguageOriginal sql.NullString  `json:"language_original"`
+	CreatedAt        time.Time       `json:"created_at"`
+	ModifiedAt       sql.NullTime    `json:"modified_at"`
+	RemovedAt        sql.NullTime    `json:"removed_at"`
 }
 
 type ArticlesFeed struct {
 	ID         string       `json:"id"`
 	ArticleID  string       `json:"article_id"`
 	FeedID     string       `json:"feed_id"`
-	IsRead     int64        `json:"is_read"`
+	IsRead     bool         `json:"is_read"`
 	CreatedAt  time.Time    `json:"created_at"`
 	ModifiedAt sql.NullTime `json:"modified_at"`
 }
 
 type Feed struct {
-	ID         string       `json:"id"`
-	Status     int64        `json:"status"`
-	Name       string       `json:"name"`
-	Keywords   string       `json:"keywords"`
-	UserID     string       `json:"user_id"`
-	CreatedAt  time.Time    `json:"created_at"`
-	ModifiedAt sql.NullTime `json:"modified_at"`
-	RemovedAt  sql.NullTime `json:"removed_at"`
+	ID         string          `json:"id"`
+	Status     bool            `json:"status"`
+	Name       string          `json:"name"`
+	Keywords   json.RawMessage `json:"keywords"`
+	UserID     string          `json:"user_id"`
+	CreatedAt  time.Time       `json:"created_at"`
+	ModifiedAt sql.NullTime    `json:"modified_at"`
+	RemovedAt  sql.NullTime    `json:"removed_at"`
 }
 
 type RefreshToken struct {
 	ID         string       `json:"id"`
 	UserID     string       `json:"user_id"`
-	Status     int64        `json:"status"`
+	Status     bool         `json:"status"`
 	ExpiresAt  time.Time    `json:"expires_at"`
 	CreatedAt  time.Time    `json:"created_at"`
 	ModifiedAt sql.NullTime `json:"modified_at"`
@@ -55,7 +56,7 @@ type RefreshToken struct {
 
 type Source struct {
 	ID         string       `json:"id"`
-	Status     int64        `json:"status"`
+	Status     bool         `json:"status"`
 	Name       string       `json:"name"`
 	Url        string       `json:"url"`
 	UrlRss     string       `json:"url_rss"`
@@ -66,7 +67,7 @@ type Source struct {
 
 type System struct {
 	ID                     string       `json:"id"`
-	AppStatus              int64        `json:"app_status"`
+	AppStatus              bool         `json:"app_status"`
 	LastArticleDiscoveryAt sql.NullTime `json:"last_article_discovery_at"`
 	CreatedAt              time.Time    `json:"created_at"`
 	ModifiedAt             sql.NullTime `json:"modified_at"`
@@ -78,7 +79,7 @@ type User struct {
 	Email       string         `json:"email"`
 	Name        string         `json:"name"`
 	Picture     sql.NullString `json:"picture"`
-	Status      int64          `json:"status"`
+	Status      bool           `json:"status"`
 	LastLoginAt sql.NullTime   `json:"last_login_at"`
 	CreatedAt   time.Time      `json:"created_at"`
 	ModifiedAt  sql.NullTime   `json:"modified_at"`
@@ -88,7 +89,7 @@ type User struct {
 type UserPreference struct {
 	ID                  string         `json:"id"`
 	UserID              string         `json:"user_id"`
-	Status              int64          `json:"status"`
+	Status              bool           `json:"status"`
 	LanguageToTranslate sql.NullString `json:"language_to_translate"`
 	AiPersonality       string         `json:"ai_personality"`
 	CreatedAt           time.Time      `json:"created_at"`

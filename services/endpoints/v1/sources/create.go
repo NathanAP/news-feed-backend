@@ -69,7 +69,7 @@ func isValidURL(raw string) bool {
 func toSourceResponse(s db.Source) schemas.SourceResponse {
 	resp := schemas.SourceResponse{
 		ID:        s.ID,
-		Status:    s.Status == 1,
+		Status:    s.Status,
 		Name:      s.Name,
 		URL:       s.Url,
 		URLRss:    s.UrlRss,

@@ -1,6 +1,20 @@
--- Mirror of the schema produced by migrations/, consumed by sqlc to type the queries.
--- Keep in sync with migrations/20260716120000_initial_schema.sql — this file is not executed
--- against any database; it is only sqlc's source of truth for column types.
+-- +goose Up
+-- 0.37: initial schema on PostgreSQL 18. This single migration replaces the 13 SQLite migrations
+-- that preceded it. The old ones were dropped rather than ported: no environment was ever deployed
+-- and all data was disposable, so there is no history worth reconstructing and no ETL to run.
+--
+-- What changed versus the SQLite schema, and why:
+--   * status / is_read / app_status: INTEGER (0/1) -> BOOLEAN. SQLite has no boolean type, so the
+--     convention's "status true/false" had to be emulated with 0/1 and leaked into Go as int64.
+--   * DATETIME -> TIMESTAMPTZ. The project stores every date in UTC (conventions.md); TIMESTAMPTZ
+--     makes the database itself enforce that instead of relying on the caller.
+--   * keywords: TEXT holding a JSON array -> JSONB. It is queried as a JSON array by the judgement
+--     layer-1 overlap, so the real type buys both correctness and a GIN index.
+--   * id stays TEXT (UUID v7 generated in Go). Moving to the native uuid type is a separate version:
+--     it would ripple through every model, controller, fixture and mock.
+--
+-- Partial unique indexes are declared inline here: PostgreSQL supports them natively and supports
+-- ALTER TABLE, so the table-rebuild dance the SQLite migrations needed simply does not exist.
 
 CREATE TABLE users (
     id TEXT NOT NULL,
@@ -94,6 +108,8 @@ CREATE TABLE feeds (
 );
 
 -- Judgement layer 1 scans every active feed looking for keyword overlap with an incoming article.
+-- The GIN index makes that containment lookup an index scan instead of a sequential scan over all
+-- feeds; it did not exist under SQLite, where keywords was opaque TEXT.
 CREATE INDEX idx_feeds_keywords ON feeds USING GIN (keywords);
 
 CREATE TABLE articles_feeds (
@@ -110,7 +126,7 @@ CREATE TABLE articles_feeds (
 
 -- Singleton control-panel table: exactly one row, only ever updated (never inserted into or
 -- deleted from by application code). No status/removed_at — a maintenance switch is not a
--- soft-deletable record; the switch itself is app_status. The row itself is seeded by the migration.
+-- soft-deletable record; the switch itself is app_status.
 CREATE TABLE system (
     id TEXT NOT NULL,
     app_status BOOLEAN NOT NULL DEFAULT TRUE,
@@ -119,3 +135,22 @@ CREATE TABLE system (
     modified_at TIMESTAMPTZ,
     PRIMARY KEY (id)
 );
+
+-- Seed the single control-panel row. The id is a fixed UUID v7 literal on purpose: this row is a
+-- singleton and every environment must agree on its id, so it must be deterministic rather than
+-- generated (PostgreSQL 18 does ship a native uuidv7(), but a random id here would defeat the
+-- point). app_status starts active so the API works out of the box; last_article_discovery_at
+-- starts NULL because discovery has never run on a fresh database.
+INSERT INTO system (id, app_status, last_article_discovery_at)
+VALUES ('01900000-0000-7000-8000-000000000001', TRUE, NULL);
+
+-- +goose Down
+-- Dropped in reverse dependency order: junction first, then the tables it points at.
+DROP TABLE IF EXISTS articles_feeds;
+DROP TABLE IF EXISTS feeds;
+DROP TABLE IF EXISTS articles;
+DROP TABLE IF EXISTS sources;
+DROP TABLE IF EXISTS refresh_tokens;
+DROP TABLE IF EXISTS user_preferences;
+DROP TABLE IF EXISTS system;
+DROP TABLE IF EXISTS users;

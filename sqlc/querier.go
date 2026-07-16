@@ -7,16 +7,17 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 )
 
 type Querier interface {
 	CountActiveFeedsByUser(ctx context.Context, userID string) (int64, error)
 	// Counts the unread articles of every active feed owned by the user, for the
 	// check-for-new-articles poll endpoint. A junction record only counts when BOTH sides are active
-	// (the feed and the article), matching junction-validity rules, and only unread rows (is_read = 0)
-	// are counted. The inner joins plus the is_read filter mean a feed with no unread articles produces
-	// no group and is simply absent from the result (the caller renders it as no news). NOTE: keep this
-	// comment ASCII only -- sqlc miscounts multibyte UTF-8 bytes here and truncates the tail of the SQL.
+	// (the feed and the article), matching junction-validity rules, and only unread rows are counted.
+	// The inner joins plus the is_read filter mean a feed with no unread articles produces no group and
+	// is simply absent from the result (the caller renders it as no news). NOTE: keep this comment ASCII
+	// only -- sqlc miscounts multibyte UTF-8 bytes here and truncates the tail of the SQL.
 	CountUnreadArticlesByFeedForUser(ctx context.Context, userID string) ([]CountUnreadArticlesByFeedForUserRow, error)
 	CreateArticle(ctx context.Context, arg CreateArticleParams) (Article, error)
 	CreateArticleFeed(ctx context.Context, arg CreateArticleFeedParams) (ArticlesFeed, error)
@@ -35,11 +36,14 @@ type Querier interface {
 	FindArticleFeedsByArticleAndUser(ctx context.Context, arg FindArticleFeedsByArticleAndUserParams) ([]ArticlesFeed, error)
 	// Judgement layer 1 (keyword overlap): returns every active feed (of any user) that shares at
 	// least one keyword with the article, along with overlap_count (how many distinct keywords matched).
-	// Both sides are stored as JSON arrays of lowercase strings, so json_each expands each into rows and
-	// the join matches on exact keyword equality. GROUP BY collapses a feed to one row and COUNT gives
-	// its overlap. The overlap feeds the triage (auto-associate / discard / send-to-AI) in layer 2. The
-	// parameter is the article's keywords as a JSON array TEXT.
-	FindCandidateFeedsByKeywords(ctx context.Context, jsonEach interface{}) ([]FindCandidateFeedsByKeywordsRow, error)
+	// Both sides are JSONB arrays of lowercase strings, so jsonb_array_elements_text expands each into
+	// rows and the join matches on exact keyword equality. The LATERAL is what lets the expansion of
+	// f.keywords reference the feed row being scanned; the article's side does not depend on the row, so
+	// it is a plain join. GROUP BY collapses a feed to one row and COUNT gives its overlap (grouping by
+	// f.id alone is valid because it is the primary key, so the other f.* columns are functionally
+	// dependent on it). The overlap feeds the triage (auto-associate / discard / send-to-AI) in layer 2.
+	// The parameter is the article's keywords as a JSON array.
+	FindCandidateFeedsByKeywords(ctx context.Context, keywords json.RawMessage) ([]FindCandidateFeedsByKeywordsRow, error)
 	FindFeedByIDAndUser(ctx context.Context, arg FindFeedByIDAndUserParams) (Feed, error)
 	FindRefreshTokenByID(ctx context.Context, id string) (RefreshToken, error)
 	FindSourceByID(ctx context.Context, id string) (Source, error)
@@ -59,9 +63,9 @@ type Querier interface {
 	ListArticlesByFeedForUser(ctx context.Context, arg ListArticlesByFeedForUserParams) ([]ListArticlesByFeedForUserRow, error)
 	ListFeedsByUser(ctx context.Context, userID string) ([]Feed, error)
 	ListSources(ctx context.Context) ([]Source, error)
-	// Marks is_read = 1 on all unread articles_feeds records for a given article and user.
-	// Idempotent: already-read records (is_read = 1) are not touched. Both related rows must
-	// be active: the article and the feed.
+	// Marks is_read on all unread articles_feeds records for a given article and user.
+	// Idempotent: already-read records are not touched. Both related rows must be active:
+	// the article and the feed.
 	MarkArticleAsReadForUser(ctx context.Context, arg MarkArticleAsReadForUserParams) error
 	RevokeAllRefreshTokensByUserID(ctx context.Context, userID string) error
 	RevokeRefreshToken(ctx context.Context, id string) error
@@ -75,7 +79,7 @@ type Querier interface {
 	UpdateArticle(ctx context.Context, arg UpdateArticleParams) (Article, error)
 	UpdateFeedByIDAndUser(ctx context.Context, arg UpdateFeedByIDAndUserParams) (Feed, error)
 	UpdateSource(ctx context.Context, arg UpdateSourceParams) (Source, error)
-	UpdateSystemAppStatus(ctx context.Context, appStatus int64) (System, error)
+	UpdateSystemAppStatus(ctx context.Context, appStatus bool) (System, error)
 	UpdateSystemLastArticleDiscovery(ctx context.Context, lastArticleDiscoveryAt sql.NullTime) (System, error)
 	UpdateUserLastLogin(ctx context.Context, id string) error
 	UpdateUserPreferences(ctx context.Context, arg UpdateUserPreferencesParams) (UserPreference, error)

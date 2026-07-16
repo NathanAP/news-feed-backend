@@ -8,12 +8,13 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"time"
 )
 
 const countActiveFeedsByUser = `-- name: CountActiveFeedsByUser :one
 SELECT COUNT(*) FROM feeds
-WHERE user_id = ? AND status = 1 AND removed_at IS NULL
+WHERE user_id = $1 AND status = TRUE AND removed_at IS NULL
 `
 
 func (q *Queries) CountActiveFeedsByUser(ctx context.Context, userID string) (int64, error) {
@@ -25,15 +26,15 @@ func (q *Queries) CountActiveFeedsByUser(ctx context.Context, userID string) (in
 
 const createFeed = `-- name: CreateFeed :one
 INSERT INTO feeds (id, name, keywords, user_id)
-VALUES (?, ?, ?, ?)
+VALUES ($1, $2, $3, $4)
 RETURNING id, status, name, keywords, user_id, created_at, modified_at, removed_at
 `
 
 type CreateFeedParams struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Keywords string `json:"keywords"`
-	UserID   string `json:"user_id"`
+	ID       string          `json:"id"`
+	Name     string          `json:"name"`
+	Keywords json.RawMessage `json:"keywords"`
+	UserID   string          `json:"user_id"`
 }
 
 func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, error) {
@@ -61,32 +62,35 @@ const findCandidateFeedsByKeywords = `-- name: FindCandidateFeedsByKeywords :man
 SELECT f.id, f.status, f.name, f.keywords, f.user_id, f.created_at, f.modified_at, f.removed_at,
        COUNT(DISTINCT fk.value) AS overlap_count
 FROM feeds f
-JOIN json_each(f.keywords) fk
-JOIN json_each(?) ak ON ak.value = fk.value
-WHERE f.status = 1 AND f.removed_at IS NULL
+CROSS JOIN LATERAL jsonb_array_elements_text(f.keywords) AS fk(value)
+JOIN jsonb_array_elements_text($1::jsonb) AS ak(value) ON ak.value = fk.value
+WHERE f.status = TRUE AND f.removed_at IS NULL
 GROUP BY f.id
 `
 
 type FindCandidateFeedsByKeywordsRow struct {
-	ID           string       `json:"id"`
-	Status       int64        `json:"status"`
-	Name         string       `json:"name"`
-	Keywords     string       `json:"keywords"`
-	UserID       string       `json:"user_id"`
-	CreatedAt    time.Time    `json:"created_at"`
-	ModifiedAt   sql.NullTime `json:"modified_at"`
-	RemovedAt    sql.NullTime `json:"removed_at"`
-	OverlapCount int64        `json:"overlap_count"`
+	ID           string          `json:"id"`
+	Status       bool            `json:"status"`
+	Name         string          `json:"name"`
+	Keywords     json.RawMessage `json:"keywords"`
+	UserID       string          `json:"user_id"`
+	CreatedAt    time.Time       `json:"created_at"`
+	ModifiedAt   sql.NullTime    `json:"modified_at"`
+	RemovedAt    sql.NullTime    `json:"removed_at"`
+	OverlapCount int64           `json:"overlap_count"`
 }
 
 // Judgement layer 1 (keyword overlap): returns every active feed (of any user) that shares at
 // least one keyword with the article, along with overlap_count (how many distinct keywords matched).
-// Both sides are stored as JSON arrays of lowercase strings, so json_each expands each into rows and
-// the join matches on exact keyword equality. GROUP BY collapses a feed to one row and COUNT gives
-// its overlap. The overlap feeds the triage (auto-associate / discard / send-to-AI) in layer 2. The
-// parameter is the article's keywords as a JSON array TEXT.
-func (q *Queries) FindCandidateFeedsByKeywords(ctx context.Context, jsonEach interface{}) ([]FindCandidateFeedsByKeywordsRow, error) {
-	rows, err := q.db.QueryContext(ctx, findCandidateFeedsByKeywords, jsonEach)
+// Both sides are JSONB arrays of lowercase strings, so jsonb_array_elements_text expands each into
+// rows and the join matches on exact keyword equality. The LATERAL is what lets the expansion of
+// f.keywords reference the feed row being scanned; the article's side does not depend on the row, so
+// it is a plain join. GROUP BY collapses a feed to one row and COUNT gives its overlap (grouping by
+// f.id alone is valid because it is the primary key, so the other f.* columns are functionally
+// dependent on it). The overlap feeds the triage (auto-associate / discard / send-to-AI) in layer 2.
+// The parameter is the article's keywords as a JSON array.
+func (q *Queries) FindCandidateFeedsByKeywords(ctx context.Context, keywords json.RawMessage) ([]FindCandidateFeedsByKeywordsRow, error) {
+	rows, err := q.db.QueryContext(ctx, findCandidateFeedsByKeywords, keywords)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +124,7 @@ func (q *Queries) FindCandidateFeedsByKeywords(ctx context.Context, jsonEach int
 
 const findFeedByIDAndUser = `-- name: FindFeedByIDAndUser :one
 SELECT id, status, name, keywords, user_id, created_at, modified_at, removed_at FROM feeds
-WHERE id = ? AND user_id = ? AND status = 1 AND removed_at IS NULL
+WHERE id = $1 AND user_id = $2 AND status = TRUE AND removed_at IS NULL
 LIMIT 1
 `
 
@@ -147,7 +151,7 @@ func (q *Queries) FindFeedByIDAndUser(ctx context.Context, arg FindFeedByIDAndUs
 
 const listFeedsByUser = `-- name: ListFeedsByUser :many
 SELECT id, status, name, keywords, user_id, created_at, modified_at, removed_at FROM feeds
-WHERE user_id = ? AND status = 1 AND removed_at IS NULL
+WHERE user_id = $1 AND status = TRUE AND removed_at IS NULL
 ORDER BY created_at DESC
 `
 
@@ -185,8 +189,8 @@ func (q *Queries) ListFeedsByUser(ctx context.Context, userID string) ([]Feed, e
 
 const softDeleteFeedByIDAndUser = `-- name: SoftDeleteFeedByIDAndUser :exec
 UPDATE feeds
-SET status = 0, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
-WHERE id = ? AND user_id = ? AND removed_at IS NULL
+SET status = FALSE, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
+WHERE id = $1 AND user_id = $2 AND removed_at IS NULL
 `
 
 type SoftDeleteFeedByIDAndUserParams struct {
@@ -201,8 +205,8 @@ func (q *Queries) SoftDeleteFeedByIDAndUser(ctx context.Context, arg SoftDeleteF
 
 const softDeleteFeedsByUser = `-- name: SoftDeleteFeedsByUser :exec
 UPDATE feeds
-SET status = 0, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
-WHERE user_id = ? AND removed_at IS NULL
+SET status = FALSE, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
+WHERE user_id = $1 AND removed_at IS NULL
 `
 
 func (q *Queries) SoftDeleteFeedsByUser(ctx context.Context, userID string) error {
@@ -212,16 +216,16 @@ func (q *Queries) SoftDeleteFeedsByUser(ctx context.Context, userID string) erro
 
 const updateFeedByIDAndUser = `-- name: UpdateFeedByIDAndUser :one
 UPDATE feeds
-SET name = ?, keywords = ?, modified_at = CURRENT_TIMESTAMP
-WHERE id = ? AND user_id = ? AND status = 1 AND removed_at IS NULL
+SET name = $1, keywords = $2, modified_at = CURRENT_TIMESTAMP
+WHERE id = $3 AND user_id = $4 AND status = TRUE AND removed_at IS NULL
 RETURNING id, status, name, keywords, user_id, created_at, modified_at, removed_at
 `
 
 type UpdateFeedByIDAndUserParams struct {
-	Name     string `json:"name"`
-	Keywords string `json:"keywords"`
-	ID       string `json:"id"`
-	UserID   string `json:"user_id"`
+	Name     string          `json:"name"`
+	Keywords json.RawMessage `json:"keywords"`
+	ID       string          `json:"id"`
+	UserID   string          `json:"user_id"`
 }
 
 func (q *Queries) UpdateFeedByIDAndUser(ctx context.Context, arg UpdateFeedByIDAndUserParams) (Feed, error) {

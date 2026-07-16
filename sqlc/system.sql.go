@@ -30,11 +30,11 @@ func (q *Queries) GetSystem(ctx context.Context) (System, error) {
 
 const updateSystemAppStatus = `-- name: UpdateSystemAppStatus :one
 UPDATE system
-SET app_status = ?, modified_at = CURRENT_TIMESTAMP
+SET app_status = $1, modified_at = CURRENT_TIMESTAMP
 RETURNING id, app_status, last_article_discovery_at, created_at, modified_at
 `
 
-func (q *Queries) UpdateSystemAppStatus(ctx context.Context, appStatus int64) (System, error) {
+func (q *Queries) UpdateSystemAppStatus(ctx context.Context, appStatus bool) (System, error) {
 	row := q.db.QueryRowContext(ctx, updateSystemAppStatus, appStatus)
 	var i System
 	err := row.Scan(
@@ -49,7 +49,7 @@ func (q *Queries) UpdateSystemAppStatus(ctx context.Context, appStatus int64) (S
 
 const updateSystemLastArticleDiscovery = `-- name: UpdateSystemLastArticleDiscovery :one
 UPDATE system
-SET last_article_discovery_at = ?, modified_at = CURRENT_TIMESTAMP
+SET last_article_discovery_at = $1, modified_at = CURRENT_TIMESTAMP
 RETURNING id, app_status, last_article_discovery_at, created_at, modified_at
 `
 

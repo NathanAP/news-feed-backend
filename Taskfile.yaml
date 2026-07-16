@@ -33,7 +33,6 @@ tasks:
             - go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
             - go install github.com/go-task/task/v3/cmd/task@latest
             - go mod download
-            - pip install sqlite-web
             - task: ollama-pull
 
     ollama-pull:
@@ -94,7 +93,7 @@ tasks:
     # ── Docker ─────────────────────────────────────────────────────────────────
 
     docker-start:
-        desc: Build and start the application via Docker Compose (API + sqlite-web)
+        desc: Build and start the full stack via Docker Compose (API + Postgres + pgAdmin4)
         aliases: [ds]
         cmds:
             - docker compose up -d --build
@@ -127,10 +126,17 @@ tasks:
 
     # ── Database ───────────────────────────────────────────────────────────────
 
-    db:
-        desc: Open sqlite-web UI at http://localhost:8080
+    db-start:
+        desc: Start only Postgres + pgAdmin4 (what `task ls` needs; UI at http://localhost:5050)
+        aliases: [dbs]
         cmds:
-            - python -m sqlite_web ./db/news_feed.db --host 0.0.0.0 --port 8080
+            - docker compose up -d postgres pgadmin4
+
+    db-down:
+        desc: Stop Postgres + pgAdmin4
+        aliases: [dbd]
+        cmds:
+            - docker compose stop postgres pgadmin4
 
     # ── Code quality ───────────────────────────────────────────────────────────
 

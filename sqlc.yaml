@@ -1,6 +1,10 @@
 version: "2"
 sql:
-  - engine: "sqlite"
+  # sql_package "database/sql" (rather than pgx/v5 native) keeps the generated code on *sql.DB and
+  # sql.NullString/sql.NullTime, so controllers/transaction.go, the Querier interface and the test
+  # mocks stay driver-agnostic. The driver underneath is still pgx, registered via pgx/v5/stdlib.
+  # Switching to pgx native (pgtype.*) later is this one line plus a regen.
+  - engine: "postgresql"
     queries: "./sqlc/queries/"
     schema: "./schema.sql"
     gen:

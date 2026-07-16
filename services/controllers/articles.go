@@ -140,28 +140,28 @@ func nullString(s *string) sql.NullString {
 	return sql.NullString{String: *s, Valid: true}
 }
 
-// encodeKeywords serializes the keyword slice into the JSON array TEXT stored in the DB. It is the
+// encodeKeywords serializes the keyword slice into the JSONB array stored in the DB. It is the
 // single storage choke point for both articles and feeds, so it normalizes every keyword to
 // trimmed lowercase (PROJECT.md: "palavras-chave devem ser armazenadas em letras minúsculas").
-func encodeKeywords(keywords []string) (string, error) {
+func encodeKeywords(keywords []string) (json.RawMessage, error) {
 	normalized := make([]string, 0, len(keywords))
 	for _, k := range keywords {
 		normalized = append(normalized, strings.ToLower(strings.TrimSpace(k)))
 	}
 	data, err := json.Marshal(normalized)
 	if err != nil {
-		return "", fmt.Errorf("failed to encode keywords: %w", err)
+		return nil, fmt.Errorf("failed to encode keywords: %w", err)
 	}
-	return string(data), nil
+	return data, nil
 }
 
-// DecodeKeywords parses the JSON array TEXT stored in the DB back into a keyword slice.
-func DecodeKeywords(encoded string) ([]string, error) {
-	if encoded == "" {
+// DecodeKeywords parses the JSONB array stored in the DB back into a keyword slice.
+func DecodeKeywords(encoded json.RawMessage) ([]string, error) {
+	if len(encoded) == 0 {
 		return []string{}, nil
 	}
 	var keywords []string
-	if err := json.Unmarshal([]byte(encoded), &keywords); err != nil {
+	if err := json.Unmarshal(encoded, &keywords); err != nil {
 		return nil, fmt.Errorf("failed to decode keywords: %w", err)
 	}
 	if keywords == nil {

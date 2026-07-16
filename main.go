@@ -13,11 +13,11 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
 	"github.com/pressly/goose/v3"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
-	_ "modernc.org/sqlite"
 
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/middlewares"
@@ -46,20 +46,30 @@ func main() {
 		log.Println("No .env file found, using environment variables")
 	}
 
+	// Pin the process to UTC. Every date in this application is UTC (conventions.md), and the
+	// database stores TIMESTAMPTZ, but pgx hands a scanned timestamptz back as a time.Time in
+	// time.Local — so on a machine set to, say, -03:00 the API would serialize `...-03:00` instead
+	// of `...Z`. The instant would be right and the offset explicit, but the wire format would
+	// contradict the convention and vary by host. Setting this once, before any connection or
+	// handler exists, makes the guarantee global: no endpoint can forget to call .UTC(), and the
+	// logs agree with the responses. It must stay above every other statement in main for that
+	// reason. (Setting the server's timezone on the DSN does not help: it changes the session, not
+	// the zone pgx materializes the Go value in.)
+	time.Local = time.UTC
+
 	logger.Setup()
 
-	if err := os.MkdirAll("db", os.ModePerm); err != nil {
-		log.Fatalf("Failed to create db directory: %v", err)
+	// The whole connection is carried by DATABASE_URL (a libpq DSN, e.g.
+	// postgres://user:pass@host:5432/dbname?sslmode=disable). A single URL is what managed providers
+	// hand out, so pointing the API at a hosted database is a config change, never a code change.
+	// The driver is pgx registered under the name "pgx" by its stdlib shim: pgx does the talking,
+	// while the app keeps the driver-agnostic database/sql surface the controllers are written against.
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		log.Fatalf("DATABASE_URL must be set")
 	}
 
-	// SQLite connection pragmas, carried on the DSN so every pooled connection inherits them:
-	//   busy_timeout(5000): wait up to 5s for a lock instead of failing immediately with SQLITE_BUSY.
-	//     SQLite allows a single writer at a time, and the discovery pipeline (DISCOVERY_CONCURRENCY)
-	//     plus the cron running alongside API requests can contend for it — without this, the losing
-	//     writer errors out and the article is dropped.
-	//   journal_mode(WAL): readers no longer block the writer, so API reads proceed during a
-	//     discovery sweep. Both are SQLite-specific DSN params — a future Postgres swap drops them.
-	database, err := sql.Open("sqlite", "./db/news_feed.db?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)")
+	database, err := sql.Open("pgx", databaseURL)
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
@@ -461,7 +471,7 @@ func buildProvider(provider, model string) ai.Client {
 func runMigrations(database *sql.DB) error {
 	goose.SetBaseFS(migrationsFS)
 
-	if err := goose.SetDialect("sqlite3"); err != nil {
+	if err := goose.SetDialect("postgres"); err != nil {
 		return fmt.Errorf("failed to set migration dialect: %w", err)
 	}
 

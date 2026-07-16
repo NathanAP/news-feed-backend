@@ -21,7 +21,7 @@ func NewAppStatusMiddleware(systemCtrl controllers.SystemControllerInterface, ru
 			if err != nil {
 				return err
 			}
-			active = system.AppStatus == 1
+			active = system.AppStatus
 			return nil
 		})
 		if err != nil {

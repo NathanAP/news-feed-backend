@@ -1,6 +1,6 @@
 -- name: CreateArticleFeed :one
 INSERT INTO articles_feeds (id, article_id, feed_id)
-VALUES (?, ?, ?)
+VALUES ($1, $2, $3)
 RETURNING *;
 
 -- name: FindArticleFeedsByArticleAndUser :many
@@ -11,13 +11,13 @@ RETURNING *;
 SELECT af.id, af.article_id, af.feed_id, af.is_read, af.created_at, af.modified_at
 FROM articles_feeds af
 JOIN feeds f ON f.id = af.feed_id
-    AND f.user_id = ?
-    AND f.status = 1
+    AND f.user_id = $1
+    AND f.status = TRUE
     AND f.removed_at IS NULL
 JOIN articles a ON a.id = af.article_id
-    AND a.status = 1
+    AND a.status = TRUE
     AND a.removed_at IS NULL
-WHERE af.article_id = ?;
+WHERE af.article_id = $2;
 
 -- name: ListArticlesByFeedForUser :many
 -- Returns the active articles associated with a feed, each with its is_read state for that feed
@@ -33,50 +33,50 @@ SELECT a.id, a.status, a.title, a.content, a.url_original, a.keywords, a.source_
     s.created_at AS source_created_at, s.modified_at AS source_modified_at
 FROM articles_feeds af
 JOIN feeds f ON f.id = af.feed_id
-    AND f.user_id = ?
-    AND f.status = 1
+    AND f.user_id = $1
+    AND f.status = TRUE
     AND f.removed_at IS NULL
 JOIN articles a ON a.id = af.article_id
-    AND a.status = 1
+    AND a.status = TRUE
     AND a.removed_at IS NULL
 JOIN sources s ON s.id = a.source_id
-    AND s.status = 1
+    AND s.status = TRUE
     AND s.removed_at IS NULL
-WHERE af.feed_id = ?
+WHERE af.feed_id = $2
 ORDER BY a.created_at DESC;
 
 -- name: CountUnreadArticlesByFeedForUser :many
 -- Counts the unread articles of every active feed owned by the user, for the
 -- check-for-new-articles poll endpoint. A junction record only counts when BOTH sides are active
--- (the feed and the article), matching junction-validity rules, and only unread rows (is_read = 0)
--- are counted. The inner joins plus the is_read filter mean a feed with no unread articles produces
--- no group and is simply absent from the result (the caller renders it as no news). NOTE: keep this
--- comment ASCII only -- sqlc miscounts multibyte UTF-8 bytes here and truncates the tail of the SQL.
+-- (the feed and the article), matching junction-validity rules, and only unread rows are counted.
+-- The inner joins plus the is_read filter mean a feed with no unread articles produces no group and
+-- is simply absent from the result (the caller renders it as no news). NOTE: keep this comment ASCII
+-- only -- sqlc miscounts multibyte UTF-8 bytes here and truncates the tail of the SQL.
 SELECT f.id AS feed_id, COUNT(af.id) AS unread_count
 FROM feeds f
 JOIN articles_feeds af ON af.feed_id = f.id
-    AND af.is_read = 0
+    AND af.is_read = FALSE
 JOIN articles a ON a.id = af.article_id
-    AND a.status = 1
+    AND a.status = TRUE
     AND a.removed_at IS NULL
-WHERE f.user_id = ?
-    AND f.status = 1
+WHERE f.user_id = $1
+    AND f.status = TRUE
     AND f.removed_at IS NULL
 GROUP BY f.id;
 
 -- name: MarkArticleAsReadForUser :exec
--- Marks is_read = 1 on all unread articles_feeds records for a given article and user.
--- Idempotent: already-read records (is_read = 1) are not touched. Both related rows must
--- be active: the article and the feed.
+-- Marks is_read on all unread articles_feeds records for a given article and user.
+-- Idempotent: already-read records are not touched. Both related rows must be active:
+-- the article and the feed.
 UPDATE articles_feeds
-SET is_read = 1, modified_at = CURRENT_TIMESTAMP
-WHERE article_id = ?
-  AND is_read = 0
+SET is_read = TRUE, modified_at = CURRENT_TIMESTAMP
+WHERE article_id = $1
+  AND is_read = FALSE
   AND article_id IN (
       SELECT id FROM articles
-      WHERE status = 1 AND removed_at IS NULL
+      WHERE status = TRUE AND removed_at IS NULL
   )
   AND feed_id IN (
       SELECT id FROM feeds
-      WHERE user_id = ? AND status = 1 AND removed_at IS NULL
+      WHERE user_id = $2 AND status = TRUE AND removed_at IS NULL
   );

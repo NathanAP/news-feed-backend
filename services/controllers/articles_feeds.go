@@ -118,7 +118,7 @@ func IsReadState(records []db.ArticlesFeed) *bool {
 		return nil
 	}
 	for _, r := range records {
-		if r.IsRead == 0 {
+		if !r.IsRead {
 			f := false
 			return &f
 		}

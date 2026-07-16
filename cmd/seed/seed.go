@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
 	"github.com/pressly/goose/v3"
-	_ "modernc.org/sqlite"
 )
 
 // devEnvironment is the only ENVIRONMENT in which the seed commands may run.
@@ -43,6 +44,10 @@ func requireDevEnvironment() error {
 	// Best-effort: env vars may already be set without a .env file.
 	_ = godotenv.Load(filepath.Join(mustProjectRoot(), ".env"))
 
+	// Same reason as main.go: pgx materializes timestamptz in time.Local, and every date here is
+	// UTC. Without this the seed would print and compare dates in the host's zone.
+	time.Local = time.UTC
+
 	if env := os.Getenv("ENVIRONMENT"); env != devEnvironment {
 		return fmt.Errorf("seed commands only run when ENVIRONMENT=%s (got %q)", devEnvironment, env)
 	}
@@ -76,21 +81,21 @@ func mustProjectRoot() string {
 	return root
 }
 
-// openDB opens the application's SQLite database (same file as the API) and applies migrations, so
-// the seed works even on a fresh database. A busy timeout reduces "database is locked" errors when
-// the API happens to be running.
+// openDB connects to the same Postgres database the API uses (DATABASE_URL) and applies migrations,
+// so the seed works even against a database that has never been migrated. Unlike the API, the seed
+// reads the migrations from disk rather than the embedded FS, since it runs from the repository.
 func openDB() (*sql.DB, error) {
 	root, err := projectRoot()
 	if err != nil {
 		return nil, err
 	}
 
-	dbPath := filepath.Join(root, "db", "news_feed.db")
-	if err := os.MkdirAll(filepath.Dir(dbPath), os.ModePerm); err != nil {
-		return nil, fmt.Errorf("failed to create db directory: %w", err)
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		return nil, fmt.Errorf("DATABASE_URL must be set")
 	}
 
-	database, err := sql.Open("sqlite", dbPath+"?_pragma=busy_timeout(5000)")
+	database, err := sql.Open("pgx", databaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
@@ -100,7 +105,7 @@ func openDB() (*sql.DB, error) {
 	}
 
 	goose.SetBaseFS(nil)
-	if err := goose.SetDialect("sqlite3"); err != nil {
+	if err := goose.SetDialect("postgres"); err != nil {
 		database.Close()
 		return nil, fmt.Errorf("failed to set migration dialect: %w", err)
 	}

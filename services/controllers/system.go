@@ -34,12 +34,7 @@ func (c *SystemController) Get(ctx context.Context, q db.Querier) (db.System, er
 
 // UpdateAppStatus flips the global maintenance switch on the singleton row.
 func (c *SystemController) UpdateAppStatus(ctx context.Context, q db.Querier, active bool) (db.System, error) {
-	status := int64(0)
-	if active {
-		status = 1
-	}
-
-	system, err := q.UpdateSystemAppStatus(ctx, status)
+	system, err := q.UpdateSystemAppStatus(ctx, active)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return db.System{}, ErrSystemNotFound

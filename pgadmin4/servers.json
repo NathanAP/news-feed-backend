@@ -1,0 +1,14 @@
+{
+    "Servers": {
+        "1": {
+            "Name": "news-feed",
+            "Group": "Servers",
+            "Host": "postgres",
+            "Port": 5432,
+            "MaintenanceDB": "news_feed",
+            "Username": "news_feed",
+            "SSLMode": "prefer",
+            "Comment": "Local development database (docker-compose). The password is intentionally not stored here: this file is versioned, so pgAdmin prompts for it on first connect."
+        }
+    }
+}

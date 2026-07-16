@@ -8,22 +8,23 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 )
 
 const createArticle = `-- name: CreateArticle :one
 INSERT INTO articles (id, title, content, url_original, keywords, source_id, language_original)
-VALUES (?, ?, ?, ?, ?, ?, ?)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING id, status, title, content, url_original, keywords, source_id, language_original, created_at, modified_at, removed_at
 `
 
 type CreateArticleParams struct {
-	ID               string         `json:"id"`
-	Title            string         `json:"title"`
-	Content          string         `json:"content"`
-	UrlOriginal      string         `json:"url_original"`
-	Keywords         string         `json:"keywords"`
-	SourceID         string         `json:"source_id"`
-	LanguageOriginal sql.NullString `json:"language_original"`
+	ID               string          `json:"id"`
+	Title            string          `json:"title"`
+	Content          string          `json:"content"`
+	UrlOriginal      string          `json:"url_original"`
+	Keywords         json.RawMessage `json:"keywords"`
+	SourceID         string          `json:"source_id"`
+	LanguageOriginal sql.NullString  `json:"language_original"`
 }
 
 func (q *Queries) CreateArticle(ctx context.Context, arg CreateArticleParams) (Article, error) {
@@ -55,7 +56,7 @@ func (q *Queries) CreateArticle(ctx context.Context, arg CreateArticleParams) (A
 
 const findArticleByID = `-- name: FindArticleByID :one
 SELECT id, status, title, content, url_original, keywords, source_id, language_original, created_at, modified_at, removed_at FROM articles
-WHERE id = ? AND status = 1 AND removed_at IS NULL
+WHERE id = $1 AND status = TRUE AND removed_at IS NULL
 LIMIT 1
 `
 
@@ -80,7 +81,7 @@ func (q *Queries) FindArticleByID(ctx context.Context, id string) (Article, erro
 
 const findArticleByURLOriginal = `-- name: FindArticleByURLOriginal :one
 SELECT id, status, title, content, url_original, keywords, source_id, language_original, created_at, modified_at, removed_at FROM articles
-WHERE url_original = ? AND status = 1 AND removed_at IS NULL
+WHERE url_original = $1 AND status = TRUE AND removed_at IS NULL
 LIMIT 1
 `
 
@@ -105,7 +106,7 @@ func (q *Queries) FindArticleByURLOriginal(ctx context.Context, urlOriginal stri
 
 const listArticles = `-- name: ListArticles :many
 SELECT id, status, title, content, url_original, keywords, source_id, language_original, created_at, modified_at, removed_at FROM articles
-WHERE status = 1 AND removed_at IS NULL
+WHERE status = TRUE AND removed_at IS NULL
 ORDER BY created_at DESC
 `
 
@@ -146,8 +147,8 @@ func (q *Queries) ListArticles(ctx context.Context) ([]Article, error) {
 
 const softDeleteArticle = `-- name: SoftDeleteArticle :exec
 UPDATE articles
-SET status = 0, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
-WHERE id = ? AND removed_at IS NULL
+SET status = FALSE, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
+WHERE id = $1 AND removed_at IS NULL
 `
 
 func (q *Queries) SoftDeleteArticle(ctx context.Context, id string) error {
@@ -157,8 +158,8 @@ func (q *Queries) SoftDeleteArticle(ctx context.Context, id string) error {
 
 const softDeleteArticlesBySourceID = `-- name: SoftDeleteArticlesBySourceID :exec
 UPDATE articles
-SET status = 0, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
-WHERE source_id = ? AND removed_at IS NULL
+SET status = FALSE, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
+WHERE source_id = $1 AND removed_at IS NULL
 `
 
 func (q *Queries) SoftDeleteArticlesBySourceID(ctx context.Context, sourceID string) error {
@@ -168,18 +169,18 @@ func (q *Queries) SoftDeleteArticlesBySourceID(ctx context.Context, sourceID str
 
 const updateArticle = `-- name: UpdateArticle :one
 UPDATE articles
-SET title = ?, content = ?, url_original = ?, keywords = ?, language_original = ?, modified_at = CURRENT_TIMESTAMP
-WHERE id = ? AND status = 1 AND removed_at IS NULL
+SET title = $1, content = $2, url_original = $3, keywords = $4, language_original = $5, modified_at = CURRENT_TIMESTAMP
+WHERE id = $6 AND status = TRUE AND removed_at IS NULL
 RETURNING id, status, title, content, url_original, keywords, source_id, language_original, created_at, modified_at, removed_at
 `
 
 type UpdateArticleParams struct {
-	Title            string         `json:"title"`
-	Content          string         `json:"content"`
-	UrlOriginal      string         `json:"url_original"`
-	Keywords         string         `json:"keywords"`
-	LanguageOriginal sql.NullString `json:"language_original"`
-	ID               string         `json:"id"`
+	Title            string          `json:"title"`
+	Content          string          `json:"content"`
+	UrlOriginal      string          `json:"url_original"`
+	Keywords         json.RawMessage `json:"keywords"`
+	LanguageOriginal sql.NullString  `json:"language_original"`
+	ID               string          `json:"id"`
 }
 
 func (q *Queries) UpdateArticle(ctx context.Context, arg UpdateArticleParams) (Article, error) {

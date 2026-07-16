@@ -68,7 +68,7 @@ func FeedArticles(feedCtrl controllers.FeedControllerInterface, afCtrl controlle
 
 		result := make([]schemas.ArticleResponse, 0, len(rows))
 		for _, row := range rows {
-			if isReadFilter != nil && (row.IsRead == 1) != *isReadFilter {
+			if isReadFilter != nil && row.IsRead != *isReadFilter {
 				continue
 			}
 			if startAt != nil && row.CreatedAt.Before(*startAt) {
@@ -136,7 +136,7 @@ func rowToArticleResponse(row db.ListArticlesByFeedForUserRow, withSources bool)
 
 	resp := schemas.ArticleResponse{
 		ID:          row.ID,
-		Status:      row.Status == 1,
+		Status:      row.Status,
 		Title:       row.Title,
 		Content:     row.Content,
 		URLOriginal: row.UrlOriginal,
@@ -152,13 +152,13 @@ func rowToArticleResponse(row db.ListArticlesByFeedForUserRow, withSources bool)
 		t := row.ModifiedAt.Time
 		resp.ModifiedAt = &t
 	}
-	isRead := row.IsRead == 1
+	isRead := row.IsRead
 	resp.IsRead = &isRead
 
 	if withSources {
 		source := schemas.SourceResponse{
 			ID:        row.SourceID,
-			Status:    row.SourceStatus == 1,
+			Status:    row.SourceStatus,
 			Name:      row.SourceName,
 			URL:       row.SourceUrl,
 			URLRss:    row.SourceUrlRss,
