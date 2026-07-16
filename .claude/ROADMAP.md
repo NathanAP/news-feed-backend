@@ -201,8 +201,8 @@ paginações que hoje acontecem em Go em vez de SQL.
 ## Versão 0.40.0.0
 
 - [ ] Sugestão de keywords
-    -   1. sempre as mais "populares" dentre as notícias (quais keywords aparece mais vezes nas notícias)
-    -   2. as mais próximas de acordo com o que a pessoa selecionou (quais keywords aparecem junto com as que o usuário já selecionou)
+    -   1. se não houver nenhuma selecionada ou se o passo 2 retornou vazio, sempre trazer as mais "populares" dentre as notícias (quais keywords aparece mais vezes nas notícias)
+    -   2. se houver alguma já selecionada, trazer as mais próximas de acordo com o que a pessoa selecionou (quais keywords aparecem junto com as que o usuário já selecionou)
     - Nunca estar sem sugestões (se a saída do passo 2 for vazio, voltar ao passo 1)
 
 ## Futuro
