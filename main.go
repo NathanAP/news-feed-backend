@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
 	"github.com/pressly/goose/v3"
@@ -159,9 +160,16 @@ func main() {
 		AppName: os.Getenv("PROJECT_NAME"),
 	})
 
-	// CORS is mounted first, before every route and guard, so it also covers the preflight OPTIONS
-	// and the maintenance/health responses. The web client lives on a different origin, so without
-	// this the browser blocks all cross-origin calls.
+	// Recover is mounted first so it wraps every middleware and handler below. Fiber does NOT
+	// install it by default: without it a panic anywhere in a request unwinds past Fiber and takes
+	// the whole process down, which conventions.md forbids ("exceções não devem derrubar a
+	// aplicação") - one malformed request would stop serving every other user. With it, the panic
+	// becomes a 500 for that request alone and the API stays up.
+	app.Use(recover.New())
+
+	// CORS is mounted right after, before every route and guard, so it also covers the preflight
+	// OPTIONS and the maintenance/health responses. The web client lives on a different origin, so
+	// without this the browser blocks all cross-origin calls.
 	app.Use(middlewares.NewCORSMiddleware())
 
 	apiVersion := os.Getenv("API_VERSION")

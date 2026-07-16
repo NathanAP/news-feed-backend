@@ -107,9 +107,15 @@ CREATE TABLE feeds (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- Judgement layer 1 scans every active feed looking for keyword overlap with an incoming article.
--- The GIN index makes that containment lookup an index scan instead of a sequential scan over all
--- feeds; it did not exist under SQLite, where keywords was opaque TEXT.
+-- Judgement layer 1 looks for keyword overlap between an incoming article and every active feed.
+-- This GIN index is what keeps that from scanning the whole feed table; it did not exist under
+-- SQLite, where keywords was opaque TEXT.
+--
+-- Careful: a GIN index is only reachable through one of its OPERATORS (@>, ?, ?|, ?&). Expanding
+-- the column with jsonb_array_elements_text (as the overlap COUNT must) is a function call on every
+-- row and can never use it. FindCandidateFeedsByKeywords therefore carries an explicit `keywords ?|`
+-- predicate alongside the expansion - if that predicate is ever dropped, this index silently stops
+-- being used and layer 1 goes back to a full scan (0.37.3.0 fixed exactly that).
 CREATE INDEX idx_feeds_keywords ON feeds USING GIN (keywords);
 
 CREATE TABLE articles_feeds (

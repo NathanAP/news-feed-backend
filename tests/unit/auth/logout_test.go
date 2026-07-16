@@ -2,13 +2,13 @@ package auth_test
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/nathanap/news-feed-backend/services/controllers"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 	"github.com/nathanap/news-feed-backend/tests/fixtures"
 	jwtmock "github.com/nathanap/news-feed-backend/tests/mocks/services"
@@ -57,9 +57,14 @@ func TestLogout_InvalidToken(t *testing.T) {
 func TestLogout_RevokedSession(t *testing.T) {
 	requireNotProduction(t)
 
+	// Revoking sets status = FALSE + removed_at, and FindRefreshTokenByID filters both out, so the
+	// real controller answers a revoked session with the typed ErrRefreshTokenNotFound. The mock
+	// must return that same typed error: since 0.37.3.0 the session guard tells a missing/expired
+	// session (401) apart from an infrastructure failure (500), so an untyped error here would
+	// exercise the 500 path and stop testing what this case is about.
 	rtCtrl := &mockRefreshTokenCtrl{
 		findByIDFn: func(ctx context.Context, id string) (db.RefreshToken, error) {
-			return db.RefreshToken{}, errors.New("session revoked")
+			return db.RefreshToken{}, controllers.ErrRefreshTokenNotFound
 		},
 	}
 

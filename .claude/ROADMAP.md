@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.37.2.0
+0.37.3.0
 
 ## Versão 0.29.0.0
 
@@ -191,7 +191,14 @@ paginações que hoje acontecem em Go em vez de SQL.
 
 ## Versão 0.38.0.0
 
-- [ ] Revisão
+- [x] Revisão — **entregue como `0.37.3.0`** (ver `versions/`), não como minor.
+    - Motivo: a regra de `CLAUDE.md` diz que "alterações causadas pelo revisor sobem uma versão de
+      patch". Reservar um slot minor para "Revisão" conflitava com ela, então o slot ficou livre.
+      Para revisões futuras, o padrão é o mesmo: patch em cima da versão vigente, sem slot próprio.
+    - Achado principal: o índice GIN de `feeds.keywords` criado na 0.37 **nunca era usado** —
+      a camada 1 do julgamento não tinha operador que o índice servisse (428ms → 22ms em 60k feeds).
+    - Também: `recover` ausente (panic derrubava a app) e falha de banco virando 401 (deslogava todos).
+    - Deliberadamente **fora** do escopo: filtragem/paginação em Go, que é a 0.39 abaixo.
 
 ## Versão 0.39.0.0
 

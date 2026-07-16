@@ -26,7 +26,7 @@ func NewArticleController() *ArticleController {
 
 func (c *ArticleController) Create(ctx context.Context, q db.Querier, title, content, urlOriginal, sourceID string, keywords []string, languageOriginal *string) (db.Article, error) {
 	// The article must reference an existing, active source. FindSourceByID already filters
-	// status = 1 AND removed_at IS NULL, so a soft-deleted source resolves to not-found.
+	// status = TRUE AND removed_at IS NULL, so a soft-deleted source resolves to not-found.
 	if _, err := q.FindSourceByID(ctx, sourceID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return db.Article{}, ErrArticleSourceInvalid

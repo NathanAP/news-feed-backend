@@ -86,7 +86,7 @@ func (c *ArticleFeedController) CountUnreadByFeedForUser(ctx context.Context, q 
 	return rows, nil
 }
 
-// MarkAsRead marks is_read = 1 on all unread articles_feeds records for the given article
+// MarkAsRead marks is_read = TRUE on all unread articles_feeds records for the given article
 // and user. Idempotent: already-read records are not touched. Returns whether any records
 // were found (true = user has at least one feed containing the article).
 func (c *ArticleFeedController) MarkAsRead(ctx context.Context, q db.Querier, articleID, userID string) (bool, error) {

@@ -42,7 +42,7 @@ func ListSources(ctrl controllers.SourceControllerInterface, runTx controllers.T
 }
 
 // applyFilters narrows the active sources returned by the controller. Inactive records
-// never reach here (the query already filters status = 1 AND removed_at IS NULL), so by
+// never reach here (the query already filters status = TRUE AND removed_at IS NULL), so by
 // convention no status filter is exposed — soft-deleted records must never appear in lists.
 func applyFilters(sources []db.Source, urlFilter string) []db.Source {
 	if urlFilter == "" {

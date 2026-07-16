@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -67,8 +68,18 @@ func validateSession(ctrl controllers.RefreshTokenControllerInterface, runTx con
 			return err
 		})
 		if err != nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "session expired, please log in again",
+			// Only a genuinely absent/expired session is the user's problem (401). Anything else is
+			// an infrastructure failure and must surface as 500: telling a client with a perfectly
+			// valid session to "log in again" because the database blinked would sign every user out
+			// at once, and the login they attempt next would fail too. conventions.md: exceptions
+			// default to 500, and the typed errors exist precisely so this can be told apart.
+			if errors.Is(err, controllers.ErrRefreshTokenNotFound) || errors.Is(err, controllers.ErrRefreshTokenExpired) {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+					"error": "session expired, please log in again",
+				})
+			}
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "internal server error",
 			})
 		}
 

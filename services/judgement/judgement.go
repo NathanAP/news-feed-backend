@@ -42,6 +42,17 @@ type Result struct {
 //   - autoAssociateRatio: overlap/feedKeywords at or above this auto-associates (no AI).
 //   - minMatches: a candidate with fewer overlapping keywords than this is discarded (no AI).
 //   - threshold: the inclusive minimum AI score (0-100) for a judged feed to pass.
+//
+// The two triage knobs interact, and the ratio is checked FIRST, so it can silently override the
+// discard rule on feeds with few keywords. The invariant that keeps them coherent is
+//
+//	autoAssociateRatio * schemas.FeedKeywordsMin >= minMatches - 1
+//
+// With the defaults (0.30 * 5 = 1.5 >= 1) it holds: reaching the ratio always needs at least 2
+// overlapping keywords, so a 1-keyword overlap really is discarded as intended. Lowering
+// JUDGEMENT_AUTOASSOCIATE_RATIO to 0.20 would break it (0.20 * 5 = 1.0), and a single shared
+// keyword would start auto-associating into the smallest feeds instead of being discarded - a
+// change nothing would report, since both paths are silent no-AI decisions.
 type Evaluator struct {
 	judger             ai.Judger
 	threshold          int

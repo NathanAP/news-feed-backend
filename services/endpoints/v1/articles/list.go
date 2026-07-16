@@ -46,7 +46,7 @@ func ListArticles(ctrl controllers.ArticleControllerInterface, runTx controllers
 }
 
 // applyFilters narrows the active articles by url_original substring. Inactive records never
-// reach here (the query already filters status = 1 AND removed_at IS NULL).
+// reach here (the query already filters status = TRUE AND removed_at IS NULL).
 func applyFilters(articles []db.Article, urlFilter string) []db.Article {
 	if urlFilter == "" {
 		return articles

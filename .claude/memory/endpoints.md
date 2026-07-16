@@ -52,8 +52,9 @@ Todo **erro** responde `{ error: string }` com o status apropriado. Datas em UTC
 - `POST /auth/refresh` — **sem auth**. Body `{ refresh_token }`. → 200 **AuthResponse** (renova o
   `access_token` e estende o `refresh_token`) / 400 (body ausente) / 401 (inválido/expirado).
 - `POST /auth/logout` — **auth**. Soft-remove do refresh token atual. → 204 (sem body) / 500.
-- `DELETE /auth/invalidate` — **aberta** (admin-futuro). Body `{ refresh_token }`. Derruba uma sessão.
-  → 204 (sem body) / 400 (`refresh_token` ausente) / 500.
+- `DELETE /auth/invalidate` — **aberta** (admin-futuro). Body `{ refresh_token_id }`. Derruba uma sessão.
+  → 204 (sem body) / 400 (`refresh_token_id` ausente) / 500.
+  (o valor é o mesmo que o `refresh_token` do login: o token **é** o id da linha, um UUID v7)
 - `DELETE /auth/invalidate-all` — **aberta** (admin-futuro). Query `user_id`. Derruba todas as sessões
   do usuário. → 204 (sem body) / 400 (`user_id` ausente) / 500.
 

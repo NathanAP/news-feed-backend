@@ -93,7 +93,10 @@ CREATE TABLE feeds (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- Judgement layer 1 scans every active feed looking for keyword overlap with an incoming article.
+-- Judgement layer 1 looks for keyword overlap between an incoming article and every active feed.
+-- Only reachable through a GIN operator (@>, ?, ?|, ?&): FindCandidateFeedsByKeywords carries an
+-- explicit `keywords ?|` predicate for this, since the jsonb_array_elements_text expansion the
+-- overlap COUNT needs is a per-row function call that no index can serve.
 CREATE INDEX idx_feeds_keywords ON feeds USING GIN (keywords);
 
 CREATE TABLE articles_feeds (

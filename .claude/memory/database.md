@@ -71,9 +71,16 @@ manual é obrigatório no payload. Usado pela tradução para saber a origem.
 
 `id`, `status`, `name`, `keywords` (**JSONB**, 5–20), `user_id` (FK users), timestamps.
 Sem unicidade (nomes duplicados permitidos). Máx. **5 feeds ativos** por usuário.
-Índice **GIN** em `keywords` (0.37): a camada 1 do julgamento varre todos os feeds ativos procurando
-overlap, e o GIN torna isso índice em vez de sequential scan. Não existia no SQLite, onde `keywords`
-era TEXT opaco.
+Índice **GIN** em `keywords` (0.37): a camada 1 do julgamento procura overlap contra os feeds ativos,
+e o GIN evita varrer a tabela inteira. Não existia no SQLite, onde `keywords` era TEXT opaco.
+
+> **Um índice GIN só é alcançado por um dos seus operadores** (`@>`, `?`, `?|`, `?&`). Expandir a
+> coluna com `jsonb_array_elements_text` — que é o que a contagem de overlap precisa fazer — é
+> chamada de função linha a linha e **nunca** usa o índice. Por isso a `FindCandidateFeedsByKeywords`
+> carrega um predicado explícito `keywords ?|` junto da expansão. Ele é redundante com o join (não
+> muda o resultado), mas é o que deixa o planner descartar não-candidatos antes da parte cara.
+> Removê-lo faz o índice parar de ser usado **em silêncio** e a camada 1 volta a varrer tudo — foi
+> exatamente o bug corrigido na **0.37.3.0** (medido em 60k feeds: 428ms → 22ms).
 
 > Atenção ao ler/gravar `keywords`: JSONB guarda a **estrutura**, não o texto. O PG re-renderiza na
 > leitura (notadamente com espaço após a vírgula), então comparar os bytes crus do que foi gravado

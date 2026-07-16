@@ -48,7 +48,7 @@ func ListFeeds(ctrl controllers.FeedControllerInterface, runTx controllers.Trans
 }
 
 // applyFilters narrows the user's feeds by name substring. Inactive and other users' feeds
-// never reach here (the query already filters user_id, status = 1 AND removed_at IS NULL).
+// never reach here (the query already filters user_id, status = TRUE AND removed_at IS NULL).
 func applyFilters(feeds []db.Feed, nameFilter string) []db.Feed {
 	if nameFilter == "" {
 		return feeds
