@@ -1,6 +1,7 @@
 package articles_test
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -43,7 +44,10 @@ func decodePage(t *testing.T, resp *http.Response) []map[string]any {
 	return env.Docs
 }
 
-func setupIntegrationApp(t *testing.T) (*fiber.App, db.Querier) {
+// setupIntegrationApp wires the articles endpoints over a real, throwaway Postgres. The raw *sql.DB
+// comes back alongside the Querier because a few tests need to set up state the API deliberately
+// cannot produce — see forceCreatedAt.
+func setupIntegrationApp(t *testing.T) (*fiber.App, db.Querier, *sql.DB) {
 	t.Helper()
 
 	database := testutils.SetupTestDB(t)
@@ -64,7 +68,7 @@ func setupIntegrationApp(t *testing.T) (*fiber.App, db.Querier) {
 	a.Put("/:id", append(authMiddleware, articleendpoints.UpdateArticle(articleCtrl, runTx))...)
 	a.Delete("/:id", append(authMiddleware, articleendpoints.DeleteArticle(articleCtrl, runTx))...)
 
-	return app, queries
+	return app, queries, database
 }
 
 func seedUser(t *testing.T, queries db.Querier) string {
@@ -126,7 +130,7 @@ func createArticle(t *testing.T, app *fiber.App, token, urlOriginal, sourceID st
 func TestIntegration_CreateArticle_Success(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUser(t, queries)
 	sourceID := seedSource(t, queries)
 
@@ -150,7 +154,7 @@ func TestIntegration_CreateArticle_Success(t *testing.T) {
 func TestIntegration_CreateArticle_DuplicateURL(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUser(t, queries)
 	sourceID := seedSource(t, queries)
 
@@ -168,7 +172,7 @@ func TestIntegration_CreateArticle_DuplicateURL(t *testing.T) {
 func TestIntegration_CreateArticle_KeywordsPersistedAndReturned(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUser(t, queries)
 	sourceID := seedSource(t, queries)
 
@@ -203,7 +207,7 @@ func TestIntegration_CreateArticle_KeywordsPersistedAndReturned(t *testing.T) {
 func TestIntegration_GetArticle_NotFound(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUser(t, queries)
 
 	req, _ := http.NewRequest(http.MethodGet, "/v1/articles/non-existent", nil)
@@ -218,7 +222,7 @@ func TestIntegration_GetArticle_NotFound(t *testing.T) {
 func TestIntegration_ListArticles_ReturnsAll(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUser(t, queries)
 	sourceID := seedSource(t, queries)
 
@@ -238,7 +242,7 @@ func TestIntegration_ListArticles_ReturnsAll(t *testing.T) {
 func TestIntegration_ListArticles_ExcludesSoftDeleted(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUser(t, queries)
 	sourceID := seedSource(t, queries)
 
@@ -266,7 +270,7 @@ func TestIntegration_ListArticles_ExcludesSoftDeleted(t *testing.T) {
 func TestIntegration_UpdateArticle_Success(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUser(t, queries)
 	sourceID := seedSource(t, queries)
 
@@ -289,7 +293,7 @@ func TestIntegration_UpdateArticle_Success(t *testing.T) {
 func TestIntegration_UpdateArticle_NotFound(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUser(t, queries)
 
 	body := `{"title":"T","content":"# C","url_original":"https://e.com/x","keywords":["a","b","c","d","e"],"language_original":"pt"}`
@@ -306,7 +310,7 @@ func TestIntegration_UpdateArticle_NotFound(t *testing.T) {
 func TestIntegration_DeleteArticle_Success(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUser(t, queries)
 
 	sourceID := seedSource(t, queries)
@@ -328,7 +332,7 @@ func TestIntegration_DeleteArticle_Success(t *testing.T) {
 func TestIntegration_CreateArticle_AfterSoftDelete(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUser(t, queries)
 	sourceID := seedSource(t, queries)
 
@@ -355,7 +359,7 @@ func TestIntegration_CreateArticle_AfterSoftDelete(t *testing.T) {
 func TestIntegration_CreateArticle_SourceNotFound(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUser(t, queries)
 	// No source seeded — the referenced source does not exist.
 
@@ -371,7 +375,7 @@ func TestIntegration_CreateArticle_SourceNotFound(t *testing.T) {
 func TestIntegration_CreateArticle_SourceInactive(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUser(t, queries)
 	sourceID := seedSource(t, queries)
 
@@ -390,7 +394,7 @@ func TestIntegration_CreateArticle_SourceInactive(t *testing.T) {
 func TestIntegration_UpdateArticle_SourceIDImmutable(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUser(t, queries)
 	sourceID := seedSource(t, queries)
 
@@ -414,7 +418,7 @@ func TestIntegration_UpdateArticle_SourceIDImmutable(t *testing.T) {
 func TestIntegration_Articles_Unauthenticated(t *testing.T) {
 	requireNotProduction(t)
 
-	app, _ := setupIntegrationApp(t)
+	app, _, _ := setupIntegrationApp(t)
 
 	req, _ := http.NewRequest(http.MethodGet, "/v1/articles", nil)
 	resp, err := app.Test(req)

@@ -68,10 +68,42 @@ func (c *FeedController) FindByID(ctx context.Context, q db.Querier, id, userID 
 	return feed, nil
 }
 
-func (c *FeedController) List(ctx context.Context, q db.Querier, userID string) ([]db.Feed, error) {
-	feeds, err := q.ListFeedsByUser(ctx, userID)
+// List returns one page of the user's active feeds matching the filter, plus the total number of
+// matching rows (which is what pagination.total_count reports, so it counts every match, not just
+// this page). Filtering and pagination happen in SQL; the two queries share the filter so the page
+// and the total can never disagree about what "matching" means. userID is a mandatory argument
+// rather than part of the filter: a feed is only ever visible to its owner.
+func (c *FeedController) List(ctx context.Context, q db.Querier, userID string, filter ListFeedsFilter) ([]db.Feed, int64, error) {
+	feeds, err := q.ListFeedsByUser(ctx, db.ListFeedsByUserParams{
+		UserID:     userID,
+		Name:       nullableString(filter.Name),
+		PageLimit:  filter.Page.Limit(),
+		PageOffset: filter.Page.Offset(),
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list feeds: %w", err)
+		return nil, 0, fmt.Errorf("failed to list feeds: %w", err)
+	}
+
+	total, err := q.CountFeedsByUser(ctx, db.CountFeedsByUserParams{
+		UserID: userID,
+		Name:   nullableString(filter.Name),
+	})
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count feeds: %w", err)
+	}
+
+	if feeds == nil {
+		feeds = []db.Feed{}
+	}
+	return feeds, total, nil
+}
+
+// ListAll returns every active feed of a user, for the dev seed scripts. HTTP handlers must use
+// List instead: a client always gets a page.
+func (c *FeedController) ListAll(ctx context.Context, q db.Querier, userID string) ([]db.Feed, error) {
+	feeds, err := q.ListAllFeedsByUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list all feeds: %w", err)
 	}
 	if feeds == nil {
 		return []db.Feed{}, nil

@@ -141,7 +141,7 @@ func TestRunDevArticles_RequiresSources(t *testing.T) {
 
 	var count int
 	err = sc.runTx(sc.ctx, func(q db.Querier) error {
-		articles, err := sc.articleCtrl.List(sc.ctx, q)
+		articles, err := sc.articleCtrl.ListAll(sc.ctx, q)
 		count = len(articles)
 		return err
 	})

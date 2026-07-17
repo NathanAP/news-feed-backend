@@ -96,7 +96,7 @@ func TestIntegration_DiscoveryRunner_DiscoversAndAdvancesWatermark(t *testing.T)
 	assert.True(t, system.LastArticleDiscoveryAt.Time.After(time.Date(2025, 1, 8, 0, 0, 0, 0, time.UTC)))
 
 	// 0.19 persists nothing.
-	articles, err := queries.ListArticles(t.Context())
+	articles, err := queries.ListAllArticles(t.Context())
 	require.NoError(t, err)
 	assert.Empty(t, articles)
 }

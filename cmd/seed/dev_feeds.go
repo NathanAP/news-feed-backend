@@ -17,7 +17,7 @@ func runDevFeeds(sc *seedCtx) (*report, error) {
 			return err
 		}
 
-		existing, err := sc.feedCtrl.List(sc.ctx, q, user.ID)
+		existing, err := sc.feedCtrl.ListAll(sc.ctx, q, user.ID)
 		if err != nil {
 			return err
 		}

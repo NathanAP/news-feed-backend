@@ -64,7 +64,8 @@ type mockFeedCtrl struct {
 	createFn         func(ctx context.Context, q db.Querier, userID, name string, keywords []string) (db.Feed, error)
 	findByIDFn       func(ctx context.Context, q db.Querier, id, userID string) (db.Feed, error)
 	findCandidatesFn func(ctx context.Context, q db.Querier, keywords []string) ([]controllers.FeedCandidate, error)
-	listFn           func(ctx context.Context, q db.Querier, userID string) ([]db.Feed, error)
+	listFn           func(ctx context.Context, q db.Querier, userID string, filter controllers.ListFeedsFilter) ([]db.Feed, int64, error)
+	listAllFn        func(ctx context.Context, q db.Querier, userID string) ([]db.Feed, error)
 	updateFn         func(ctx context.Context, q db.Querier, id, userID, name string, keywords []string) (db.Feed, error)
 	softDeleteFn     func(ctx context.Context, q db.Querier, id, userID string) error
 }
@@ -87,9 +88,16 @@ func (m *mockFeedCtrl) FindCandidatesByKeywords(ctx context.Context, q db.Querie
 	}
 	return []controllers.FeedCandidate{}, nil
 }
-func (m *mockFeedCtrl) List(ctx context.Context, q db.Querier, userID string) ([]db.Feed, error) {
+func (m *mockFeedCtrl) List(ctx context.Context, q db.Querier, userID string, filter controllers.ListFeedsFilter) ([]db.Feed, int64, error) {
 	if m.listFn != nil {
-		return m.listFn(ctx, q, userID)
+		return m.listFn(ctx, q, userID, filter)
+	}
+	feeds := []db.Feed{fixtures.NewTestFeed(userID)}
+	return feeds, int64(len(feeds)), nil
+}
+func (m *mockFeedCtrl) ListAll(ctx context.Context, q db.Querier, userID string) ([]db.Feed, error) {
+	if m.listAllFn != nil {
+		return m.listAllFn(ctx, q, userID)
 	}
 	return []db.Feed{fixtures.NewTestFeed(userID)}, nil
 }

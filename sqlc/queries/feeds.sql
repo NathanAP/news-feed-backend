@@ -9,11 +9,34 @@ WHERE id = $1 AND user_id = $2 AND status = TRUE AND removed_at IS NULL
 LIMIT 1;
 
 -- name: ListFeedsByUser :many
+-- Lists the requesting user's active feeds for GET /v1/feeds, filtered and paginated in SQL.
+-- The name filter is optional (NULL = not applied). See ListArticles for why strpos over ILIKE and
+-- why id breaks the created_at tie. CountFeedsByUser below MUST keep the same filters.
+SELECT * FROM feeds
+WHERE user_id = sqlc.arg(user_id) AND status = TRUE AND removed_at IS NULL
+  AND (sqlc.narg(name)::text IS NULL OR strpos(lower(name), lower(sqlc.narg(name)::text)) > 0)
+ORDER BY created_at DESC, id DESC
+LIMIT sqlc.arg(page_limit) OFFSET sqlc.arg(page_offset);
+
+-- name: ListAllFeedsByUser :many
+-- Every active feed of a user, unfiltered and unpaginated, for the dev seed scripts. See
+-- ListAllSources for why this is separate from the paginated ListFeedsByUser that serves HTTP.
 SELECT * FROM feeds
 WHERE user_id = $1 AND status = TRUE AND removed_at IS NULL
-ORDER BY created_at DESC;
+ORDER BY created_at DESC, id DESC;
+
+-- name: CountFeedsByUser :one
+-- Total matching rows for the ListFeedsByUser page, feeding pagination.total_count.
+-- Its filters MUST mirror ListFeedsByUser above, or the envelope lies about the total.
+-- NOTE: this is NOT the query that guards the 5-active-feeds-per-user rule -- that one is
+-- CountActiveFeedsByUser below, which must never see a name filter.
+SELECT COUNT(*) FROM feeds
+WHERE user_id = sqlc.arg(user_id) AND status = TRUE AND removed_at IS NULL
+  AND (sqlc.narg(name)::text IS NULL OR strpos(lower(name), lower(sqlc.narg(name)::text)) > 0);
 
 -- name: CountActiveFeedsByUser :one
+-- Counts every active feed of a user, enforcing the max-active-feeds business rule at creation
+-- time. Intentionally unfiltered: the limit is about how many feeds exist, not about a search.
 SELECT COUNT(*) FROM feeds
 WHERE user_id = $1 AND status = TRUE AND removed_at IS NULL;
 

@@ -51,24 +51,44 @@ func (c *ArticleFeedController) FindByArticleAndUser(ctx context.Context, q db.Q
 	return records, nil
 }
 
-// ListArticlesByFeedForUser returns the active articles of a feed (each with its is_read state for
-// that feed), scoped to the requesting user. It does not distinguish a feed that is empty from one
-// that does not belong to the user — both yield an empty slice — so the caller must check feed
-// ownership first (via FeedController.FindByID) to answer 404 vs 200. is_read / date filtering and
-// pagination are applied by the caller over this base set (same in-memory pattern as the other
-// list endpoints).
-func (c *ArticleFeedController) ListArticlesByFeedForUser(ctx context.Context, q db.Querier, feedID, userID string) ([]db.ListArticlesByFeedForUserRow, error) {
+// ListArticlesByFeedForUser returns one page of the active articles of a feed (each with its
+// is_read state for that feed) matching the filter, scoped to the requesting user, plus the total
+// number of matching rows (which is what pagination.total_count reports, so it counts every match,
+// not just this page). Filtering and pagination happen in SQL; the two queries share the filter so
+// the page and the total can never disagree about what "matching" means.
+//
+// It does not distinguish a feed that is empty from one that does not belong to the user — both
+// yield an empty slice and a zero total — so the caller must check feed ownership first (via
+// FeedController.FindByID) to answer 404 vs 200.
+func (c *ArticleFeedController) ListArticlesByFeedForUser(ctx context.Context, q db.Querier, feedID, userID string, filter ListFeedArticlesFilter) ([]db.ListArticlesByFeedForUserRow, int64, error) {
 	rows, err := q.ListArticlesByFeedForUser(ctx, db.ListArticlesByFeedForUserParams{
-		UserID: userID,
-		FeedID: feedID,
+		UserID:           userID,
+		FeedID:           feedID,
+		IsRead:           nullableBool(filter.IsRead),
+		PeriodStartingAt: nullableTime(filter.PeriodStartingAt),
+		PeriodEndingAt:   nullableTime(filter.PeriodEndingAt),
+		PageLimit:        filter.Page.Limit(),
+		PageOffset:       filter.Page.Offset(),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list articles by feed: %w", err)
+		return nil, 0, fmt.Errorf("failed to list articles by feed: %w", err)
 	}
+
+	total, err := q.CountArticlesByFeedForUser(ctx, db.CountArticlesByFeedForUserParams{
+		UserID:           userID,
+		FeedID:           feedID,
+		IsRead:           nullableBool(filter.IsRead),
+		PeriodStartingAt: nullableTime(filter.PeriodStartingAt),
+		PeriodEndingAt:   nullableTime(filter.PeriodEndingAt),
+	})
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count articles by feed: %w", err)
+	}
+
 	if rows == nil {
-		return []db.ListArticlesByFeedForUserRow{}, nil
+		rows = []db.ListArticlesByFeedForUserRow{}
 	}
-	return rows, nil
+	return rows, total, nil
 }
 
 // CountUnreadByFeedForUser returns, per active feed owned by the user, how many unread articles it

@@ -17,7 +17,7 @@ func runDevArticleFeeds(sc *seedCtx) (*report, error) {
 			return err
 		}
 
-		feeds, err := sc.feedCtrl.List(sc.ctx, q, user.ID)
+		feeds, err := sc.feedCtrl.ListAll(sc.ctx, q, user.ID)
 		if err != nil {
 			return err
 		}
@@ -25,7 +25,7 @@ func runDevArticleFeeds(sc *seedCtx) (*report, error) {
 			return fmt.Errorf("no feeds for the dev user — run `task sdf` (seed-dev-feeds) first")
 		}
 
-		articles, err := sc.articleCtrl.List(sc.ctx, q)
+		articles, err := sc.articleCtrl.ListAll(sc.ctx, q)
 		if err != nil {
 			return err
 		}

@@ -49,7 +49,8 @@ type AuthControllerInterface interface {
 type SourceControllerInterface interface {
 	Create(ctx context.Context, q db.Querier, name, url, urlRss string) (db.Source, error)
 	FindByID(ctx context.Context, q db.Querier, id string) (db.Source, error)
-	List(ctx context.Context, q db.Querier) ([]db.Source, error)
+	List(ctx context.Context, q db.Querier, filter ListSourcesFilter) ([]db.Source, int64, error)
+	ListAll(ctx context.Context, q db.Querier) ([]db.Source, error)
 	Update(ctx context.Context, q db.Querier, id, name, url, urlRss string) (db.Source, error)
 	SoftDelete(ctx context.Context, q db.Querier, id string) error
 }
@@ -58,7 +59,8 @@ type ArticleControllerInterface interface {
 	Create(ctx context.Context, q db.Querier, title, content, urlOriginal, sourceID string, keywords []string, languageOriginal *string) (db.Article, error)
 	FindByID(ctx context.Context, q db.Querier, id string) (db.Article, error)
 	FindByURLOriginal(ctx context.Context, q db.Querier, urlOriginal string) (db.Article, error)
-	List(ctx context.Context, q db.Querier) ([]db.Article, error)
+	List(ctx context.Context, q db.Querier, filter ListArticlesFilter) ([]db.Article, int64, error)
+	ListAll(ctx context.Context, q db.Querier) ([]db.Article, error)
 	Update(ctx context.Context, q db.Querier, id, title, content, urlOriginal string, keywords []string, languageOriginal *string) (db.Article, error)
 	SoftDelete(ctx context.Context, q db.Querier, id string) error
 }
@@ -67,7 +69,8 @@ type FeedControllerInterface interface {
 	Create(ctx context.Context, q db.Querier, userID, name string, keywords []string) (db.Feed, error)
 	FindByID(ctx context.Context, q db.Querier, id, userID string) (db.Feed, error)
 	FindCandidatesByKeywords(ctx context.Context, q db.Querier, keywords []string) ([]FeedCandidate, error)
-	List(ctx context.Context, q db.Querier, userID string) ([]db.Feed, error)
+	List(ctx context.Context, q db.Querier, userID string, filter ListFeedsFilter) ([]db.Feed, int64, error)
+	ListAll(ctx context.Context, q db.Querier, userID string) ([]db.Feed, error)
 	Update(ctx context.Context, q db.Querier, id, userID, name string, keywords []string) (db.Feed, error)
 	SoftDelete(ctx context.Context, q db.Querier, id, userID string) error
 }
@@ -75,7 +78,7 @@ type FeedControllerInterface interface {
 type ArticleFeedControllerInterface interface {
 	Create(ctx context.Context, q db.Querier, articleID, feedID string) (db.ArticlesFeed, error)
 	FindByArticleAndUser(ctx context.Context, q db.Querier, articleID, userID string) ([]db.ArticlesFeed, error)
-	ListArticlesByFeedForUser(ctx context.Context, q db.Querier, feedID, userID string) ([]db.ListArticlesByFeedForUserRow, error)
+	ListArticlesByFeedForUser(ctx context.Context, q db.Querier, feedID, userID string, filter ListFeedArticlesFilter) ([]db.ListArticlesByFeedForUserRow, int64, error)
 	CountUnreadByFeedForUser(ctx context.Context, q db.Querier, userID string) ([]db.CountUnreadArticlesByFeedForUserRow, error)
 	MarkAsRead(ctx context.Context, q db.Querier, articleID, userID string) (bool, error)
 }

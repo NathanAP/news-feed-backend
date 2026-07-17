@@ -1,8 +1,6 @@
 package feeds
 
 import (
-	"strings"
-
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/nathanap/news-feed-backend/logger"
@@ -13,53 +11,42 @@ import (
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
+// ListFeeds serves GET /v1/feeds: the requesting user's own feeds — a feed is only ever visible to
+// the user who created it, so the scope comes from the token, never from the query. Optional query
+// filter: name, a case-insensitive substring match. No status filter is exposed by convention —
+// soft-deleted feeds must never appear in a list, so the query hardcodes the active predicate.
+// Filtering and pagination happen in SQL; the response follows the standard paginated envelope.
 func ListFeeds(ctrl controllers.FeedControllerInterface, runTx controllers.TransactionRunner) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
 
 		claims := middlewares.GetClaims(c)
-		nameFilter := strings.ToLower(c.Query("name"))
+		filter := controllers.ListFeedsFilter{
+			Name: c.Query("name"),
+			Page: pagination.ParseParams(c.Query("page"), c.Query("page_size")),
+		}
 
 		var feeds []db.Feed
+		var total int64
 		err := runTx(c.Context(), func(q db.Querier) error {
 			var err error
-			feeds, err = ctrl.List(c.Context(), q, claims.UserID)
+			feeds, total, err = ctrl.List(c.Context(), q, claims.UserID, filter)
 			return err
 		})
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to retrieve feeds"})
 		}
 
-		filtered := applyFilters(feeds, nameFilter)
-
-		result := make([]schemas.FeedResponse, 0, len(filtered))
-		for _, f := range filtered {
+		docs := make([]schemas.FeedResponse, 0, len(feeds))
+		for _, f := range feeds {
 			response, err := toFeedResponse(f)
 			if err != nil {
 				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to build feed response"})
 			}
-			result = append(result, response)
+			docs = append(docs, response)
 		}
 
-		params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
-		return c.JSON(pagination.Paginate(result, params))
+		return c.JSON(pagination.BuildResponse(docs, total, filter.Page))
 	}
-}
-
-// applyFilters narrows the user's feeds by name substring. Inactive and other users' feeds
-// never reach here (the query already filters user_id, status = TRUE AND removed_at IS NULL).
-func applyFilters(feeds []db.Feed, nameFilter string) []db.Feed {
-	if nameFilter == "" {
-		return feeds
-	}
-
-	var out []db.Feed
-	for _, f := range feeds {
-		if !strings.Contains(strings.ToLower(f.Name), nameFilter) {
-			continue
-		}
-		out = append(out, f)
-	}
-	return out
 }

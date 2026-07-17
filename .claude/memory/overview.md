@@ -74,9 +74,12 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
   `articles.language_original` (null quando não confiável). Capacidade `ai.Translator` (LLM apenas,
   `TRANSLATION_*`) faz a **tradução personalizada** on-demand (`GET /articles/:id/translate/:language`),
   read-only, respeitando `ai_personality`. Enum de idiomas único em `schemas/enums/language.go`.
-- `services/pagination/` — paginação global (`ParseParams` + `Paginate[T]` genérico). Toda rota de
-  lista (`GET /v1/{model}`) responde `{ docs, pagination }` (`page`/`page_size` na query). Em memória
-  sobre a lista já filtrada (revisitar com SQL LIMIT/OFFSET quando/se escalar — pós-Postgres).
+- `services/pagination/` — paginação global (`ParseParams` → `Params.Limit/Offset` →
+  `BuildResponse(docs, total, params)`). Toda rota de lista (`GET /v1/{model}`) responde
+  `{ docs, pagination }` (`page`/`page_size` na query). Desde a 0.38 filtragem e paginação são **SQL**
+  (`LIMIT/OFFSET` + query de contagem irmã com os mesmos filtros); nada é filtrado ou fatiado em Go.
+  Listagens ordenam por `created_at DESC, id DESC` — o desempate pelo `id` (UUIDv7) é o que mantém a
+  paginação consistente quando a CRON grava várias notícias no mesmo instante.
 - `middlewares/` — `auth.go` (parse JWT + valida sessão); `app_status.go` (guard de manutenção
   global: 503 quando `system.app_status` é falso, exceto `/health` e o toggle); `cors.go`
   (`CORS_ALLOWED_ORIGINS` + `CORS_ALLOWED_HEADERS`, ambos de env; origens vazias = fail-closed;

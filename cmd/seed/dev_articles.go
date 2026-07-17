@@ -14,7 +14,7 @@ import (
 func runDevArticles(sc *seedCtx) (*report, error) {
 	rep := &report{}
 	err := sc.runTx(sc.ctx, func(q db.Querier) error {
-		sources, err := sc.sourceCtrl.List(sc.ctx, q)
+		sources, err := sc.sourceCtrl.ListAll(sc.ctx, q)
 		if err != nil {
 			return err
 		}

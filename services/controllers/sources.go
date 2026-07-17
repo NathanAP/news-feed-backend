@@ -54,10 +54,41 @@ func (c *SourceController) FindByID(ctx context.Context, q db.Querier, id string
 	return source, nil
 }
 
-func (c *SourceController) List(ctx context.Context, q db.Querier) ([]db.Source, error) {
-	sources, err := q.ListSources(ctx)
+// List returns one page of active sources matching the filter, plus the total number of matching
+// rows (which is what pagination.total_count reports, so it counts every match, not just this
+// page). Filtering and pagination happen in SQL; the two queries share the filter so the page and
+// the total can never disagree about what "matching" means.
+func (c *SourceController) List(ctx context.Context, q db.Querier, filter ListSourcesFilter) ([]db.Source, int64, error) {
+	sources, err := q.ListSources(ctx, db.ListSourcesParams{
+		Url:        nullableString(filter.URL),
+		Name:       nullableString(filter.Name),
+		PageLimit:  filter.Page.Limit(),
+		PageOffset: filter.Page.Offset(),
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list sources: %w", err)
+		return nil, 0, fmt.Errorf("failed to list sources: %w", err)
+	}
+
+	total, err := q.CountSources(ctx, db.CountSourcesParams{
+		Url:  nullableString(filter.URL),
+		Name: nullableString(filter.Name),
+	})
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count sources: %w", err)
+	}
+
+	if sources == nil {
+		sources = []db.Source{}
+	}
+	return sources, total, nil
+}
+
+// ListAll returns every active source, for the internal batch consumers (the CRON discovery sweep
+// and the dev seed scripts). HTTP handlers must use List instead: a client always gets a page.
+func (c *SourceController) ListAll(ctx context.Context, q db.Querier) ([]db.Source, error) {
+	sources, err := q.ListAllSources(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list all sources: %w", err)
 	}
 	if sources == nil {
 		return []db.Source{}, nil

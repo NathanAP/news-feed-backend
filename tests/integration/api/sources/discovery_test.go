@@ -56,7 +56,7 @@ func TestIntegration_SourceDiscovery_DryRunReturnsItemsWithoutWriting(t *testing
 	require.NoError(t, err)
 	assert.False(t, system.LastArticleDiscoveryAt.Valid, "watermark must remain unset after a dry-run")
 
-	articles, err := queries.ListArticles(t.Context())
+	articles, err := queries.ListAllArticles(t.Context())
 	require.NoError(t, err)
 	assert.Empty(t, articles, "dry-run must not persist any article")
 }

@@ -67,7 +67,7 @@ func getFeedArticles(t *testing.T, app *fiber.App, token, feedID, query string) 
 func TestIntegration_FeedArticles_ReturnsWithIsReadAndFilters(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUserVariant(t, queries, "20")
 	feedID := createFeed(t, app, token, "My Feed")
 
@@ -101,7 +101,7 @@ func TestIntegration_FeedArticles_ReturnsWithIsReadAndFilters(t *testing.T) {
 func TestIntegration_FeedArticles_WithSourcesTrue_PopulatesSource(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUserVariant(t, queries, "25")
 	feedID := createFeed(t, app, token, "Sourced Feed")
 
@@ -124,7 +124,7 @@ func TestIntegration_FeedArticles_WithSourcesTrue_PopulatesSource(t *testing.T) 
 func TestIntegration_FeedArticles_WithSourcesNotTrue_OmitsSource(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUserVariant(t, queries, "26")
 	feedID := createFeed(t, app, token, "Unsourced Feed")
 
@@ -153,7 +153,7 @@ func TestIntegration_FeedArticles_WithSourcesNotTrue_OmitsSource(t *testing.T) {
 func TestIntegration_FeedArticles_OtherUsersFeed_404(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	tokenA := seedUserVariant(t, queries, "21")
 	tokenB := seedUserVariant(t, queries, "22")
 
@@ -169,7 +169,7 @@ func TestIntegration_FeedArticles_OtherUsersFeed_404(t *testing.T) {
 func TestIntegration_FeedArticles_OwnedButEmpty_200(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUserVariant(t, queries, "23")
 	feedID := createFeed(t, app, token, "Empty Feed")
 
@@ -182,7 +182,7 @@ func TestIntegration_FeedArticles_OwnedButEmpty_200(t *testing.T) {
 func TestIntegration_FeedArticles_FeedNotFound_404(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUserVariant(t, queries, "24")
 
 	resp := getFeedArticles(t, app, token, "01900000-0000-7000-8000-000000009999", "")
@@ -192,7 +192,7 @@ func TestIntegration_FeedArticles_FeedNotFound_404(t *testing.T) {
 func TestIntegration_FeedArticles_Unauthenticated_401(t *testing.T) {
 	requireNotProduction(t)
 
-	app, _ := setupIntegrationApp(t)
+	app, _, _ := setupIntegrationApp(t)
 	req, _ := http.NewRequest(http.MethodGet, "/v1/feeds/any/articles", nil)
 	resp, err := app.Test(req)
 	require.NoError(t, err)

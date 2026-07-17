@@ -7,7 +7,29 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
+
+const countSources = `-- name: CountSources :one
+SELECT COUNT(*) FROM sources
+WHERE status = TRUE AND removed_at IS NULL
+  AND ($1::text IS NULL OR strpos(lower(url), lower($1::text)) > 0)
+  AND ($2::text IS NULL OR strpos(lower(name), lower($2::text)) > 0)
+`
+
+type CountSourcesParams struct {
+	Url  sql.NullString `json:"url"`
+	Name sql.NullString `json:"name"`
+}
+
+// Total matching rows for the ListSources page, feeding pagination.total_count.
+// Its filters MUST mirror ListSources above, or the envelope lies about the total.
+func (q *Queries) CountSources(ctx context.Context, arg CountSourcesParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countSources, arg.Url, arg.Name)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
 
 const createSource = `-- name: CreateSource :one
 INSERT INTO sources (id, name, url, url_rss)
@@ -65,14 +87,76 @@ func (q *Queries) FindSourceByID(ctx context.Context, id string) (Source, error)
 	return i, err
 }
 
+const listAllSources = `-- name: ListAllSources :many
+SELECT id, status, name, url, url_rss, created_at, modified_at, removed_at FROM sources
+WHERE status = TRUE AND removed_at IS NULL
+ORDER BY created_at DESC, id DESC
+`
+
+// Every active source, unfiltered and unpaginated, for the internal batch consumers: the CRON's
+// discovery sweep (which must visit ALL sources, not a page of them) and the dev seed scripts.
+// Deliberately separate from ListSources: paging a sweep would silently skip sources, and giving
+// the batch callers a page_size big enough to "fit everything" would be a bug waiting for the
+// source count to grow past it. HTTP clients must use ListSources, which is always paginated.
+func (q *Queries) ListAllSources(ctx context.Context) ([]Source, error) {
+	rows, err := q.db.QueryContext(ctx, listAllSources)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Source
+	for rows.Next() {
+		var i Source
+		if err := rows.Scan(
+			&i.ID,
+			&i.Status,
+			&i.Name,
+			&i.Url,
+			&i.UrlRss,
+			&i.CreatedAt,
+			&i.ModifiedAt,
+			&i.RemovedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listSources = `-- name: ListSources :many
 SELECT id, status, name, url, url_rss, created_at, modified_at, removed_at FROM sources
 WHERE status = TRUE AND removed_at IS NULL
-ORDER BY created_at DESC
+  AND ($1::text IS NULL OR strpos(lower(url), lower($1::text)) > 0)
+  AND ($2::text IS NULL OR strpos(lower(name), lower($2::text)) > 0)
+ORDER BY created_at DESC, id DESC
+LIMIT $4 OFFSET $3
 `
 
-func (q *Queries) ListSources(ctx context.Context) ([]Source, error) {
-	rows, err := q.db.QueryContext(ctx, listSources)
+type ListSourcesParams struct {
+	Url        sql.NullString `json:"url"`
+	Name       sql.NullString `json:"name"`
+	PageOffset int32          `json:"page_offset"`
+	PageLimit  int32          `json:"page_limit"`
+}
+
+// Lists the active sources for GET /v1/sources, filtered and paginated in SQL.
+// url and name are independent optional substring filters (NULL = not applied); passing both ANDs
+// them. See ListArticles for why strpos over ILIKE and why id breaks the created_at tie.
+// CountSources below MUST keep the same filters.
+func (q *Queries) ListSources(ctx context.Context, arg ListSourcesParams) ([]Source, error) {
+	rows, err := q.db.QueryContext(ctx, listSources,
+		arg.Url,
+		arg.Name,
+		arg.PageOffset,
+		arg.PageLimit,
+	)
 	if err != nil {
 		return nil, err
 	}

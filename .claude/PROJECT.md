@@ -526,6 +526,16 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
     - Buscas de múltiplos registros de um modelo (exemplo: `GET base_url/v1/articles/`).
     - Buscas de registros cruzados de modelos (exemplo: `GET base_url/v1/feeds/{id}/articles`)
 - A paginação não precisa ser feita ao montar relatórios, métricas, indicadores ou afins.
+- A paginação e a filtragem devem ser feitas **em SQL**, nunca em Go: a query traz apenas a página
+  pedida (`LIMIT/OFFSET`) e uma query irmã de contagem, com os mesmos filtros, fornece o `total_count`.
+    - O `total_count` é o total de registros que casam com o filtro, e não o tamanho da página. Por
+      isso ele vem de uma contagem no banco: numa página fora do range não há linha nenhuma para
+      carregar esse número.
+    - As listagens são ordenadas com desempate pelo `id` (`created_at DESC, id DESC`). Sem uma
+      ordenação total, registros criados no mesmo instante (um lote da CRON, por exemplo) podem
+      repetir em uma página e sumir de outra ao paginar.
+    - Processos internos que precisam do conjunto inteiro (a CRON e os scripts de `cmd/`) não usam as
+      listagens paginadas: eles têm métodos próprios (`ListAll`) sem limite.
 - Ao usar paginação, a resposta deve seguir o seguinte formato `json`:
     ```json
     {

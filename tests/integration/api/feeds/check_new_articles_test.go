@@ -32,7 +32,7 @@ func decodeCounts(t *testing.T, resp *http.Response) map[string]int64 {
 func TestIntegration_CheckForNewArticles_CountsUnreadPerFeed(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUserVariant(t, queries, "60")
 	feedA := createFeed(t, app, token, "Feed A")
 	feedB := createFeed(t, app, token, "Feed B")
@@ -52,7 +52,7 @@ func TestIntegration_CheckForNewArticles_CountsUnreadPerFeed(t *testing.T) {
 func TestIntegration_CheckForNewArticles_ReadArticlesAreNotCounted(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUserVariant(t, queries, "61")
 	feedID := createFeed(t, app, token, "Feed")
 
@@ -74,7 +74,7 @@ func TestIntegration_CheckForNewArticles_ReadArticlesAreNotCounted(t *testing.T)
 func TestIntegration_CheckForNewArticles_AllReadFeedIsOmitted(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUserVariant(t, queries, "62")
 	feedID := createFeed(t, app, token, "Feed")
 
@@ -96,7 +96,7 @@ func TestIntegration_CheckForNewArticles_AllReadFeedIsOmitted(t *testing.T) {
 func TestIntegration_CheckForNewArticles_NoFeeds_EmptyObject(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUserVariant(t, queries, "63")
 
 	resp := getCheckNewArticles(t, app, token)
@@ -107,7 +107,7 @@ func TestIntegration_CheckForNewArticles_NoFeeds_EmptyObject(t *testing.T) {
 func TestIntegration_CheckForNewArticles_ScopedToUser(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	tokenA := seedUserVariant(t, queries, "64")
 	tokenB := seedUserVariant(t, queries, "65")
 
@@ -123,7 +123,7 @@ func TestIntegration_CheckForNewArticles_ScopedToUser(t *testing.T) {
 func TestIntegration_CheckForNewArticles_Unauthenticated_401(t *testing.T) {
 	requireNotProduction(t)
 
-	app, _ := setupIntegrationApp(t)
+	app, _, _ := setupIntegrationApp(t)
 	resp := getCheckNewArticles(t, app, "")
 	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 }

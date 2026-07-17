@@ -73,7 +73,7 @@ func (r *DiscoveryRunner) Run(ctx context.Context) error {
 		if !active {
 			return nil
 		}
-		sources, err = r.sourceCtrl.List(ctx, q)
+		sources, err = r.sourceCtrl.ListAll(ctx, q)
 		return err
 	})
 	if err != nil {

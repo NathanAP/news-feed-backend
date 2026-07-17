@@ -1,8 +1,6 @@
 package articles
 
 import (
-	"strings"
-
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/nathanap/news-feed-backend/logger"
@@ -12,52 +10,42 @@ import (
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
+// ListArticles serves GET /v1/articles: every article registered in the application (articles are
+// global — any user may read any of them; the per-feed read path is GET /v1/feeds/{id}/articles).
+// Optional query filter: url, a case-insensitive substring match against url_original. No status
+// filter is exposed by convention — soft-deleted articles must never appear in a list, so the query
+// hardcodes the active predicate. Filtering and pagination happen in SQL; the response follows the
+// standard paginated envelope.
 func ListArticles(ctrl controllers.ArticleControllerInterface, runTx controllers.TransactionRunner) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
 
-		urlFilter := strings.ToLower(c.Query("url"))
+		filter := controllers.ListArticlesFilter{
+			URL:  c.Query("url"),
+			Page: pagination.ParseParams(c.Query("page"), c.Query("page_size")),
+		}
 
 		var articles []db.Article
+		var total int64
 		err := runTx(c.Context(), func(q db.Querier) error {
 			var err error
-			articles, err = ctrl.List(c.Context(), q)
+			articles, total, err = ctrl.List(c.Context(), q, filter)
 			return err
 		})
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to retrieve articles"})
 		}
 
-		filtered := applyFilters(articles, urlFilter)
-
-		result := make([]schemas.ArticleResponse, 0, len(filtered))
-		for _, a := range filtered {
+		docs := make([]schemas.ArticleResponse, 0, len(articles))
+		for _, a := range articles {
 			response, err := toArticleResponse(a)
 			if err != nil {
 				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to build article response"})
 			}
-			result = append(result, response)
+			docs = append(docs, response)
 		}
 
-		params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
-		return c.JSON(pagination.Paginate(result, params))
+		return c.JSON(pagination.BuildResponse(docs, total, filter.Page))
 	}
-}
-
-// applyFilters narrows the active articles by url_original substring. Inactive records never
-// reach here (the query already filters status = TRUE AND removed_at IS NULL).
-func applyFilters(articles []db.Article, urlFilter string) []db.Article {
-	if urlFilter == "" {
-		return articles
-	}
-
-	var out []db.Article
-	for _, a := range articles {
-		if !strings.Contains(strings.ToLower(a.UrlOriginal), urlFilter) {
-			continue
-		}
-		out = append(out, a)
-	}
-	return out
 }

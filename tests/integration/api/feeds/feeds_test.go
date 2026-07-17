@@ -1,6 +1,7 @@
 package feeds_test
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -44,7 +45,9 @@ func decodePage(t *testing.T, resp *http.Response) []map[string]any {
 	return env.Docs
 }
 
-func setupIntegrationApp(t *testing.T) (*fiber.App, db.Querier) {
+// setupIntegrationApp wires the feeds endpoints over a real, throwaway Postgres. The raw *sql.DB comes
+// back alongside the Querier because a few tests need state the API cannot produce (see setArticleCreatedAt).
+func setupIntegrationApp(t *testing.T) (*fiber.App, db.Querier, *sql.DB) {
 	t.Helper()
 
 	database := testutils.SetupTestDB(t)
@@ -66,7 +69,7 @@ func setupIntegrationApp(t *testing.T) (*fiber.App, db.Querier) {
 	f.Put("/:id", append(authMiddleware, feedendpoints.UpdateFeed(feedCtrl, runTx))...)
 	f.Delete("/:id", append(authMiddleware, feedendpoints.DeleteFeed(feedCtrl, runTx))...)
 
-	return app, queries
+	return app, queries, database
 }
 
 // seedUserVariant seeds a user (and its refresh token) with a unique suffix and returns its token.
@@ -119,7 +122,7 @@ func createFeed(t *testing.T, app *fiber.App, token, name string) string {
 func TestIntegration_CreateFeed_Success(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUserVariant(t, queries, "01")
 
 	body := `{"name":"My Feed","keywords":["metallica","rock","metal","music","concert"]}`
@@ -141,7 +144,7 @@ func TestIntegration_CreateFeed_Success(t *testing.T) {
 func TestIntegration_CreateFeed_LimitReached(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUserVariant(t, queries, "02")
 
 	// Create 5 active feeds (the maximum).
@@ -162,7 +165,7 @@ func TestIntegration_CreateFeed_LimitReached(t *testing.T) {
 func TestIntegration_CreateFeed_LimitFreedAfterDelete(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUserVariant(t, queries, "03")
 
 	var firstID string
@@ -195,7 +198,7 @@ func TestIntegration_CreateFeed_LimitFreedAfterDelete(t *testing.T) {
 func TestIntegration_Feeds_CrossUserIsolation(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	tokenA := seedUserVariant(t, queries, "0a")
 	tokenB := seedUserVariant(t, queries, "0b")
 
@@ -244,7 +247,7 @@ func TestIntegration_Feeds_CrossUserIsolation(t *testing.T) {
 func TestIntegration_Feeds_LimitIsPerUser(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	tokenA := seedUserVariant(t, queries, "0c")
 	tokenB := seedUserVariant(t, queries, "0d")
 
@@ -268,7 +271,7 @@ func TestIntegration_Feeds_LimitIsPerUser(t *testing.T) {
 func TestIntegration_UpdateFeed_Success(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUserVariant(t, queries, "0e")
 	id := createFeed(t, app, token, "Original")
 
@@ -289,7 +292,7 @@ func TestIntegration_UpdateFeed_Success(t *testing.T) {
 func TestIntegration_DeleteFeed_RemovesFromList(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUserVariant(t, queries, "0f")
 	id := createFeed(t, app, token, "Doomed")
 
@@ -317,7 +320,7 @@ func TestIntegration_DeleteFeed_RemovesFromList(t *testing.T) {
 func TestIntegration_ListFeeds_FilterByName(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUserVariant(t, queries, "1a")
 	createFeed(t, app, token, "Metallica News")
 	createFeed(t, app, token, "Anime News")
@@ -336,7 +339,7 @@ func TestIntegration_ListFeeds_FilterByName(t *testing.T) {
 func TestIntegration_Feeds_Unauthenticated(t *testing.T) {
 	requireNotProduction(t)
 
-	app, _ := setupIntegrationApp(t)
+	app, _, _ := setupIntegrationApp(t)
 	req, _ := http.NewRequest(http.MethodGet, "/v1/feeds", nil)
 	resp, err := app.Test(req)
 	require.NoError(t, err)

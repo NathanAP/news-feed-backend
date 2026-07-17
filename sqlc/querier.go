@@ -6,13 +6,32 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 
 	utctime "github.com/nathanap/news-feed-backend/services/utctime"
 )
 
 type Querier interface {
+	// Counts every active feed of a user, enforcing the max-active-feeds business rule at creation
+	// time. Intentionally unfiltered: the limit is about how many feeds exist, not about a search.
 	CountActiveFeedsByUser(ctx context.Context, userID string) (int64, error)
+	// Total matching rows for the ListArticles page, feeding pagination.total_count.
+	// Its filters MUST mirror ListArticles above, or the envelope lies about the total.
+	CountArticles(ctx context.Context, url sql.NullString) (int64, error)
+	// Total matching rows for the ListArticlesByFeedForUser page, feeding pagination.total_count.
+	// Its joins and filters MUST mirror ListArticlesByFeedForUser above, or the envelope lies about the
+	// total. The sources join is kept even though no source column is selected: it is what enforces
+	// "an article of an inactive source does not count", matching the list exactly.
+	CountArticlesByFeedForUser(ctx context.Context, arg CountArticlesByFeedForUserParams) (int64, error)
+	// Total matching rows for the ListFeedsByUser page, feeding pagination.total_count.
+	// Its filters MUST mirror ListFeedsByUser above, or the envelope lies about the total.
+	// NOTE: this is NOT the query that guards the 5-active-feeds-per-user rule -- that one is
+	// CountActiveFeedsByUser below, which must never see a name filter.
+	CountFeedsByUser(ctx context.Context, arg CountFeedsByUserParams) (int64, error)
+	// Total matching rows for the ListSources page, feeding pagination.total_count.
+	// Its filters MUST mirror ListSources above, or the envelope lies about the total.
+	CountSources(ctx context.Context, arg CountSourcesParams) (int64, error)
 	// Counts the unread articles of every active feed owned by the user, for the
 	// check-for-new-articles poll endpoint. A junction record only counts when BOTH sides are active
 	// (the feed and the article), matching junction-validity rules, and only unread rows are counted.
@@ -64,7 +83,29 @@ type Querier interface {
 	FindUserByID(ctx context.Context, id string) (User, error)
 	FindUserPreferencesByUserID(ctx context.Context, userID string) (UserPreference, error)
 	GetSystem(ctx context.Context) (System, error)
-	ListArticles(ctx context.Context) ([]Article, error)
+	// Every active article, unfiltered and unpaginated, for the dev seed scripts (which need the whole
+	// set to build article/feed associations). See ListAllSources for why this is separate from the
+	// paginated ListArticles that serves HTTP.
+	ListAllArticles(ctx context.Context) ([]Article, error)
+	// Every active feed of a user, unfiltered and unpaginated, for the dev seed scripts. See
+	// ListAllSources for why this is separate from the paginated ListFeedsByUser that serves HTTP.
+	ListAllFeedsByUser(ctx context.Context, userID string) ([]Feed, error)
+	// Every active source, unfiltered and unpaginated, for the internal batch consumers: the CRON's
+	// discovery sweep (which must visit ALL sources, not a page of them) and the dev seed scripts.
+	// Deliberately separate from ListSources: paging a sweep would silently skip sources, and giving
+	// the batch callers a page_size big enough to "fit everything" would be a bug waiting for the
+	// source count to grow past it. HTTP clients must use ListSources, which is always paginated.
+	ListAllSources(ctx context.Context) ([]Source, error)
+	// Lists the active articles for GET /v1/articles, filtered and paginated in SQL.
+	// The url filter is optional: a NULL param means "no filter" (sqlc.narg), so one query serves both
+	// the filtered and the unfiltered case. strpos(lower(a), lower(b)) > 0 is a literal case-insensitive
+	// substring test -- deliberately not ILIKE '%...%', which would let a user's % or _ act as wildcards.
+	// Neither can use an index (leading wildcard); pg_trgm is the path if that ever matters.
+	// id breaks created_at ties so the ordering is total: without it, rows written in the same CRON
+	// batch share a timestamp and LIMIT/OFFSET could repeat or skip one across pages. id is a UUIDv7,
+	// so it sorts by creation time and the tie-break stays chronological.
+	// CountArticles below MUST keep the same filters.
+	ListArticles(ctx context.Context, arg ListArticlesParams) ([]Article, error)
 	// Returns the active articles associated with a feed, each with its is_read state for that feed
 	// and its source's data (always joined, cheap PK lookup, but only mapped into the response when
 	// ?with_sources=true, per conventions.md). The article's source is guaranteed active: soft-deleting
@@ -72,10 +113,22 @@ type Querier interface {
 	// Both the feed and the article sides of the junction must be active, and the feed must belong to
 	// the requesting user, so another user's feed yields no rows. The caller checks feed ownership
 	// separately to distinguish "feed not found / not yours" (404) from "feed has no articles" (200).
-	// Ordered newest-first; is_read / date filtering and pagination are applied by the caller.
+	// Filtered and paginated in SQL. All three filters are optional (NULL = not applied): is_read, and
+	// the created_at window, whose bounds are independent and inclusive on both ends.
+	// Ordered newest-first, with a.id breaking created_at ties so the ordering is total: without it,
+	// articles written in the same CRON batch share a timestamp and LIMIT/OFFSET could repeat or skip
+	// one across pages. id is a UUIDv7, so the tie-break stays chronological.
+	// CountArticlesByFeedForUser below MUST keep the same joins and filters.
 	ListArticlesByFeedForUser(ctx context.Context, arg ListArticlesByFeedForUserParams) ([]ListArticlesByFeedForUserRow, error)
-	ListFeedsByUser(ctx context.Context, userID string) ([]Feed, error)
-	ListSources(ctx context.Context) ([]Source, error)
+	// Lists the requesting user's active feeds for GET /v1/feeds, filtered and paginated in SQL.
+	// The name filter is optional (NULL = not applied). See ListArticles for why strpos over ILIKE and
+	// why id breaks the created_at tie. CountFeedsByUser below MUST keep the same filters.
+	ListFeedsByUser(ctx context.Context, arg ListFeedsByUserParams) ([]Feed, error)
+	// Lists the active sources for GET /v1/sources, filtered and paginated in SQL.
+	// url and name are independent optional substring filters (NULL = not applied); passing both ANDs
+	// them. See ListArticles for why strpos over ILIKE and why id breaks the created_at tie.
+	// CountSources below MUST keep the same filters.
+	ListSources(ctx context.Context, arg ListSourcesParams) ([]Source, error)
 	// Marks is_read on all unread articles_feeds records for a given article and user.
 	// Idempotent: already-read records are not touched. Both related rows must be active:
 	// the article and the feed.

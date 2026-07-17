@@ -52,7 +52,10 @@ func (m *mockJudgeFeedCtrl) FindCandidatesByKeywords(ctx context.Context, q db.Q
 		judgeCandidate("01900000-0000-7000-8000-000000000001", []string{"a", "b", "c", "d", "e", "f", "g"}, 2),
 	}, nil
 }
-func (m *mockJudgeFeedCtrl) List(_ context.Context, _ db.Querier, userID string) ([]db.Feed, error) {
+func (m *mockJudgeFeedCtrl) List(_ context.Context, _ db.Querier, userID string, _ controllers.ListFeedsFilter) ([]db.Feed, int64, error) {
+	return []db.Feed{fixtures.NewTestFeed(userID)}, 1, nil
+}
+func (m *mockJudgeFeedCtrl) ListAll(_ context.Context, _ db.Querier, userID string) ([]db.Feed, error) {
 	return []db.Feed{fixtures.NewTestFeed(userID)}, nil
 }
 func (m *mockJudgeFeedCtrl) Update(_ context.Context, _ db.Querier, _, userID, _ string, _ []string) (db.Feed, error) {

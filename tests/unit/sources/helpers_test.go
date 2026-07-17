@@ -65,7 +65,8 @@ var _ controllers.RefreshTokenControllerInterface = (*mockRefreshTokenCtrl)(nil)
 type mockSourceCtrl struct {
 	createFn     func(ctx context.Context, q db.Querier, name, url, urlRss string) (db.Source, error)
 	findByIDFn   func(ctx context.Context, q db.Querier, id string) (db.Source, error)
-	listFn       func(ctx context.Context, q db.Querier) ([]db.Source, error)
+	listFn       func(ctx context.Context, q db.Querier, filter controllers.ListSourcesFilter) ([]db.Source, int64, error)
+	listAllFn    func(ctx context.Context, q db.Querier) ([]db.Source, error)
 	updateFn     func(ctx context.Context, q db.Querier, id, name, url, urlRss string) (db.Source, error)
 	softDeleteFn func(ctx context.Context, q db.Querier, id string) error
 }
@@ -82,9 +83,16 @@ func (m *mockSourceCtrl) FindByID(ctx context.Context, q db.Querier, id string) 
 	}
 	return fixtures.NewTestSource(), nil
 }
-func (m *mockSourceCtrl) List(ctx context.Context, q db.Querier) ([]db.Source, error) {
+func (m *mockSourceCtrl) List(ctx context.Context, q db.Querier, filter controllers.ListSourcesFilter) ([]db.Source, int64, error) {
 	if m.listFn != nil {
-		return m.listFn(ctx, q)
+		return m.listFn(ctx, q, filter)
+	}
+	sources := []db.Source{fixtures.NewTestSource()}
+	return sources, int64(len(sources)), nil
+}
+func (m *mockSourceCtrl) ListAll(ctx context.Context, q db.Querier) ([]db.Source, error) {
+	if m.listAllFn != nil {
+		return m.listAllFn(ctx, q)
 	}
 	return []db.Source{fixtures.NewTestSource()}, nil
 }
@@ -121,7 +129,10 @@ func (m *mockArticleCtrl) FindByURLOriginal(ctx context.Context, q db.Querier, u
 	}
 	return db.Article{}, controllers.ErrArticleNotFound
 }
-func (m *mockArticleCtrl) List(_ context.Context, _ db.Querier) ([]db.Article, error) {
+func (m *mockArticleCtrl) List(_ context.Context, _ db.Querier, _ controllers.ListArticlesFilter) ([]db.Article, int64, error) {
+	return []db.Article{}, 0, nil
+}
+func (m *mockArticleCtrl) ListAll(_ context.Context, _ db.Querier) ([]db.Article, error) {
 	return []db.Article{}, nil
 }
 func (m *mockArticleCtrl) Update(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string, _ *string) (db.Article, error) {

@@ -22,7 +22,7 @@ import (
 // mockAFCtrl is a minimal ArticleFeedControllerInterface for the feed-articles handler: only the
 // list method is exercised here; the rest return zero values.
 type mockAFCtrl struct {
-	listByFeedFn  func(ctx context.Context, q db.Querier, feedID, userID string) ([]db.ListArticlesByFeedForUserRow, error)
+	listByFeedFn  func(ctx context.Context, q db.Querier, feedID, userID string, filter controllers.ListFeedArticlesFilter) ([]db.ListArticlesByFeedForUserRow, int64, error)
 	countUnreadFn func(ctx context.Context, q db.Querier, userID string) ([]db.CountUnreadArticlesByFeedForUserRow, error)
 }
 
@@ -32,11 +32,11 @@ func (m *mockAFCtrl) Create(_ context.Context, _ db.Querier, _, _ string) (db.Ar
 func (m *mockAFCtrl) FindByArticleAndUser(_ context.Context, _ db.Querier, _, _ string) ([]db.ArticlesFeed, error) {
 	return []db.ArticlesFeed{}, nil
 }
-func (m *mockAFCtrl) ListArticlesByFeedForUser(ctx context.Context, q db.Querier, feedID, userID string) ([]db.ListArticlesByFeedForUserRow, error) {
+func (m *mockAFCtrl) ListArticlesByFeedForUser(ctx context.Context, q db.Querier, feedID, userID string, filter controllers.ListFeedArticlesFilter) ([]db.ListArticlesByFeedForUserRow, int64, error) {
 	if m.listByFeedFn != nil {
-		return m.listByFeedFn(ctx, q, feedID, userID)
+		return m.listByFeedFn(ctx, q, feedID, userID, filter)
 	}
-	return []db.ListArticlesByFeedForUserRow{}, nil
+	return []db.ListArticlesByFeedForUserRow{}, 0, nil
 }
 func (m *mockAFCtrl) CountUnreadByFeedForUser(ctx context.Context, q db.Querier, userID string) ([]db.CountUnreadArticlesByFeedForUserRow, error) {
 	if m.countUnreadFn != nil {
@@ -77,6 +77,8 @@ func afRow(id, title string, createdAt time.Time, isRead bool) db.ListArticlesBy
 	}
 }
 
+func boolPtr(v bool) *bool { return &v }
+
 func getFeedArticles(t *testing.T, app *fiber.App, query string) *http.Response {
 	t.Helper()
 	req, _ := http.NewRequest(http.MethodGet, "/v1/feeds/feed-1/articles"+query, nil)
@@ -114,57 +116,82 @@ func TestUnit_FeedArticles_BadPeriod_400(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
-func TestUnit_FeedArticles_FiltersByIsRead(t *testing.T) {
+// The rows are narrowed in SQL, so what the handler owes is an accurate filter: is_read must arrive
+// as a real *bool. The false case is the one that matters — a filter modelled as a plain bool would
+// make "?is_read=false" indistinguishable from "no filter" and silently return read articles too.
+func TestUnit_FeedArticles_ForwardsIsReadFilter(t *testing.T) {
 	requireNotProduction(t)
 
-	afCtrl := &mockAFCtrl{listByFeedFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ListArticlesByFeedForUserRow, error) {
-		return []db.ListArticlesByFeedForUserRow{
-			afRow("a-read", "Read one", time.Now().UTC(), true),
-			afRow("a-unread", "Unread one", time.Now().UTC(), false),
-		}, nil
-	}}
-	app := buildFeedArticlesApp(&mockFeedCtrl{}, afCtrl)
+	tests := []struct {
+		name  string
+		query string
+		want  *bool
+	}{
+		{name: "absent means no filter", query: "", want: nil},
+		{name: "true filters read", query: "?is_read=true", want: boolPtr(true)},
+		{name: "false filters unread", query: "?is_read=false", want: boolPtr(false)},
+	}
 
-	readDocs := decodePage(t, getFeedArticles(t, app, "?is_read=true"))
-	require.Len(t, readDocs, 1)
-	assert.Equal(t, "a-read", readDocs[0]["id"])
-	assert.Equal(t, true, readDocs[0]["is_read"])
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got controllers.ListFeedArticlesFilter
+			afCtrl := &mockAFCtrl{listByFeedFn: func(_ context.Context, _ db.Querier, _, _ string, filter controllers.ListFeedArticlesFilter) ([]db.ListArticlesByFeedForUserRow, int64, error) {
+				got = filter
+				return []db.ListArticlesByFeedForUserRow{}, 0, nil
+			}}
+			app := buildFeedArticlesApp(&mockFeedCtrl{}, afCtrl)
 
-	unreadDocs := decodePage(t, getFeedArticles(t, app, "?is_read=false"))
-	require.Len(t, unreadDocs, 1)
-	assert.Equal(t, "a-unread", unreadDocs[0]["id"])
-	assert.Equal(t, false, unreadDocs[0]["is_read"])
+			resp := getFeedArticles(t, app, tt.query)
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+			assert.Equal(t, tt.want, got.IsRead)
+		})
+	}
 }
 
-func TestUnit_FeedArticles_FiltersByPeriod(t *testing.T) {
+// The period bounds must reach the controller parsed and normalized to UTC — dates are UTC across
+// the application, so a bound sent in another offset has to be converted, never passed through raw.
+func TestUnit_FeedArticles_ForwardsPeriodFilter(t *testing.T) {
 	requireNotProduction(t)
 
-	jun := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
-	jul := time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC)
-	afCtrl := &mockAFCtrl{listByFeedFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ListArticlesByFeedForUserRow, error) {
-		return []db.ListArticlesByFeedForUserRow{
-			afRow("jul", "July", jul, false),
-			afRow("jun", "June", jun, false),
-		}, nil
+	var got controllers.ListFeedArticlesFilter
+	afCtrl := &mockAFCtrl{listByFeedFn: func(_ context.Context, _ db.Querier, _, _ string, filter controllers.ListFeedArticlesFilter) ([]db.ListArticlesByFeedForUserRow, int64, error) {
+		got = filter
+		return []db.ListArticlesByFeedForUserRow{}, 0, nil
 	}}
 	app := buildFeedArticlesApp(&mockFeedCtrl{}, afCtrl)
 
-	// From mid-June onwards: only July.
-	fromDocs := decodePage(t, getFeedArticles(t, app, "?period_starting_at=2026-06-15T00:00:00Z"))
-	require.Len(t, fromDocs, 1)
-	assert.Equal(t, "jul", fromDocs[0]["id"])
+	t.Run("absent means no bounds", func(t *testing.T) {
+		got = controllers.ListFeedArticlesFilter{}
+		require.Equal(t, http.StatusOK, getFeedArticles(t, app, "").StatusCode)
+		assert.Nil(t, got.PeriodStartingAt)
+		assert.Nil(t, got.PeriodEndingAt)
+	})
 
-	// Up to mid-June: only June.
-	toDocs := decodePage(t, getFeedArticles(t, app, "?period_ending_at=2026-06-15T00:00:00Z"))
-	require.Len(t, toDocs, 1)
-	assert.Equal(t, "jun", toDocs[0]["id"])
+	t.Run("both bounds forwarded", func(t *testing.T) {
+		got = controllers.ListFeedArticlesFilter{}
+		resp := getFeedArticles(t, app, "?period_starting_at=2026-06-15T00:00:00Z&period_ending_at=2026-07-15T00:00:00Z")
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		require.NotNil(t, got.PeriodStartingAt)
+		require.NotNil(t, got.PeriodEndingAt)
+		assert.Equal(t, time.Date(2026, 6, 15, 0, 0, 0, 0, time.UTC), *got.PeriodStartingAt)
+		assert.Equal(t, time.Date(2026, 7, 15, 0, 0, 0, 0, time.UTC), *got.PeriodEndingAt)
+	})
+
+	t.Run("non-UTC offset is normalized to UTC", func(t *testing.T) {
+		got = controllers.ListFeedArticlesFilter{}
+		// 2026-06-15T00:00:00-03:00 is 2026-06-15T03:00:00Z.
+		resp := getFeedArticles(t, app, "?period_starting_at=2026-06-15T00:00:00-03:00")
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		require.NotNil(t, got.PeriodStartingAt)
+		assert.Equal(t, time.Date(2026, 6, 15, 3, 0, 0, 0, time.UTC), got.PeriodStartingAt.UTC())
+	})
 }
 
 func TestUnit_FeedArticles_EnvelopeAndIsRead(t *testing.T) {
 	requireNotProduction(t)
 
-	afCtrl := &mockAFCtrl{listByFeedFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ListArticlesByFeedForUserRow, error) {
-		return []db.ListArticlesByFeedForUserRow{afRow("a-1", "One", time.Now().UTC(), false)}, nil
+	afCtrl := &mockAFCtrl{listByFeedFn: func(_ context.Context, _ db.Querier, _, _ string, _ controllers.ListFeedArticlesFilter) ([]db.ListArticlesByFeedForUserRow, int64, error) {
+		return []db.ListArticlesByFeedForUserRow{afRow("a-1", "One", time.Now().UTC(), false)}, 1, nil
 	}}
 	app := buildFeedArticlesApp(&mockFeedCtrl{}, afCtrl)
 
@@ -184,8 +211,8 @@ func TestUnit_FeedArticles_EnvelopeAndIsRead(t *testing.T) {
 func TestUnit_FeedArticles_WithSourcesTrue_PopulatesSource(t *testing.T) {
 	requireNotProduction(t)
 
-	afCtrl := &mockAFCtrl{listByFeedFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ListArticlesByFeedForUserRow, error) {
-		return []db.ListArticlesByFeedForUserRow{afRow("a-1", "One", time.Now().UTC(), false)}, nil
+	afCtrl := &mockAFCtrl{listByFeedFn: func(_ context.Context, _ db.Querier, _, _ string, _ controllers.ListFeedArticlesFilter) ([]db.ListArticlesByFeedForUserRow, int64, error) {
+		return []db.ListArticlesByFeedForUserRow{afRow("a-1", "One", time.Now().UTC(), false)}, 1, nil
 	}}
 	app := buildFeedArticlesApp(&mockFeedCtrl{}, afCtrl)
 
@@ -203,8 +230,8 @@ func TestUnit_FeedArticles_WithSourcesTrue_PopulatesSource(t *testing.T) {
 func TestUnit_FeedArticles_WithSourcesNotTrue_OmitsSource(t *testing.T) {
 	requireNotProduction(t)
 
-	afCtrl := &mockAFCtrl{listByFeedFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ListArticlesByFeedForUserRow, error) {
-		return []db.ListArticlesByFeedForUserRow{afRow("a-1", "One", time.Now().UTC(), false)}, nil
+	afCtrl := &mockAFCtrl{listByFeedFn: func(_ context.Context, _ db.Querier, _, _ string, _ controllers.ListFeedArticlesFilter) ([]db.ListArticlesByFeedForUserRow, int64, error) {
+		return []db.ListArticlesByFeedForUserRow{afRow("a-1", "One", time.Now().UTC(), false)}, 1, nil
 	}}
 	app := buildFeedArticlesApp(&mockFeedCtrl{}, afCtrl)
 
@@ -222,8 +249,8 @@ func TestUnit_FeedArticles_WithSourcesNotTrue_OmitsSource(t *testing.T) {
 func TestUnit_FeedArticles_ControllerError_500(t *testing.T) {
 	requireNotProduction(t)
 
-	afCtrl := &mockAFCtrl{listByFeedFn: func(_ context.Context, _ db.Querier, _, _ string) ([]db.ListArticlesByFeedForUserRow, error) {
-		return nil, assertErr{}
+	afCtrl := &mockAFCtrl{listByFeedFn: func(_ context.Context, _ db.Querier, _, _ string, _ controllers.ListFeedArticlesFilter) ([]db.ListArticlesByFeedForUserRow, int64, error) {
+		return nil, 0, assertErr{}
 	}}
 	app := buildFeedArticlesApp(&mockFeedCtrl{}, afCtrl)
 

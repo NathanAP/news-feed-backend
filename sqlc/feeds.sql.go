@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 
 	utctime "github.com/nathanap/news-feed-backend/services/utctime"
@@ -17,8 +18,32 @@ SELECT COUNT(*) FROM feeds
 WHERE user_id = $1 AND status = TRUE AND removed_at IS NULL
 `
 
+// Counts every active feed of a user, enforcing the max-active-feeds business rule at creation
+// time. Intentionally unfiltered: the limit is about how many feeds exist, not about a search.
 func (q *Queries) CountActiveFeedsByUser(ctx context.Context, userID string) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countActiveFeedsByUser, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countFeedsByUser = `-- name: CountFeedsByUser :one
+SELECT COUNT(*) FROM feeds
+WHERE user_id = $1 AND status = TRUE AND removed_at IS NULL
+  AND ($2::text IS NULL OR strpos(lower(name), lower($2::text)) > 0)
+`
+
+type CountFeedsByUserParams struct {
+	UserID string         `json:"user_id"`
+	Name   sql.NullString `json:"name"`
+}
+
+// Total matching rows for the ListFeedsByUser page, feeding pagination.total_count.
+// Its filters MUST mirror ListFeedsByUser above, or the envelope lies about the total.
+// NOTE: this is NOT the query that guards the 5-active-feeds-per-user rule -- that one is
+// CountActiveFeedsByUser below, which must never see a name filter.
+func (q *Queries) CountFeedsByUser(ctx context.Context, arg CountFeedsByUserParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countFeedsByUser, arg.UserID, arg.Name)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -162,14 +187,71 @@ func (q *Queries) FindFeedByIDAndUser(ctx context.Context, arg FindFeedByIDAndUs
 	return i, err
 }
 
+const listAllFeedsByUser = `-- name: ListAllFeedsByUser :many
+SELECT id, status, name, keywords, user_id, created_at, modified_at, removed_at FROM feeds
+WHERE user_id = $1 AND status = TRUE AND removed_at IS NULL
+ORDER BY created_at DESC, id DESC
+`
+
+// Every active feed of a user, unfiltered and unpaginated, for the dev seed scripts. See
+// ListAllSources for why this is separate from the paginated ListFeedsByUser that serves HTTP.
+func (q *Queries) ListAllFeedsByUser(ctx context.Context, userID string) ([]Feed, error) {
+	rows, err := q.db.QueryContext(ctx, listAllFeedsByUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Feed
+	for rows.Next() {
+		var i Feed
+		if err := rows.Scan(
+			&i.ID,
+			&i.Status,
+			&i.Name,
+			&i.Keywords,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.ModifiedAt,
+			&i.RemovedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listFeedsByUser = `-- name: ListFeedsByUser :many
 SELECT id, status, name, keywords, user_id, created_at, modified_at, removed_at FROM feeds
 WHERE user_id = $1 AND status = TRUE AND removed_at IS NULL
-ORDER BY created_at DESC
+  AND ($2::text IS NULL OR strpos(lower(name), lower($2::text)) > 0)
+ORDER BY created_at DESC, id DESC
+LIMIT $4 OFFSET $3
 `
 
-func (q *Queries) ListFeedsByUser(ctx context.Context, userID string) ([]Feed, error) {
-	rows, err := q.db.QueryContext(ctx, listFeedsByUser, userID)
+type ListFeedsByUserParams struct {
+	UserID     string         `json:"user_id"`
+	Name       sql.NullString `json:"name"`
+	PageOffset int32          `json:"page_offset"`
+	PageLimit  int32          `json:"page_limit"`
+}
+
+// Lists the requesting user's active feeds for GET /v1/feeds, filtered and paginated in SQL.
+// The name filter is optional (NULL = not applied). See ListArticles for why strpos over ILIKE and
+// why id breaks the created_at tie. CountFeedsByUser below MUST keep the same filters.
+func (q *Queries) ListFeedsByUser(ctx context.Context, arg ListFeedsByUserParams) ([]Feed, error) {
+	rows, err := q.db.QueryContext(ctx, listFeedsByUser,
+		arg.UserID,
+		arg.Name,
+		arg.PageOffset,
+		arg.PageLimit,
+	)
 	if err != nil {
 		return nil, err
 	}

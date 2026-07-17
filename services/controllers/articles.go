@@ -87,10 +87,37 @@ func (c *ArticleController) FindByURLOriginal(ctx context.Context, q db.Querier,
 	return article, nil
 }
 
-func (c *ArticleController) List(ctx context.Context, q db.Querier) ([]db.Article, error) {
-	articles, err := q.ListArticles(ctx)
+// List returns one page of active articles matching the filter, plus the total number of matching
+// rows (which is what pagination.total_count reports, so it counts every match, not just this
+// page). Filtering and pagination happen in SQL; the two queries share the filter so the page and
+// the total can never disagree about what "matching" means.
+func (c *ArticleController) List(ctx context.Context, q db.Querier, filter ListArticlesFilter) ([]db.Article, int64, error) {
+	articles, err := q.ListArticles(ctx, db.ListArticlesParams{
+		Url:        nullableString(filter.URL),
+		PageLimit:  filter.Page.Limit(),
+		PageOffset: filter.Page.Offset(),
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list articles: %w", err)
+		return nil, 0, fmt.Errorf("failed to list articles: %w", err)
+	}
+
+	total, err := q.CountArticles(ctx, nullableString(filter.URL))
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count articles: %w", err)
+	}
+
+	if articles == nil {
+		articles = []db.Article{}
+	}
+	return articles, total, nil
+}
+
+// ListAll returns every active article, for the dev seed scripts. HTTP handlers must use List
+// instead: a client always gets a page.
+func (c *ArticleController) ListAll(ctx context.Context, q db.Querier) ([]db.Article, error) {
+	articles, err := q.ListAllArticles(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list all articles: %w", err)
 	}
 	if articles == nil {
 		return []db.Article{}, nil

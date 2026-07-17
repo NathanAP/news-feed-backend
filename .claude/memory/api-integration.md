@@ -152,6 +152,22 @@ O `content` da **tradução** (§5) segue exatamente estas mesmas regras (é re-
 - **Paginação**: `{ docs: [...], pagination: { actual_page, total_pages, actual_count, total_count,
 has_next_page, has_previous_page } }`. Query `page` (≥1) e `page_size` (1–100, padrão 20). Página fora
   do range → `docs` vazio, **sem erro**.
+    - `total_count` é o total de registros que **casam com o filtro**, não o tamanho da página — use
+      ele (ou `has_next_page`) para saber se vale buscar a próxima.
+    - A ordenação das listas é **estável** (`created_at DESC`, desempatado por `id`): dá para paginar
+      sem medo de uma notícia repetir numa página e sumir de outra, mesmo quando várias chegam no
+      mesmo instante pela CRON.
+    - Filtragem e paginação são feitas no banco, então pedir `page_size` pequeno é barato: o servidor
+      não carrega o resto.
+- **Filtros de lista** (todos opcionais, substring **case-insensitive**, ausente = não aplicado; vários
+  filtros na mesma rota se combinam com **AND**):
+    - `GET /v1/articles?url=` — busca em `url_original`.
+    - `GET /v1/sources?url=&name=` — busca na url e/ou no nome da fonte.
+    - `GET /v1/feeds?name=` — busca no nome do feed (sempre só os feeds do próprio usuário).
+    - `GET /v1/feeds/{id}/articles?is_read=&period_starting_at=&period_ending_at=` — `is_read` aceita
+      só `true`/`false` (outro valor → 400); as datas são RFC3339 e as duas pontas são **inclusive**.
+    - `%` e `_` não são curinga: são procurados literalmente.
+    - Não existe filtro por `status` — registros inativos nunca aparecem em lista nenhuma.
 - **Erros**: sempre `{ error: string }` + status HTTP adequado. Filosofia de "não encontrado": busca de
   **coleção** vazia → `200` com lista vazia; busca de **item único** inexistente → `404`.
 - **Manutenção**: quando o servidor está desligado (`app_status=false`), **toda rota responde `503`**

@@ -16,6 +16,7 @@ auth:bearer {
 
 params:query {
   ~url:
+  ~name:
   ~page: 1
   ~page_size: 20
 }
@@ -23,6 +24,10 @@ params:query {
 docs {
   Filtros opcionais (query params):
   - url: filtra por substring na URL da fonte (case-insensitive)
+  - name: filtra por substring no nome da fonte (case-insensitive)
+
+  Os dois filtros são independentes e se combinam com E (AND): passar os dois
+  devolve apenas as fontes que satisfazem ambos.
 
   Paginação: page (mín/padrão 1) e page_size (mín 1, máx 100, padrão 20). Resposta paginada:
   { docs: [...], pagination: {...} }. Ver PROJECT.md.
@@ -34,5 +39,7 @@ docs {
   Exemplos:
   - /v1/sources
   - /v1/sources?url=globo
+  - /v1/sources?name=wikimetal
+  - /v1/sources?url=globo&name=esporte
   - /v1/sources?page=2&page_size=10
 }

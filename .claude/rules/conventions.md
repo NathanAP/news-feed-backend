@@ -99,8 +99,12 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Endpoints de pesquisa por ID deve sempre seguir o padrão `GET base_url/versao_da_api/modelo/{id}` (Exemplo: `http://localhost:3000/v1/sources/{id}`).
 - Endpoints de pesquisa por múltiplos parâmetros deve sempre seguir o padrão `GET base_url/versao_da_api/modelo?parametro1=valor1&parametro2=valor2` (Exemplo: `http://localhost:3000/v1/sources?url=example&name=example`).
     - O campo `status` nunca deve ser exposto como filtro de busca: registros inativos jamais podem ser retornados, conforme as regras de `status` em `PROJECT.md`.
+    - Os filtros devem ser aplicados **em SQL**, nunca em Go. Um filtro opcional é um parâmetro nulável na query (`sqlc.narg`), onde `NULL` significa "não aplicado" — nunca o zero value do tipo, que filtraria por "string vazia" ou por `false` sem querer.
+    - Filtros de substring devem usar `strpos(lower(coluna), lower(parametro)) > 0` e não `ILIKE '%valor%'`, para que `%` e `_` enviados pelo usuário sejam procurados literalmente em vez de virarem curinga.
+    - Filtros diferentes na mesma rota se combinam com `AND`.
 - Endpoints de pesquisa por múltiplos parâmetros devem sempre ter a opção de paginação, com os parâmetros `page` e `page_size` (Exemplo: `http://localhost:3000/v1/sources?url=example&name=example&page=1&page_size=20`).
     - Mais detalhes sobre como a paginação é estruturada podem ser encontrados no arquivo `raiz/.claude/PROJECT.md`.
+    - A paginação também é feita em SQL (`LIMIT/OFFSET`), acompanhada de uma query de contagem com os mesmos filtros para o `total_count`. As duas queries devem ser mantidas em sincronia: um filtro novo entra nas duas.
 - Endpoints de recurso aninhado devem seguir o padrão de endpoints de múltiplos parâmetros, seguindo o padrão de URL `GET base_url/versao_da_api/modelo/{id}/recurso` (Exemplo: `http://localhost:3000/v1/feeds/{id}/articles`).
 - Endpoints que necessitam popular dados de tabelas relacionadas opcionalmente devem utilizar o parâmetro de query `with_{related_table_name}=true` (Exemplo: `http://localhost:3000/v1/feeds/{id}/articles?with_sources=true`).
     - Valores diferentes de `true` devem ser ignorados sem gerar erro.

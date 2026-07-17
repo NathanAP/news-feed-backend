@@ -19,9 +19,10 @@ import (
 // The feed must belong to the caller — another user's (or a missing) feed returns 404, never leaking
 // its existence; a feed the user owns but with no matching articles returns 200 with an empty list.
 // Optional query filters: is_read (true|false) and a created_at window (period_starting_at /
-// period_ending_at, RFC3339 UTC, both bounds inclusive and independent). with_sources=true also
-// populates each article's source (conventions.md: any value other than "true" is ignored, never an
-// error). The response follows the standard paginated envelope ({ docs, pagination }).
+// period_ending_at, RFC3339 UTC, both bounds inclusive and independent), all applied in SQL along
+// with the pagination. with_sources=true also populates each article's source (conventions.md: any
+// value other than "true" is ignored, never an error). The response follows the standard paginated
+// envelope ({ docs, pagination }).
 func FeedArticles(feedCtrl controllers.FeedControllerInterface, afCtrl controllers.ArticleFeedControllerInterface, runTx controllers.TransactionRunner) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		logger.RouteStart(c.Path())
@@ -48,7 +49,15 @@ func FeedArticles(feedCtrl controllers.FeedControllerInterface, afCtrl controlle
 		}
 		withSources := c.Query("with_sources") == "true"
 
+		filter := controllers.ListFeedArticlesFilter{
+			IsRead:           isReadFilter,
+			PeriodStartingAt: startAt,
+			PeriodEndingAt:   endAt,
+			Page:             pagination.ParseParams(c.Query("page"), c.Query("page_size")),
+		}
+
 		var rows []db.ListArticlesByFeedForUserRow
+		var total int64
 		err = runTx(c.Context(), func(q db.Querier) error {
 			// Ownership check first so we can tell "not your feed / missing" (404) apart from an
 			// owned-but-empty feed (200). Both would otherwise produce zero rows below.
@@ -56,7 +65,7 @@ func FeedArticles(feedCtrl controllers.FeedControllerInterface, afCtrl controlle
 				return e
 			}
 			var e error
-			rows, e = afCtrl.ListArticlesByFeedForUser(c.Context(), q, id, claims.UserID)
+			rows, total, e = afCtrl.ListArticlesByFeedForUser(c.Context(), q, id, claims.UserID, filter)
 			return e
 		})
 		if err != nil {
@@ -66,27 +75,16 @@ func FeedArticles(feedCtrl controllers.FeedControllerInterface, afCtrl controlle
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to retrieve feed articles"})
 		}
 
-		result := make([]schemas.ArticleResponse, 0, len(rows))
+		docs := make([]schemas.ArticleResponse, 0, len(rows))
 		for _, row := range rows {
-			if isReadFilter != nil && row.IsRead != *isReadFilter {
-				continue
-			}
-			if startAt != nil && row.CreatedAt.Before(*startAt) {
-				continue
-			}
-			if endAt != nil && row.CreatedAt.After(*endAt) {
-				continue
-			}
-
 			response, err := rowToArticleResponse(row, withSources)
 			if err != nil {
 				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to build article response"})
 			}
-			result = append(result, response)
+			docs = append(docs, response)
 		}
 
-		params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
-		return c.JSON(pagination.Paginate(result, params))
+		return c.JSON(pagination.BuildResponse(docs, total, filter.Page))
 	}
 }
 

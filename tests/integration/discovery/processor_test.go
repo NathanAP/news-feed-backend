@@ -91,7 +91,7 @@ func TestIntegration_Processor_PersistsTreatedArticle(t *testing.T) {
 
 	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{item("https://src.com/a1")}))
 
-	articles, err := queries.ListArticles(t.Context())
+	articles, err := queries.ListAllArticles(t.Context())
 	require.NoError(t, err)
 	require.Len(t, articles, 1)
 	assert.Equal(t, "raw content", articles[0].Content) // sanitized raw body (no HTML to strip → unchanged)
@@ -126,7 +126,7 @@ func TestIntegration_Processor_NullLanguageOnDetectionFailure(t *testing.T) {
 
 	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{item("https://src.com/nolang")}))
 
-	articles, err := queries.ListArticles(t.Context())
+	articles, err := queries.ListAllArticles(t.Context())
 	require.NoError(t, err)
 	require.Len(t, articles, 1)
 	assert.False(t, articles[0].LanguageOriginal.Valid, "a failed detection must persist a null language_original")
@@ -165,7 +165,7 @@ func TestIntegration_Processor_RewritesInternalLinks(t *testing.T) {
 	}
 	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{newItem}))
 
-	articles, err := queries.ListArticles(t.Context())
+	articles, err := queries.ListAllArticles(t.Context())
 	require.NoError(t, err)
 	var content string
 	for _, a := range articles {
@@ -192,7 +192,7 @@ func TestIntegration_Processor_SkipsExistingURL(t *testing.T) {
 
 	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{item("https://src.com/dup")}))
 
-	articles, err := queries.ListArticles(t.Context())
+	articles, err := queries.ListAllArticles(t.Context())
 	require.NoError(t, err)
 	assert.Len(t, articles, 1, "existing url_original must not be re-created")
 }
@@ -229,7 +229,7 @@ func TestIntegration_Processor_AutoAssociatesStrongOverlap(t *testing.T) {
 
 	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{item("https://src.com/auto")}))
 
-	articles, err := queries.ListArticles(t.Context())
+	articles, err := queries.ListAllArticles(t.Context())
 	require.NoError(t, err)
 	require.Len(t, articles, 1)
 
@@ -247,7 +247,7 @@ func TestIntegration_Processor_JudgesBorderlineIntoFeed(t *testing.T) {
 
 	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{item("https://src.com/judged")}))
 
-	articles, err := queries.ListArticles(t.Context())
+	articles, err := queries.ListAllArticles(t.Context())
 	require.NoError(t, err)
 	require.Len(t, articles, 1)
 
@@ -270,7 +270,7 @@ func TestIntegration_Processor_SkipsFeedBelowThreshold(t *testing.T) {
 
 	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{item("https://src.com/lowscore")}))
 
-	articles, err := queries.ListArticles(t.Context())
+	articles, err := queries.ListAllArticles(t.Context())
 	require.NoError(t, err)
 	require.Len(t, articles, 1)
 
@@ -291,7 +291,7 @@ func TestIntegration_Processor_DiscardsWeakOverlap(t *testing.T) {
 
 	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{item("https://src.com/weak")}))
 
-	articles, err := queries.ListArticles(t.Context())
+	articles, err := queries.ListAllArticles(t.Context())
 	require.NoError(t, err)
 	require.Len(t, articles, 1)
 
@@ -313,7 +313,7 @@ func TestIntegration_Processor_ConcurrentPersistsAllArticles(t *testing.T) {
 
 	require.NoError(t, processor.Process(t.Context(), batch))
 
-	articles, err := queries.ListArticles(t.Context())
+	articles, err := queries.ListAllArticles(t.Context())
 	require.NoError(t, err)
 	assert.Len(t, articles, n, "every distinct article in the batch must be persisted under concurrency")
 }
@@ -333,7 +333,7 @@ func TestIntegration_Processor_ConcurrentDedupsWithinBatch(t *testing.T) {
 
 	require.NoError(t, processor.Process(t.Context(), batch))
 
-	articles, err := queries.ListArticles(t.Context())
+	articles, err := queries.ListAllArticles(t.Context())
 	require.NoError(t, err)
 	assert.Len(t, articles, 1, "duplicate url_original within a batch must collapse to one row")
 }
@@ -352,7 +352,7 @@ func TestIntegration_Processor_AIFailureDoesNotPersist(t *testing.T) {
 
 	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{item("https://src.com/fail")}))
 
-	articles, err := queries.ListArticles(t.Context())
+	articles, err := queries.ListAllArticles(t.Context())
 	require.NoError(t, err)
 	assert.Empty(t, articles, "a keyword failure must leave nothing persisted")
 }

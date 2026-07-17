@@ -64,7 +64,8 @@ type mockArticleCtrl struct {
 	createFn            func(ctx context.Context, q db.Querier, title, content, urlOriginal, sourceID string, keywords []string, languageOriginal *string) (db.Article, error)
 	findByIDFn          func(ctx context.Context, q db.Querier, id string) (db.Article, error)
 	findByURLOriginalFn func(ctx context.Context, q db.Querier, urlOriginal string) (db.Article, error)
-	listFn              func(ctx context.Context, q db.Querier) ([]db.Article, error)
+	listFn              func(ctx context.Context, q db.Querier, filter controllers.ListArticlesFilter) ([]db.Article, int64, error)
+	listAllFn           func(ctx context.Context, q db.Querier) ([]db.Article, error)
 	updateFn            func(ctx context.Context, q db.Querier, id, title, content, urlOriginal string, keywords []string, languageOriginal *string) (db.Article, error)
 	softDeleteFn        func(ctx context.Context, q db.Querier, id string) error
 }
@@ -87,9 +88,16 @@ func (m *mockArticleCtrl) FindByURLOriginal(ctx context.Context, q db.Querier, u
 	}
 	return db.Article{}, controllers.ErrArticleNotFound
 }
-func (m *mockArticleCtrl) List(ctx context.Context, q db.Querier) ([]db.Article, error) {
+func (m *mockArticleCtrl) List(ctx context.Context, q db.Querier, filter controllers.ListArticlesFilter) ([]db.Article, int64, error) {
 	if m.listFn != nil {
-		return m.listFn(ctx, q)
+		return m.listFn(ctx, q, filter)
+	}
+	articles := []db.Article{fixtures.NewTestArticle()}
+	return articles, int64(len(articles)), nil
+}
+func (m *mockArticleCtrl) ListAll(ctx context.Context, q db.Querier) ([]db.Article, error) {
+	if m.listAllFn != nil {
+		return m.listAllFn(ctx, q)
 	}
 	return []db.Article{fixtures.NewTestArticle()}, nil
 }
@@ -112,7 +120,7 @@ var _ controllers.ArticleControllerInterface = (*mockArticleCtrl)(nil)
 type mockArticleFeedCtrl struct {
 	createFn               func(ctx context.Context, q db.Querier, articleID, feedID string) (db.ArticlesFeed, error)
 	findByArticleAndUserFn func(ctx context.Context, q db.Querier, articleID, userID string) ([]db.ArticlesFeed, error)
-	listByFeedFn           func(ctx context.Context, q db.Querier, feedID, userID string) ([]db.ListArticlesByFeedForUserRow, error)
+	listByFeedFn           func(ctx context.Context, q db.Querier, feedID, userID string, filter controllers.ListFeedArticlesFilter) ([]db.ListArticlesByFeedForUserRow, int64, error)
 	markAsReadFn           func(ctx context.Context, q db.Querier, articleID, userID string) (bool, error)
 }
 
@@ -128,11 +136,11 @@ func (m *mockArticleFeedCtrl) FindByArticleAndUser(ctx context.Context, q db.Que
 	}
 	return []db.ArticlesFeed{}, nil
 }
-func (m *mockArticleFeedCtrl) ListArticlesByFeedForUser(ctx context.Context, q db.Querier, feedID, userID string) ([]db.ListArticlesByFeedForUserRow, error) {
+func (m *mockArticleFeedCtrl) ListArticlesByFeedForUser(ctx context.Context, q db.Querier, feedID, userID string, filter controllers.ListFeedArticlesFilter) ([]db.ListArticlesByFeedForUserRow, int64, error) {
 	if m.listByFeedFn != nil {
-		return m.listByFeedFn(ctx, q, feedID, userID)
+		return m.listByFeedFn(ctx, q, feedID, userID, filter)
 	}
-	return []db.ListArticlesByFeedForUserRow{}, nil
+	return []db.ListArticlesByFeedForUserRow{}, 0, nil
 }
 func (m *mockArticleFeedCtrl) CountUnreadByFeedForUser(_ context.Context, _ db.Querier, _ string) ([]db.CountUnreadArticlesByFeedForUserRow, error) {
 	return []db.CountUnreadArticlesByFeedForUserRow{}, nil

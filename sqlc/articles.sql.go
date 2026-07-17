@@ -11,6 +11,21 @@ import (
 	"encoding/json"
 )
 
+const countArticles = `-- name: CountArticles :one
+SELECT COUNT(*) FROM articles
+WHERE status = TRUE AND removed_at IS NULL
+  AND ($1::text IS NULL OR strpos(lower(url_original), lower($1::text)) > 0)
+`
+
+// Total matching rows for the ListArticles page, feeding pagination.total_count.
+// Its filters MUST mirror ListArticles above, or the envelope lies about the total.
+func (q *Queries) CountArticles(ctx context.Context, url sql.NullString) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countArticles, url)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createArticle = `-- name: CreateArticle :one
 INSERT INTO articles (id, title, content, url_original, keywords, source_id, language_original)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -104,14 +119,75 @@ func (q *Queries) FindArticleByURLOriginal(ctx context.Context, urlOriginal stri
 	return i, err
 }
 
+const listAllArticles = `-- name: ListAllArticles :many
+SELECT id, status, title, content, url_original, keywords, source_id, language_original, created_at, modified_at, removed_at FROM articles
+WHERE status = TRUE AND removed_at IS NULL
+ORDER BY created_at DESC, id DESC
+`
+
+// Every active article, unfiltered and unpaginated, for the dev seed scripts (which need the whole
+// set to build article/feed associations). See ListAllSources for why this is separate from the
+// paginated ListArticles that serves HTTP.
+func (q *Queries) ListAllArticles(ctx context.Context) ([]Article, error) {
+	rows, err := q.db.QueryContext(ctx, listAllArticles)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Article
+	for rows.Next() {
+		var i Article
+		if err := rows.Scan(
+			&i.ID,
+			&i.Status,
+			&i.Title,
+			&i.Content,
+			&i.UrlOriginal,
+			&i.Keywords,
+			&i.SourceID,
+			&i.LanguageOriginal,
+			&i.CreatedAt,
+			&i.ModifiedAt,
+			&i.RemovedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listArticles = `-- name: ListArticles :many
 SELECT id, status, title, content, url_original, keywords, source_id, language_original, created_at, modified_at, removed_at FROM articles
 WHERE status = TRUE AND removed_at IS NULL
-ORDER BY created_at DESC
+  AND ($1::text IS NULL OR strpos(lower(url_original), lower($1::text)) > 0)
+ORDER BY created_at DESC, id DESC
+LIMIT $3 OFFSET $2
 `
 
-func (q *Queries) ListArticles(ctx context.Context) ([]Article, error) {
-	rows, err := q.db.QueryContext(ctx, listArticles)
+type ListArticlesParams struct {
+	Url        sql.NullString `json:"url"`
+	PageOffset int32          `json:"page_offset"`
+	PageLimit  int32          `json:"page_limit"`
+}
+
+// Lists the active articles for GET /v1/articles, filtered and paginated in SQL.
+// The url filter is optional: a NULL param means "no filter" (sqlc.narg), so one query serves both
+// the filtered and the unfiltered case. strpos(lower(a), lower(b)) > 0 is a literal case-insensitive
+// substring test -- deliberately not ILIKE '%...%', which would let a user's % or _ act as wildcards.
+// Neither can use an index (leading wildcard); pg_trgm is the path if that ever matters.
+// id breaks created_at ties so the ordering is total: without it, rows written in the same CRON
+// batch share a timestamp and LIMIT/OFFSET could repeat or skip one across pages. id is a UUIDv7,
+// so it sorts by creation time and the tie-break stays chronological.
+// CountArticles below MUST keep the same filters.
+func (q *Queries) ListArticles(ctx context.Context, arg ListArticlesParams) ([]Article, error) {
+	rows, err := q.db.QueryContext(ctx, listArticles, arg.Url, arg.PageOffset, arg.PageLimit)
 	if err != nil {
 		return nil, err
 	}

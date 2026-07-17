@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.37.3.0
+0.38.0.0
 
 ## Versão 0.29.0.0
 
@@ -199,8 +199,37 @@ paginações que hoje acontecem em Go em vez de SQL.
 
 ## Versão 0.38.0.0
 
-- [ ] Fazer com que as filtragens sejam feitas através de SQL ao invés de Go
-- [ ] Fazer com que as paginações sejam feitas através de SQL ao invés de Go
+Dívida deixada em aberto pela 0.37: as listagens carregavam a tabela ativa inteira para o Go, que
+filtrava com `strings.Contains` e fatiava a página em memória. Contrato da API **inalterado** — o
+client não precisa de nada.
+
+- [x] Fazer com que as filtragens sejam feitas através de SQL ao invés de Go
+    - `GET /v1/articles` (`url`), `GET /v1/sources` (`url` + `name`), `GET /v1/feeds` (`name`),
+      `GET /v1/feeds/{id}/articles` (`is_read`, `period_starting_at`, `period_ending_at`)
+    - Filtro opcional = `sqlc.narg` (`NULL` = não aplicado). Substring via `strpos(lower(a), lower(b)) > 0`
+      e **não** `ILIKE '%...%'`: preserva a semântica do `strings.Contains` anterior e impede que `%`/`_`
+      do usuário virem curinga (tem teste de integração pra isso)
+- [x] Fazer com que as paginações sejam feitas através de SQL ao invés de Go
+    - `LIMIT/OFFSET` na query + uma query `Count*` irmã por listagem (mesmos filtros). O `total_count`
+      passa a vir do banco em vez de `len()`
+    - Duas queries em vez de `COUNT(*) OVER()`: numa página fora do range não há linha pra carregar o
+      total, e a regra do `PROJECT.md` ("página 5 de 4" devolve `actual_page: 5`, `total_pages: 4`) exige o total
+    - `pagination.Paginate` (fatiava em memória) morreu; entrou `BuildResponse` + `Params.Limit/Offset`
+
+Decisões tomadas durante a execução:
+
+- **Desempate de ordenação** (bug latente que o `LIMIT/OFFSET` expôs): todas as listagens passaram a
+  ordenar por `created_at DESC, id DESC`. Sem isso, notícias do mesmo lote da CRON empatam no
+  `created_at` e uma linha pode repetir numa página e sumir de outra. O `id` é UUIDv7, então o
+  desempate é determinístico e ainda cronológico. Verificado: removendo o `id` do `ORDER BY`, o teste
+  `PaginationIsStableAcrossTiedTimestamps` falha
+- **`ListAll` separado do `List`**: a CRON (varredura de sources) e o `cmd/seed` precisam de **todas**
+  as linhas, não de uma página. Ganharam queries próprias sem `LIMIT` em vez de um `page_size` grande
+  o suficiente "pra caber tudo", que é um bug esperando o volume crescer
+- **Filtro `name` em sources**: o exemplo do `conventions.md` prometia um filtro que nunca existiu
+  (o campo existe desde a 0.30). Implementado junto, já que a query estava sendo reescrita
+- Papel dos testes mudou: o unitário agora prova que o handler **repassa** o filtro certo (e que
+  `is_read=false` não vira "sem filtro"); a filtragem real é provada em integração contra o Postgres
 
 ## Versão 0.39.0.0
 

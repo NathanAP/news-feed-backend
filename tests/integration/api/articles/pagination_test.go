@@ -38,7 +38,7 @@ func fetchArticlesPage(t *testing.T, app interface {
 func TestIntegration_ListArticles_Pagination(t *testing.T) {
 	requireNotProduction(t)
 
-	app, queries := setupIntegrationApp(t)
+	app, queries, _ := setupIntegrationApp(t)
 	token := seedUser(t, queries)
 	sourceID := seedSource(t, queries)
 

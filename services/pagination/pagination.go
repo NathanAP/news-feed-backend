@@ -1,8 +1,11 @@
 // Package pagination provides the application-wide pagination contract used by every collection
-// endpoint (GET /v1/{model}/). It parses the page/page_size query params and slices an already
-// materialized, filtered slice into the response envelope defined in PROJECT.md. Slicing happens in
-// memory: the list endpoints already load and filter their rows in Go, so pagination stays at the
-// same layer (revisit with SQL LIMIT/OFFSET if the dataset outgrows this, e.g. after Postgres).
+// endpoint (GET /v1/{model}/). It parses the page/page_size query params into a normalized request
+// that the SQL layer turns into LIMIT/OFFSET, and builds the response envelope defined in
+// PROJECT.md around a page of rows plus the total count reported by the database.
+//
+// Nothing is filtered or sliced in Go: each list query applies its filters and its LIMIT/OFFSET in
+// SQL and a sibling COUNT query (same filters) reports the total, so a handler only ever holds the
+// rows of the page it is about to serve.
 package pagination
 
 import "strconv"
@@ -23,12 +26,12 @@ type Params struct {
 
 // Meta is the pagination metadata returned alongside the page of records.
 type Meta struct {
-	ActualPage      int  `json:"actual_page"`
-	TotalPages      int  `json:"total_pages"`
-	ActualCount     int  `json:"actual_count"`
-	TotalCount      int  `json:"total_count"`
-	HasNextPage     bool `json:"has_next_page"`
-	HasPreviousPage bool `json:"has_previous_page"`
+	ActualPage      int   `json:"actual_page"`
+	TotalPages      int   `json:"total_pages"`
+	ActualCount     int   `json:"actual_count"`
+	TotalCount      int64 `json:"total_count"`
+	HasNextPage     bool  `json:"has_next_page"`
+	HasPreviousPage bool  `json:"has_previous_page"`
 }
 
 // Response is the paginated envelope: the page of records plus the metadata.
@@ -63,25 +66,30 @@ func ParseParams(pageRaw, pageSizeRaw string) Params {
 	return Params{Page: page, PageSize: pageSize}
 }
 
-// Paginate slices items to the requested page and builds the response envelope. A page beyond the
-// available range yields an empty docs list (not an error): actual_page stays at what was requested
-// while total_pages reflects reality (PROJECT.md). Docs is always non-nil so it marshals to [].
-func Paginate[T any](items []T, p Params) Response[T] {
-	total := len(items)
+// Limit is the row count to fetch, for the query's LIMIT.
+func (p Params) Limit() int32 {
+	return int32(p.PageSize)
+}
 
-	totalPages := 0
-	if total > 0 {
-		totalPages = (total + p.PageSize - 1) / p.PageSize
+// Offset is how many rows to skip to reach the requested page, for the query's OFFSET. Page is
+// always >= 1 (ParseParams clamps it), so this never goes negative.
+func (p Params) Offset() int32 {
+	return int32((p.Page - 1) * p.PageSize)
+}
+
+// BuildResponse wraps a page of rows and the total count of matching rows into the response
+// envelope. docs is what the query returned for this page; totalCount comes from the sibling COUNT
+// query, NOT from len(docs) — that is what lets an out-of-range page report the truth: it yields no
+// rows, so actual_page stays at what was requested while total_pages reflects reality (PROJECT.md).
+// Docs is normalized to non-nil so it always marshals to [] instead of null.
+func BuildResponse[T any](docs []T, totalCount int64, p Params) Response[T] {
+	if docs == nil {
+		docs = []T{}
 	}
 
-	offset := (p.Page - 1) * p.PageSize
-	docs := make([]T, 0, p.PageSize)
-	if offset < total {
-		end := offset + p.PageSize
-		if end > total {
-			end = total
-		}
-		docs = append(docs, items[offset:end]...)
+	totalPages := 0
+	if totalCount > 0 {
+		totalPages = int((totalCount + int64(p.PageSize) - 1) / int64(p.PageSize))
 	}
 
 	return Response[T]{
@@ -90,7 +98,7 @@ func Paginate[T any](items []T, p Params) Response[T] {
 			ActualPage:      p.Page,
 			TotalPages:      totalPages,
 			ActualCount:     len(docs),
-			TotalCount:      total,
+			TotalCount:      totalCount,
 			HasNextPage:     p.Page < totalPages,
 			HasPreviousPage: p.Page > 1,
 		},
