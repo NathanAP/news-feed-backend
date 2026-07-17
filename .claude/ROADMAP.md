@@ -58,12 +58,12 @@ Decisões tomadas durante a execução:
       Resposta `{ strategy, suggestions: [{ keyword, count }] }` — a `strategy` (`related`|`popular`)
       é ecoada pro client rotular e pro fallback ser observável.
     -   1. `popular`: se nada selecionado (ou se o passo 2 voltou vazio), as keywords mais frequentes
-          nas notícias, dentro de uma janela de tempo (`KEYWORD_SUGGESTIONS_WINDOW_DAYS`, padrão 30,
-          `-1` desliga). Janela por produto ("popular agora") **e** por custo (é agregação de tabela
-          inteira). Query `SuggestPopularKeywords`.
+           nas notícias, dentro de uma janela de tempo (`KEYWORD_SUGGESTIONS_WINDOW_DAYS`, padrão 30,
+           `-1` desliga). Janela por produto ("popular agora") **e** por custo (é agregação de tabela
+           inteira). Query `SuggestPopularKeywords`.
     -   2. `related`: se há keywords selecionadas, as que mais co-ocorrem com elas (mesmas notícias).
-          Não é janelada (relatedness é topical, não temporal). Query `SuggestRelatedKeywords`, cujo
-          `?|` alcança o novo índice GIN de `articles.keywords`.
+           Não é janelada (relatedness é topical, não temporal). Query `SuggestRelatedKeywords`, cujo
+           `?|` alcança o novo índice GIN de `articles.keywords`.
     - Nunca fica sem sugestão: passo 2 vazio → cai no passo 1. A keyword já escolhida nunca é sugerida
       de volta (nas duas estratégias).
     - Não paginado (indicador ranqueado) → `limit` simples (padrão 10, máx 50). Isenção registrada no
