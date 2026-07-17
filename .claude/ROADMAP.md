@@ -189,23 +189,20 @@ Executada em 3 etapas (mesma versão; só está concluída no fim da Etapa 3):
 Fora do escopo desta versão (candidatos naturais logo depois, viabilizados por ela): filtragens e
 paginações que hoje acontecem em Go em vez de SQL.
 
-## Versão 0.38.0.0
+## Versão 0.37.3.0
 
-- [x] Revisão — **entregue como `0.37.3.0`** (ver `versions/`), não como minor.
-    - Motivo: a regra de `CLAUDE.md` diz que "alterações causadas pelo revisor sobem uma versão de
-      patch". Reservar um slot minor para "Revisão" conflitava com ela, então o slot ficou livre.
-      Para revisões futuras, o padrão é o mesmo: patch em cima da versão vigente, sem slot próprio.
+- [x] Revisão
     - Achado principal: o índice GIN de `feeds.keywords` criado na 0.37 **nunca era usado** —
       a camada 1 do julgamento não tinha operador que o índice servisse (428ms → 22ms em 60k feeds).
     - Também: `recover` ausente (panic derrubava a app) e falha de banco virando 401 (deslogava todos).
     - Deliberadamente **fora** do escopo: filtragem/paginação em Go, que é a 0.39 abaixo.
 
-## Versão 0.39.0.0
+## Versão 0.38.0.0
 
 - [ ] Fazer com que as filtragens sejam feitas através de SQL ao invés de Go
 - [ ] Fazer com que as paginações sejam feitas através de SQL ao invés de Go
 
-## Versão 0.40.0.0
+## Versão 0.39.0.0
 
 - [ ] Sugestão de keywords
     -   1. se não houver nenhuma selecionada ou se o passo 2 retornou vazio, sempre trazer as mais "populares" dentre as notícias (quais keywords aparece mais vezes nas notícias)

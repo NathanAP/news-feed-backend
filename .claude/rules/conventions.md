@@ -97,9 +97,9 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Endpoints de atualização deve sempre seguir o padrão `PUT base_url/versao_da_api/modelo/{id}` (Exemplo: `http://localhost:3000/v1/sources/{id}`).
 - Endpoints de remoção deve sempre seguir o padrão `DELETE base_url/versao_da_api/modelo/{id}` (Exemplo: `http://localhost:3000/v1/sources/{id}`).
 - Endpoints de pesquisa por ID deve sempre seguir o padrão `GET base_url/versao_da_api/modelo/{id}` (Exemplo: `http://localhost:3000/v1/sources/{id}`).
-- Endpoints de pesquisa por múltiplos parâmetros deve sempre seguir o padrão `GET base_url/versao_da_api/modelo?parametro1=valor1&parametro2=valor2` (Exemplo: `http://localhost:3000/v1/sources?url=example&url_rss=example`).
+- Endpoints de pesquisa por múltiplos parâmetros deve sempre seguir o padrão `GET base_url/versao_da_api/modelo?parametro1=valor1&parametro2=valor2` (Exemplo: `http://localhost:3000/v1/sources?url=example&name=example`).
     - O campo `status` nunca deve ser exposto como filtro de busca: registros inativos jamais podem ser retornados, conforme as regras de `status` em `PROJECT.md`.
-- Endpoints de pesquisa por múltiplos parâmetros devem sempre ter a opção de paginação, com os parâmetros `page` e `page_size` (Exemplo: `http://localhost:3000/v1/sources?url=example&url_rss=example&page=1&page_size=20`).
+- Endpoints de pesquisa por múltiplos parâmetros devem sempre ter a opção de paginação, com os parâmetros `page` e `page_size` (Exemplo: `http://localhost:3000/v1/sources?url=example&name=example&page=1&page_size=20`).
     - Mais detalhes sobre como a paginação é estruturada podem ser encontrados no arquivo `raiz/.claude/PROJECT.md`.
 - Endpoints de recurso aninhado devem seguir o padrão de endpoints de múltiplos parâmetros, seguindo o padrão de URL `GET base_url/versao_da_api/modelo/{id}/recurso` (Exemplo: `http://localhost:3000/v1/feeds/{id}/articles`).
 - Endpoints que necessitam popular dados de tabelas relacionadas opcionalmente devem utilizar o parâmetro de query `with_{related_table_name}=true` (Exemplo: `http://localhost:3000/v1/feeds/{id}/articles?with_sources=true`).
