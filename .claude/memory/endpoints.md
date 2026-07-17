@@ -117,6 +117,15 @@ interno — por isso jamais devem ser alcançáveis por um client.
   não listagem; o usuário tem no máx. 5 feeds). Contagem feita **em SQL** (`CountUnreadArticlesByFeedForUser`:
   junta feed+artigo ativos, conta `is_read=0`, agrupa por feed). Resposta é um **objeto plano** `{ "<feed_id>": <int>, ... }`
   só com feeds que têm ≥1 não lida; nenhuma → `{}`. → 200 / 500. Futuro: candidata a virar SSE/WebSocket.
+- `GET /feeds/keyword-suggestions?keywords=&limit=` — sugere keywords para montar feed, do acervo
+  **global** de artigos (usa `articleCtrl`, não `feedCtrl`; rota estática antes de `/:id`). **Não
+  paginada** (indicador ranqueado; `limit` padrão 10, máx 50). `keywords` = já escolhidas (CSV,
+  normalizadas, máx 20 → 400). Duas estratégias, ecoadas na resposta: `related` (co-ocorrência com as
+  escolhidas, via `keywords ?|` no índice GIN `idx_articles_keywords`) e `popular` (mais frequentes
+  numa janela `KEYWORD_SUGGESTIONS_WINDOW_DAYS`, padrão 30d, `-1` desliga). Fallback: related vazio →
+  popular; nunca fica sem sugestão. Nunca sugere de volta uma keyword já escolhida. Ranking por
+  contagem crua (empurrar genéricos é o objetivo). Resposta `{ strategy, suggestions: [{ keyword,
+  count }] }` (array, nunca null). → 200 / 400 (>20 keywords) / 401.
 - `GET /feeds/:id` → 200 **FeedResponse** / 404 (inexistente ou de outro usuário).
 - `GET /feeds/:id/articles` — as notícias que caíram no feed (do dono), cada uma **ArticleResponse** com
   `is_read` sempre definido (a notícia está no feed). Filtros opcionais: `is_read` (`true`|`false`), janela

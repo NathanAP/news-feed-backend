@@ -7,8 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/nathanap/news-feed-backend/schemas"
+	"github.com/nathanap/news-feed-backend/services/utctime"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
@@ -165,6 +168,56 @@ func nullString(s *string) sql.NullString {
 		return sql.NullString{}
 	}
 	return sql.NullString{String: *s, Valid: true}
+}
+
+// SuggestKeywords produces keyword suggestions for building a feed, drawn from the global article
+// pool (articles are public, so no user scoping). It implements the two-strategy contract from the
+// roadmap: when the user has already picked keywords, it first tries "related" (keywords that
+// co-occur with the picks); if that yields nothing — or if nothing was picked yet — it falls back to
+// "popular" (the most common keywords within the recency window). The returned strategy string tells
+// the caller which path produced the list. An empty result is legitimate (a brand-new, empty
+// database has no keywords to suggest) and is not an error.
+//
+// since bounds the "popular" query to a recency window; the caller passes the epoch to disable it.
+// It does not touch "related", which is topical rather than temporal by design (see the query).
+func (c *ArticleController) SuggestKeywords(ctx context.Context, q db.Querier, selected []string, since time.Time, limit int32) ([]schemas.KeywordSuggestion, string, error) {
+	// Normalize the picks once into the lowercase JSON array the queries expect. This same encoding
+	// drives both "which articles are relevant" and "which keywords to exclude from the output".
+	encoded, err := encodeKeywords(selected)
+	if err != nil {
+		return nil, "", err
+	}
+
+	if len(selected) > 0 {
+		related, err := q.SuggestRelatedKeywords(ctx, db.SuggestRelatedKeywordsParams{
+			Selected:    encoded,
+			ResultLimit: limit,
+		})
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to suggest related keywords: %w", err)
+		}
+		if len(related) > 0 {
+			out := make([]schemas.KeywordSuggestion, len(related))
+			for i, r := range related {
+				out[i] = schemas.KeywordSuggestion{Keyword: r.Keyword, Count: r.Occurrences}
+			}
+			return out, schemas.KeywordStrategyRelated, nil
+		}
+	}
+
+	popular, err := q.SuggestPopularKeywords(ctx, db.SuggestPopularKeywordsParams{
+		Since:       utctime.New(since),
+		Exclude:     encoded,
+		ResultLimit: limit,
+	})
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to suggest popular keywords: %w", err)
+	}
+	out := make([]schemas.KeywordSuggestion, len(popular))
+	for i, r := range popular {
+		out[i] = schemas.KeywordSuggestion{Keyword: r.Keyword, Count: r.Occurrences}
+	}
+	return out, schemas.KeywordStrategyPopular, nil
 }
 
 // encodeKeywords serializes the keyword slice into the JSONB array stored in the DB. It is the

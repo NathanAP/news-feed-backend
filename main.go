@@ -241,6 +241,10 @@ func main() {
 	// Static route registered before "/:id" so "check-for-new-articles" is never swallowed as an id
 	// (Fiber prioritizes static over param, but keeping the order explicit matches sources/rss-discovery).
 	feeds.Get("/check-for-new-articles", append(authMiddleware, feedendpoints.CheckForNewArticles(afCtrl, runTx))...)
+	// Static route registered before "/:id" so it is never swallowed as an id. Draws from the global
+	// article pool, so it takes articleCtrl rather than feedCtrl.
+	keywordSuggestionsWindowDays := parseSuggestionWindowDays(os.Getenv("KEYWORD_SUGGESTIONS_WINDOW_DAYS"))
+	feeds.Get("/keyword-suggestions", append(authMiddleware, feedendpoints.SuggestKeywords(articleCtrl, runTx, keywordSuggestionsWindowDays))...)
 	feeds.Get("/:id/articles", append(authMiddleware, feedendpoints.FeedArticles(feedCtrl, afCtrl, runTx))...)
 	feeds.Get("/:id", append(authMiddleware, feedendpoints.GetFeed(feedCtrl, runTx))...)
 	feeds.Get("", append(authMiddleware, feedendpoints.ListFeeds(feedCtrl, runTx))...)
@@ -282,6 +286,9 @@ const (
 	// (no AI); a feed with fewer than 2 overlapping keywords (i.e. just 1) is discarded (no AI).
 	defaultJudgementAutoAssociateRatio = 0.30
 	defaultJudgementMinMatches         = 2
+	// "popular" keyword suggestions look back this many days by default, so they track what is hot
+	// now rather than all-time. -1 in the env disables the window.
+	defaultKeywordSuggestionsWindowDays = 30
 )
 
 // buildModeClients pre-builds an AI client for every mode (local | groq | gemini). The same set of
@@ -371,6 +378,22 @@ func parseMaxArticles(s string) int {
 	if err != nil || n < -1 {
 		log.Printf("Invalid DISCOVERY_MAX_ARTICLES %q (want integer >= -1), using default -1 (no cap)", s)
 		return -1
+	}
+	return n
+}
+
+// parseSuggestionWindowDays reads how many days back the "popular" keyword-suggestion query looks.
+// The default keeps "popular" meaning "popular recently"; -1 disables the window (all history).
+// Invalid input falls back to the default rather than crashing.
+func parseSuggestionWindowDays(s string) int {
+	if s == "" {
+		return defaultKeywordSuggestionsWindowDays
+	}
+	n, err := strconv.Atoi(s)
+	if err != nil || n < -1 {
+		log.Printf("Invalid KEYWORD_SUGGESTIONS_WINDOW_DAYS %q (want integer >= -1), using default %d",
+			s, defaultKeywordSuggestionsWindowDays)
+		return defaultKeywordSuggestionsWindowDays
 	}
 	return n
 }

@@ -61,6 +61,7 @@ type ArticleControllerInterface interface {
 	FindByURLOriginal(ctx context.Context, q db.Querier, urlOriginal string) (db.Article, error)
 	List(ctx context.Context, q db.Querier, filter ListArticlesFilter) ([]db.Article, int64, error)
 	ListAll(ctx context.Context, q db.Querier) ([]db.Article, error)
+	SuggestKeywords(ctx context.Context, q db.Querier, selected []string, since time.Time, limit int32) ([]schemas.KeywordSuggestion, string, error)
 	Update(ctx context.Context, q db.Querier, id, title, content, urlOriginal string, keywords []string, languageOriginal *string) (db.Article, error)
 	SoftDelete(ctx context.Context, q db.Querier, id string) error
 }

@@ -80,6 +80,11 @@ CREATE TABLE articles (
 -- a new article with the same url_original (status convention).
 CREATE UNIQUE INDEX idx_articles_url_original_active ON articles(url_original) WHERE removed_at IS NULL;
 
+-- Keyword-suggestion "related" strategy narrows articles with `keywords ?|` before counting the
+-- co-occurring keywords. Reachable only through a GIN operator (see idx_feeds_keywords for the same
+-- reasoning on the feeds side). SuggestRelatedKeywords must carry a `?|` predicate to reach it.
+CREATE INDEX idx_articles_keywords ON articles USING GIN (keywords);
+
 CREATE TABLE feeds (
     id TEXT NOT NULL,
     status BOOLEAN NOT NULL DEFAULT TRUE,

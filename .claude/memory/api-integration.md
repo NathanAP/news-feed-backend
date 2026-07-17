@@ -141,6 +141,19 @@ O `content` da **tradução** (§5) segue exatamente estas mesmas regras (é re-
 - `GET /v1/feeds/check-for-new-articles` — **poll leve**: objeto plano `{ "<feed_id>": n_não_lidas }` só
   com feeds que têm ≥1 não lida (nenhuma → `{}`). Não paginado. Bom para um "badge" de novidades.
   Futuro: pode virar SSE/WebSocket.
+- `GET /v1/feeds/keyword-suggestions?keywords=&limit=` — sugestões de keywords para a **tela de montar
+  feed**. Passe as já escolhidas em `keywords` (CSV) enquanto o usuário monta; a API devolve
+  `{ strategy, suggestions: [{ keyword, count }] }`.
+    - Use `strategy` para rotular a lista na UI: `related` = "Relacionadas às suas escolhas" (aparecem
+      junto com o que já foi escolhido), `popular` = "Populares agora". A API troca sozinha para
+      `popular` quando não há nada escolhido ou quando nada se relaciona — **nunca vem vazio** se há
+      notícias.
+    - `count` é quantas notícias carregam aquela keyword (força do sinal), útil para ordenar/pesar na UI.
+    - Não sugere de volta uma keyword que o usuário já tem. `limit` opcional (padrão 10, máx 50). Mais
+      de 20 keywords em `keywords` → 400. Não é paginado.
+    - Dica de produto: as sugestões favorecem **termos genéricos** (`rock`, `concerts`) de propósito —
+      são eles que fazem a notícia bater no feed. Vale incentivar o usuário a aceitá-las, não só os
+      nomes específicos que ele já tinha em mente.
 - Feeds são **por-usuário**: um feed de outro usuário responde **404** (a API não vaza existência). Já
   **notícias e fontes são globais** (qualquer autenticado acessa).
 

@@ -56,6 +56,7 @@ func setupIntegrationApp(t *testing.T) (*fiber.App, db.Querier, *sql.DB) {
 
 	feedCtrl := controllers.NewFeedController()
 	afCtrl := controllers.NewArticleFeedController()
+	articleCtrl := controllers.NewArticleController()
 	refreshTokenCtrl := controllers.NewRefreshTokenController(30 * 24 * time.Hour)
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
 
@@ -63,6 +64,9 @@ func setupIntegrationApp(t *testing.T) (*fiber.App, db.Querier, *sql.DB) {
 	f := app.Group("/v1/feeds")
 	f.Post("/create", append(authMiddleware, feedendpoints.CreateFeed(feedCtrl, runTx))...)
 	f.Get("/check-for-new-articles", append(authMiddleware, feedendpoints.CheckForNewArticles(afCtrl, runTx))...)
+	// keywordSuggestionsWindowDays -1 disables the recency window, so tests can seed with any
+	// created_at and still have every article count toward "popular".
+	f.Get("/keyword-suggestions", append(authMiddleware, feedendpoints.SuggestKeywords(articleCtrl, runTx, -1))...)
 	f.Get("/:id/articles", append(authMiddleware, feedendpoints.FeedArticles(feedCtrl, afCtrl, runTx))...)
 	f.Get("/:id", append(authMiddleware, feedendpoints.GetFeed(feedCtrl, runTx))...)
 	f.Get("", append(authMiddleware, feedendpoints.ListFeeds(feedCtrl, runTx))...)

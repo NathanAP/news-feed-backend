@@ -6,11 +6,13 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nathanap/news-feed-backend/middlewares"
+	"github.com/nathanap/news-feed-backend/schemas"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	articleendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/articles"
 	db "github.com/nathanap/news-feed-backend/sqlc"
@@ -66,6 +68,7 @@ type mockArticleCtrl struct {
 	findByURLOriginalFn func(ctx context.Context, q db.Querier, urlOriginal string) (db.Article, error)
 	listFn              func(ctx context.Context, q db.Querier, filter controllers.ListArticlesFilter) ([]db.Article, int64, error)
 	listAllFn           func(ctx context.Context, q db.Querier) ([]db.Article, error)
+	suggestKeywordsFn   func(ctx context.Context, q db.Querier, selected []string, since time.Time, limit int32) ([]schemas.KeywordSuggestion, string, error)
 	updateFn            func(ctx context.Context, q db.Querier, id, title, content, urlOriginal string, keywords []string, languageOriginal *string) (db.Article, error)
 	softDeleteFn        func(ctx context.Context, q db.Querier, id string) error
 }
@@ -100,6 +103,12 @@ func (m *mockArticleCtrl) ListAll(ctx context.Context, q db.Querier) ([]db.Artic
 		return m.listAllFn(ctx, q)
 	}
 	return []db.Article{fixtures.NewTestArticle()}, nil
+}
+func (m *mockArticleCtrl) SuggestKeywords(ctx context.Context, q db.Querier, selected []string, since time.Time, limit int32) ([]schemas.KeywordSuggestion, string, error) {
+	if m.suggestKeywordsFn != nil {
+		return m.suggestKeywordsFn(ctx, q, selected, since, limit)
+	}
+	return []schemas.KeywordSuggestion{}, schemas.KeywordStrategyPopular, nil
 }
 func (m *mockArticleCtrl) Update(ctx context.Context, q db.Querier, id, title, content, urlOriginal string, keywords []string, languageOriginal *string) (db.Article, error) {
 	if m.updateFn != nil {

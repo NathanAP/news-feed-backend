@@ -6,11 +6,13 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nathanap/news-feed-backend/middlewares"
+	"github.com/nathanap/news-feed-backend/schemas"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	sourceendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/sources"
 	db "github.com/nathanap/news-feed-backend/sqlc"
@@ -134,6 +136,9 @@ func (m *mockArticleCtrl) List(_ context.Context, _ db.Querier, _ controllers.Li
 }
 func (m *mockArticleCtrl) ListAll(_ context.Context, _ db.Querier) ([]db.Article, error) {
 	return []db.Article{}, nil
+}
+func (m *mockArticleCtrl) SuggestKeywords(_ context.Context, _ db.Querier, _ []string, _ time.Time, _ int32) ([]schemas.KeywordSuggestion, string, error) {
+	return []schemas.KeywordSuggestion{}, schemas.KeywordStrategyPopular, nil
 }
 func (m *mockArticleCtrl) Update(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string, _ *string) (db.Article, error) {
 	return db.Article{}, nil

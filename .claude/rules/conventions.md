@@ -105,6 +105,7 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Endpoints de pesquisa por múltiplos parâmetros devem sempre ter a opção de paginação, com os parâmetros `page` e `page_size` (Exemplo: `http://localhost:3000/v1/sources?url=example&name=example&page=1&page_size=20`).
     - Mais detalhes sobre como a paginação é estruturada podem ser encontrados no arquivo `raiz/.claude/PROJECT.md`.
     - A paginação também é feita em SQL (`LIMIT/OFFSET`), acompanhada de uma query de contagem com os mesmos filtros para o `total_count`. As duas queries devem ser mantidas em sincronia: um filtro novo entra nas duas.
+    - Exceção: endpoints que devolvem um **indicador ranqueado** (não uma listagem de registros) não são paginados — usam um `limit` simples. São eles `GET /v1/feeds/check-for-new-articles` e `GET /v1/feeds/keyword-suggestions`. É a mesma isenção que o `PROJECT.md` dá a "relatórios, métricas, indicadores ou afins": ninguém navega até a página 5 de sugestões, e `OFFSET` sobre uma agregação é caro.
 - Endpoints de recurso aninhado devem seguir o padrão de endpoints de múltiplos parâmetros, seguindo o padrão de URL `GET base_url/versao_da_api/modelo/{id}/recurso` (Exemplo: `http://localhost:3000/v1/feeds/{id}/articles`).
 - Endpoints que necessitam popular dados de tabelas relacionadas opcionalmente devem utilizar o parâmetro de query `with_{related_table_name}=true` (Exemplo: `http://localhost:3000/v1/feeds/{id}/articles?with_sources=true`).
     - Valores diferentes de `true` devem ser ignorados sem gerar erro.

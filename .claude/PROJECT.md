@@ -176,6 +176,30 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Se o usuário sofrer soft remove, todos os seus feeds também devem sofrer soft remove.
 - Se o usuário sofrer hard remove, todos os seus feeds também devem sofrer hard remove.
 
+### Sugestão de palavras-chave
+
+- Ao montar um feed, o usuário recebe sugestões de palavras-chave para adicionar, através do endpoint `GET base_url/v1/feeds/keyword-suggestions`.
+    - As sugestões saem do acervo **global** de notícias (notícias são públicas), então não há escopo por usuário — mas o endpoint exige autenticação.
+    - O objetivo de produto é **empurrar o usuário para palavras-chave genéricas** (gênero/categoria como `rock`, `concerts`, `albums`): o específico ("metallica") a pessoa lembra sozinha, o genérico é o que ela esquece e é justamente o que faz a notícia bater no feed na camada 1 do julgamento. Por isso o ranking é por contagem de ocorrência crua, sem penalizar termos genéricos — é uma decisão consciente, não uma limitação.
+- O endpoint aceita os seguintes parâmetros de query (todos opcionais):
+    - `keywords`: as palavras-chave já escolhidas, separadas por vírgula. São normalizadas no servidor (trim, minúsculas, deduplicadas, vazias descartadas); passar mais que o teto de um feed (`FeedKeywordsMax`) resulta em 400.
+    - `limit`: quantas sugestões trazer (padrão 10, mínimo 1, máximo 50). Nunca gera erro — valores inválidos caem no padrão e são limitados à faixa.
+- O endpoint opera em duas estratégias, decididas no servidor, e **sempre devolve alguma sugestão** (nunca fica vazio quando há notícias):
+    - `related`: quando há palavras-chave escolhidas, sugere as que mais **co-ocorrem** com elas (aparecem nas mesmas notícias). É topical, não temporal — não sofre janela de tempo.
+    - `popular`: quando nada foi escolhido, **ou** quando a estratégia `related` não encontrou nada, sugere as palavras-chave mais frequentes nas notícias recentes.
+        - "Recente" é controlado pela variável de ambiente `KEYWORD_SUGGESTIONS_WINDOW_DAYS` (padrão 30 dias; `-1` desliga a janela e considera todo o histórico). A janela existe tanto por produto ("popular agora") quanto por custo — é uma agregação da tabela inteira, então limitá-la no tempo evita varrer todo o acervo.
+    - A palavra-chave já escolhida nunca é sugerida de volta (vale para as duas estratégias).
+- A resposta ecoa qual estratégia gerou a lista, para o client rotular ("Relacionadas às suas escolhas" vs "Populares agora") e para o fallback ser observável sem ler log:
+    ```json
+    {
+        "strategy": "related",
+        "suggestions": [ { "keyword": "rock", "count": 812 }, { "keyword": "concerts", "count": 133 } ]
+    }
+    ```
+- Não é paginado: é um indicador ranqueado (ver isenção em `conventions.md` e na seção "Paginação").
+- Apenas notícias ativas alimentam as contagens (uma notícia soft-removida é invisível aqui, como em qualquer busca).
+- Ponto em aberto conhecido: a **faixa máxima de palavras-chave do feed** (`FeedKeywordsMax`, hoje 20) e os knobs de triagem do julgamento (`JUDGEMENT_AUTOASSOCIATE_RATIO` etc.) são as alavancas reais da qualidade do match, e devem ser recalibrados com dado real quando houver volume de feeds. A sugestão de keywords foi entregue com ranking simples (contagem crua) de propósito, para observar o comportamento real antes de investir em ranking mais elaborado (ex.: peso por especificidade / lift).
+
 ## Notícias
 
 - As notícias são o principal motivo da aplicação existir e podem ser sub-entendidas com a nomenclatura "artigo" também.
@@ -526,6 +550,7 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
     - Buscas de múltiplos registros de um modelo (exemplo: `GET base_url/v1/articles/`).
     - Buscas de registros cruzados de modelos (exemplo: `GET base_url/v1/feeds/{id}/articles`)
 - A paginação não precisa ser feita ao montar relatórios, métricas, indicadores ou afins.
+    - Endpoints que devolvem um indicador ranqueado em vez de uma listagem de registros caem nesta isenção e usam um `limit` simples (sem `page`/`page_size`): hoje `GET /v1/feeds/check-for-new-articles` e `GET /v1/feeds/keyword-suggestions`.
 - A paginação e a filtragem devem ser feitas **em SQL**, nunca em Go: a query traz apenas a página
   pedida (`LIMIT/OFFSET`) e uma query irmã de contagem, com os mesmos filtros, fornece o `total_count`.
     - O `total_count` é o total de registros que casam com o filtro, e não o tamanho da página. Por

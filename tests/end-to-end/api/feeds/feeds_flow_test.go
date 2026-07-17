@@ -62,6 +62,7 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 	)
 	feedCtrl := controllers.NewFeedController()
 	afCtrl := controllers.NewArticleFeedController()
+	articleCtrl := controllers.NewArticleController()
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
@@ -72,6 +73,7 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 	f := app.Group("/v1/feeds")
 	f.Post("/create", append(authMiddleware, feedendpoints.CreateFeed(feedCtrl, runTx))...)
 	f.Get("/check-for-new-articles", append(authMiddleware, feedendpoints.CheckForNewArticles(afCtrl, runTx))...)
+	f.Get("/keyword-suggestions", append(authMiddleware, feedendpoints.SuggestKeywords(articleCtrl, runTx, -1))...)
 	f.Get("/:id/articles", append(authMiddleware, feedendpoints.FeedArticles(feedCtrl, afCtrl, runTx))...)
 	f.Get("/:id", append(authMiddleware, feedendpoints.GetFeed(feedCtrl, runTx))...)
 	f.Get("", append(authMiddleware, feedendpoints.ListFeeds(feedCtrl, runTx))...)
@@ -219,6 +221,95 @@ func TestE2E_Feeds_FetchArticles(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, readResp.StatusCode)
 	assert.Empty(t, decodePage(t, readResp))
+}
+
+func TestE2E_Feeds_KeywordSuggestions(t *testing.T) {
+	requireNotProduction(t)
+
+	oauth := external.MockGoogleOAuth{
+		UserInfo: external.GoogleUserInfo{
+			ID: "e2e-feeds-suggestions", Email: "suggestions@example.com", Name: "Suggestions User",
+		},
+	}
+	app, queries := setupE2EApp(t, oauth)
+	token := loginViaCallback(t, app, queries)
+
+	// A fresh account with no articles yet: popular strategy, empty list, still a 200.
+	emptyReq, _ := http.NewRequest(http.MethodGet, "/v1/feeds/keyword-suggestions", nil)
+	emptyReq.Header.Set("Authorization", "Bearer "+token)
+	emptyResp, err := app.Test(emptyReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, emptyResp.StatusCode)
+	var empty struct {
+		Strategy    string           `json:"strategy"`
+		Suggestions []map[string]any `json:"suggestions"`
+	}
+	require.NoError(t, readJSON(emptyResp, &empty))
+	assert.Equal(t, "popular", empty.Strategy)
+	assert.Empty(t, empty.Suggestions)
+
+	// Seed a source and two articles that share the "rock" keyword (the discovery pipeline's output).
+	_, err = queries.CreateSource(context.Background(), db.CreateSourceParams{
+		ID: "01900000-0000-7000-8000-0000000f0001", Name: "Sug Source", Url: "https://sug-src.example.com", UrlRss: "https://sug-src.example.com/rss",
+	})
+	require.NoError(t, err)
+	_, err = queries.CreateArticle(context.Background(), db.CreateArticleParams{
+		ID: "01900000-0000-7000-8000-0000000f0002", Title: "A1", Content: "c",
+		UrlOriginal: "https://sug-a1.example.com", Keywords: json.RawMessage(`["metallica","rock","thrash"]`), SourceID: "01900000-0000-7000-8000-0000000f0001",
+	})
+	require.NoError(t, err)
+	_, err = queries.CreateArticle(context.Background(), db.CreateArticleParams{
+		ID: "01900000-0000-7000-8000-0000000f0003", Title: "A2", Content: "c",
+		UrlOriginal: "https://sug-a2.example.com", Keywords: json.RawMessage(`["metallica","rock","albums"]`), SourceID: "01900000-0000-7000-8000-0000000f0001",
+	})
+	require.NoError(t, err)
+	// A third article carries "rock" but not "metallica", so rock (3) outranks metallica (2) instead
+	// of tying (a tie would order alphabetically and put metallica first).
+	_, err = queries.CreateArticle(context.Background(), db.CreateArticleParams{
+		ID: "01900000-0000-7000-8000-0000000f0004", Title: "A3", Content: "c",
+		UrlOriginal: "https://sug-a3.example.com", Keywords: json.RawMessage(`["rock","pop"]`), SourceID: "01900000-0000-7000-8000-0000000f0001",
+	})
+	require.NoError(t, err)
+
+	// No picks yet: popular, "rock" leads (in all three articles).
+	popReq, _ := http.NewRequest(http.MethodGet, "/v1/feeds/keyword-suggestions", nil)
+	popReq.Header.Set("Authorization", "Bearer "+token)
+	popResp, err := app.Test(popReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, popResp.StatusCode)
+	var popular struct {
+		Strategy    string `json:"strategy"`
+		Suggestions []struct {
+			Keyword string `json:"keyword"`
+			Count   int64  `json:"count"`
+		} `json:"suggestions"`
+	}
+	require.NoError(t, readJSON(popResp, &popular))
+	assert.Equal(t, "popular", popular.Strategy)
+	require.NotEmpty(t, popular.Suggestions)
+	assert.Equal(t, "rock", popular.Suggestions[0].Keyword)
+	assert.Equal(t, int64(3), popular.Suggestions[0].Count)
+
+	// Pick "metallica": related, suggests co-occurring keywords, never metallica itself.
+	relReq, _ := http.NewRequest(http.MethodGet, "/v1/feeds/keyword-suggestions?keywords=metallica", nil)
+	relReq.Header.Set("Authorization", "Bearer "+token)
+	relResp, err := app.Test(relReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, relResp.StatusCode)
+	var related struct {
+		Strategy    string `json:"strategy"`
+		Suggestions []struct {
+			Keyword string `json:"keyword"`
+		} `json:"suggestions"`
+	}
+	require.NoError(t, readJSON(relResp, &related))
+	assert.Equal(t, "related", related.Strategy)
+	var relatedKeywords []string
+	for _, s := range related.Suggestions {
+		relatedKeywords = append(relatedKeywords, s.Keyword)
+	}
+	assert.Contains(t, relatedKeywords, "rock")
+	assert.NotContains(t, relatedKeywords, "metallica")
 }
 
 func TestE2E_Feeds_CheckForNewArticles(t *testing.T) {

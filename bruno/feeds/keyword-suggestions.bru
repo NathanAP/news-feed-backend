@@ -1,0 +1,44 @@
+meta {
+  name: Keyword Suggestions
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/v1/feeds/keyword-suggestions?keywords=metallica,rock&limit=10
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  keywords: metallica,rock
+  limit: 10
+}
+
+docs {
+  Sugere palavras-chave para montar um feed, tiradas do acervo global de notícias.
+
+  Query params (todos opcionais):
+  - keywords: as palavras-chave já escolhidas, separadas por vírgula. Quando presentes, a resposta
+    favorece palavras que aparecem JUNTO com elas ("related"); quando ausentes — ou quando nada
+    co-ocorre — devolve as mais populares no momento ("popular"). Nunca fica sem sugestão.
+    Normalizadas no servidor (trim, minúsculas, dedupe); no máximo 20 (teto de um feed) → 400 se passar.
+  - limit: quantas sugestões trazer (padrão 10, entre 1 e 50).
+
+  A resposta ecoa qual estratégia gerou a lista, então o client pode rotular ("Relacionadas às suas
+  escolhas" vs "Populares agora") e o fallback é observável:
+  { "strategy": "related" | "popular", "suggestions": [ { "keyword": "rock", "count": 812 }, ... ] }
+
+  Não é paginado: é um indicador ranqueado, não uma listagem de registros (exceção registrada em
+  conventions.md, como check-for-new-articles). A janela de "popular" é controlada no servidor por
+  KEYWORD_SUGGESTIONS_WINDOW_DAYS.
+
+  Exemplos:
+  - /v1/feeds/keyword-suggestions                          (populares agora)
+  - /v1/feeds/keyword-suggestions?keywords=metallica       (relacionadas a metallica)
+  - /v1/feeds/keyword-suggestions?keywords=metal,rock&limit=5
+}

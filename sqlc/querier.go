@@ -142,6 +142,29 @@ type Querier interface {
 	SoftDeleteSource(ctx context.Context, id string) error
 	SoftDeleteUser(ctx context.Context, id string) error
 	SoftDeleteUserPreferences(ctx context.Context, userID string) error
+	// Keyword suggestions, "popular" strategy: the keywords carried by the most active articles inside a
+	// recency window, for the feed-building keyword-suggestion endpoint. This is the fallback path (used
+	// when nothing is selected yet, or when the "related" query came back empty), so it must always be
+	// able to return something as long as the window holds any article.
+	// LATERAL expands each active article's keyword array into rows; COUNT per distinct keyword is how
+	// many articles carry it (keywords are unique within an article, so one row per article-keyword).
+	// The window (created_at >= since) is what makes "popular" mean "popular right now" and keeps the
+	// full-table aggregation bounded; the caller passes the epoch when the window is disabled.
+	// exclude is the caller's already-picked keywords as a JSON array (empty = exclude nothing, since
+	// value <> ALL(empty) is TRUE); no point suggesting a keyword the user already has.
+	// Ordered by count, then keyword for a stable, deterministic tie-break (same lesson as the 0.38 lists).
+	SuggestPopularKeywords(ctx context.Context, arg SuggestPopularKeywordsParams) ([]SuggestPopularKeywordsRow, error)
+	// Keyword suggestions, "related" strategy: keywords that co-occur with the ones the user already
+	// picked. Narrows to articles that carry ANY selected keyword (keywords ?| selected), then counts
+	// the OTHER keywords those articles carry. Deliberately not windowed (unlike popular): relatedness is
+	// topical, not temporal, and a window would only make the empty-result fallback fire more often for a
+	// niche pick.
+	// The `?|` predicate is what reaches idx_articles_keywords (GIN): it is applied as a row filter that
+	// narrows which articles get expanded, exactly the shape the 0.37.3 review established. Keep it in
+	// sync with that index. selected drives both the narrowing (which articles) and the exclusion (never
+	// suggest back a keyword the user already picked).
+	// selected is a JSON array of lowercase keywords. Same count/order semantics as SuggestPopularKeywords.
+	SuggestRelatedKeywords(ctx context.Context, arg SuggestRelatedKeywordsParams) ([]SuggestRelatedKeywordsRow, error)
 	UpdateArticle(ctx context.Context, arg UpdateArticleParams) (Article, error)
 	UpdateFeedByIDAndUser(ctx context.Context, arg UpdateFeedByIDAndUserParams) (Feed, error)
 	UpdateSource(ctx context.Context, arg UpdateSourceParams) (Source, error)

@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.38.0.0
+0.39.0.0
 
 ## Versão 0.37.3.0
 
@@ -52,10 +52,31 @@ Decisões tomadas durante a execução:
 
 ## Versão 0.39.0.0
 
-- [ ] Sugestão de keywords
-    -   1. se não houver nenhuma selecionada ou se o passo 2 retornou vazio, sempre trazer as mais "populares" dentre as notícias (quais keywords aparece mais vezes nas notícias)
-    -   2. se houver alguma já selecionada, trazer as mais próximas de acordo com o que a pessoa selecionou (quais keywords aparecem junto com as que o usuário já selecionou)
-    - Nunca estar sem sugestões (se a saída do passo 2 for vazio, voltar ao passo 1)
+- [x] Sugestão de keywords
+    - Endpoint novo: `GET /v1/feeds/keyword-suggestions?keywords=metallica,rock&limit=10` (sob `feeds`
+      porque o uso é montar feed; o dado vem do acervo global de artigos, então usa `articleCtrl`).
+      Resposta `{ strategy, suggestions: [{ keyword, count }] }` — a `strategy` (`related`|`popular`)
+      é ecoada pro client rotular e pro fallback ser observável.
+    -   1. `popular`: se nada selecionado (ou se o passo 2 voltou vazio), as keywords mais frequentes
+          nas notícias, dentro de uma janela de tempo (`KEYWORD_SUGGESTIONS_WINDOW_DAYS`, padrão 30,
+          `-1` desliga). Janela por produto ("popular agora") **e** por custo (é agregação de tabela
+          inteira). Query `SuggestPopularKeywords`.
+    -   2. `related`: se há keywords selecionadas, as que mais co-ocorrem com elas (mesmas notícias).
+          Não é janelada (relatedness é topical, não temporal). Query `SuggestRelatedKeywords`, cujo
+          `?|` alcança o novo índice GIN de `articles.keywords`.
+    - Nunca fica sem sugestão: passo 2 vazio → cai no passo 1. A keyword já escolhida nunca é sugerida
+      de volta (nas duas estratégias).
+    - Não paginado (indicador ranqueado) → `limit` simples (padrão 10, máx 50). Isenção registrada no
+      `conventions.md`.
+    - Ranking = contagem crua **de propósito**: o objetivo é empurrar genéricos (o que faz a notícia
+      bater na camada 1), não filtrá-los. Ranking mais fino (lift/especificidade) fica pra quando
+      houver volume real pra calibrar.
+    - Migração: índice GIN `idx_articles_keywords` (espelha o de `feeds.keywords`). Verificado por
+      `EXPLAIN` que o operador `?|` **alcança** o índice (Bitmap Index Scan) — não é peso morto como o
+      caso da 0.37.3; o planner usa quando a seletividade compensa.
+    - **Ponto em aberto deixado explícito**: `FeedKeywordsMax` (20) e os knobs de triagem do julgamento
+      são as alavancas reais da qualidade do match — recalibrar com dado real quando houver volume.
+      Mantido 20 nesta versão por não ter dado pra justificar um número menor.
 
 ## Futuro
 
