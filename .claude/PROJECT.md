@@ -155,7 +155,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - A visibilidade das fontes de notícias são públicas a todos os usuários da aplicação.
 - A manipulação (criação, edição ou remoção) de fonte de notícias é exclusiva para administradores da aplicação, ou seja, para os usuários "comuns" as fontes de notícias parecem como pré-definidas.
 - Duas fontes de notícias não podem ter a mesma `url` ou o mesmo `url_rss`.
-- O payload de cadastro de uma fonte de notícias obriga o valor de `url_rss`. Para facilitar o encontro dessa URL, temos a rota `base_url/v1/sources/rss_discovery` que tenta descobrir automaticamente e fazer o parsing através do `gofeed` desse valor através dos seguintes padrões:
+- O payload de cadastro de uma fonte de notícias obriga o valor de `url_rss`. Para facilitar o encontro dessa URL, temos a rota `base_url/v1/sources/rss-discovery` que tenta descobrir automaticamente e fazer o parsing através do `gofeed` desse valor através dos seguintes padrões:
     - padrões comuns como acessar `/rss/`, `/feed/`, `/rss.xml/`, `/feed.xml`.
     - padroes de parsing HTML para encontrar `<link rel="alternate" type="application/rss+xml">`.
 
