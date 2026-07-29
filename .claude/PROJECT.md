@@ -142,7 +142,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Apenas os próprios usuários podem alterar suas preferências.
 - Usuários removidos (`status` em `false`) devem ficar com suas preferências excluídas também (`status` também deve ser setado para `false`)
 - O campo `language_to_translate` pode ser nulo, isso quer dizer que a pessoa nunca vai receber a opção de tradução no client.
-- O campo `language_to_translate` é o **idioma-alvo** usado pela rota de tradução: a API lê ele do `access_token` para decidir para qual idioma traduzir. O client apenas altera esse valor para o usuário; quem decide o comportamento da tradução é a API.
+- O campo `language_to_translate` é o idioma-alvo usado pela rota de tradução: a API lê ele do `access_token` para decidir para qual idioma traduzir. O client apenas altera esse valor para o usuário; quem decide o comportamento da tradução é a API.
     - Quando nulo, não há alvo configurado e a tradução não pode ser feita (a rota responde 400).
 - Alterar as preferências do usuário faz com que um novo `access_token` seja gerado, retornando junto ao client, já com as novas informações atualizadas nele.
     - O `access_token` anterior (usado para ativar a atualização das preferências e agora possui dados desatualizados) vai continuar válido até bater o tempo de expiração. Esse comportamento é considerado normal aqui pois fazem parte de um trecho não crítico da aplicação. Se em algum momento houver dados críticos ligado ao `access_token` e preferências do usuário, isso terá que ser mudado.
