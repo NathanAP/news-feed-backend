@@ -21,6 +21,7 @@ type UserControllerInterface interface {
 	FindUserByID(ctx context.Context, q db.Querier, id string) (db.User, error)
 	FindUserByGoogleID(ctx context.Context, q db.Querier, googleID string) (db.User, error)
 	UpdateUserLastLogin(ctx context.Context, q db.Querier, id string) error
+	SetAdmin(ctx context.Context, q db.Querier, id string, admin bool) (db.User, error)
 	SoftDeleteUser(ctx context.Context, q db.Querier, id string) error
 }
 

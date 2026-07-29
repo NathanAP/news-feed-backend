@@ -27,8 +27,11 @@ ambientes, e cada comando recusa rodar fora de `ENVIRONMENT=development`.
 
 ### Comandos (task / subcomando)
 
-- `sud` / `user` — cria usuário dev + preferências. Idempotente. `google_id` fixo
+- `sud` / `user` — cria usuário dev + preferências, já como **administrador** (0.40). Idempotente;
+  um usuário dev semeado antes da 0.40 é promovido no lugar em vez de pulado. `google_id` fixo
   (`schemas.DevUserGoogleID`) para o dev-login achar o usuário.
+    - Consequência: em dev o `dev-login` sempre entra como administrador. Para testar o caminho do
+      usuário comum, basta desmarcar a flag pelo pgAdmin4 (`UPDATE users SET admin = false ...`).
 - `sdl` / `login` — imprime `access_token` + `refresh_token` do usuário dev.
 - `sds` / `sources` — cria as sources. Idempotente (pula url já existente).
 - `sda` / `articles` — cria os artigos. **Re-executável** (url aleatória por run). Exige sources.

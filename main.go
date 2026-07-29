@@ -156,6 +156,12 @@ func main() {
 
 	authMiddleware := middlewares.NewAuthMiddleware(jwtSecret, refreshTokenCtrl, runTx)
 
+	// Administrator authorization always reads users.admin from the database, never the token claim
+	// (see middlewares/admin.go). The same resolver backs both the admin-only routes and the
+	// maintenance bypass, so there is one definition of "is an administrator" in the whole API.
+	adminResolver := middlewares.NewAdminResolver(jwtSecret, refreshTokenCtrl, userCtrl, runTx)
+	requireAdmin := middlewares.NewRequireAdminMiddleware(adminResolver)
+
 	app := fiber.New(fiber.Config{
 		AppName: os.Getenv("PROJECT_NAME"),
 	})
@@ -175,24 +181,36 @@ func main() {
 	apiVersion := os.Getenv("API_VERSION")
 	api := app.Group("/" + apiVersion)
 
-	// Routes exempt from the maintenance guard. They must keep working while app_status is off:
-	// /health for monitoring, and the toggle so the API can always be brought back online.
-	api.Get("/health", healthendpoints.Check(systemCtrl, runTx))
-	api.Put("/system/app-status", systemendpoints.UpdateAppStatus(systemCtrl, runTx))
-
-	// Global maintenance guard: every route registered below returns 503 while app_status is
-	// off. The two routes above are registered earlier and therefore stay reachable.
-	api.Use(middlewares.NewAppStatusMiddleware(systemCtrl, runTx))
-
 	oauthRedirectAllowlist := parseCSV(os.Getenv("OAUTH_ALLOWED_REDIRECT_URIS"))
+
+	// --- Routes exempt from the maintenance guard, registered before it is mounted ---
+	//
+	// /health so monitoring can still see the application; the app-status toggle so the API can always
+	// be brought back online through the API itself; and the entire /auth group so authentication
+	// survives a maintenance window.
+	//
+	// That last exemption is not convenience, it is a deadlock fix: the maintenance bypass identifies
+	// an administrator from their access token, but access tokens expire in
+	// JWT_ACCESS_TOKEN_EXPIRY_MINUTES and the refresh token carries no identity the bypass can read.
+	// With /auth behind the guard, an administrator whose token expired mid-maintenance gets 503 from
+	// /auth/refresh — the one call that would let them reach the toggle that ends the maintenance —
+	// and the only way back in is editing the database by hand. A regular user can still obtain a
+	// token while the application is down; every route that actually does something answers them 503.
+	api.Get("/health", healthendpoints.Check(systemCtrl, runTx))
+	api.Put("/system/app-status", adminRoute(authMiddleware, requireAdmin, systemendpoints.UpdateAppStatus(systemCtrl, runTx))...)
 
 	auth := api.Group("/auth")
 	auth.Get("/google", authendpoints.GoogleLogin(oauth2Config, jwtSecret, oauthRedirectAllowlist))
 	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl, jwtSecret))
 	auth.Post("/refresh", authendpoints.RefreshToken(authCtrl))
 	auth.Post("/logout", append(authMiddleware, authendpoints.Logout(refreshTokenCtrl, runTx))...)
-	auth.Delete("/invalidate", authendpoints.Invalidate(refreshTokenCtrl, runTx))
-	auth.Delete("/invalidate-all", authendpoints.InvalidateAll(refreshTokenCtrl, runTx))
+	auth.Delete("/invalidate", adminRoute(authMiddleware, requireAdmin, authendpoints.Invalidate(refreshTokenCtrl, runTx))...)
+	auth.Delete("/invalidate-all", adminRoute(authMiddleware, requireAdmin, authendpoints.InvalidateAll(refreshTokenCtrl, runTx))...)
+
+	// Global maintenance guard: every route registered below returns 503 while app_status is off,
+	// except for requests coming from an administrator. The routes above are registered earlier and
+	// therefore never reach it at all.
+	api.Use(middlewares.NewAppStatusMiddleware(systemCtrl, runTx, adminResolver))
 
 	users := api.Group("/users")
 	users.Get("/me", append(authMiddleware, userendpoints.GetMe())...)
@@ -208,23 +226,28 @@ func main() {
 
 	discoveryHTTPClient := &http.Client{Timeout: 30 * time.Second}
 
+	// Sources are public to read (PROJECT.md: every user sees the same predefined set) and
+	// administrator-only to change, which is why the guard is per route rather than on the group.
 	sources := api.Group("/sources")
-	sources.Post("/create", append(authMiddleware, sourceendpoints.CreateSource(sourceCtrl, runTx))...)
+	sources.Post("/create", adminRoute(authMiddleware, requireAdmin, sourceendpoints.CreateSource(sourceCtrl, runTx))...)
 	sources.Get("/rss-discovery", append(authMiddleware, sourceendpoints.RSSDiscovery(&http.Client{}))...)
-	sources.Get("/:id/article-discovery", append(authMiddleware, sourceendpoints.SourceArticleDiscovery(sourceCtrl, articleCtrl, runTx, discoveryHTTPClient))...)
+	sources.Get("/:id/article-discovery", adminRoute(authMiddleware, requireAdmin, sourceendpoints.SourceArticleDiscovery(sourceCtrl, articleCtrl, runTx, discoveryHTTPClient))...)
 	sources.Get("/:id", append(authMiddleware, sourceendpoints.GetSource(sourceCtrl, runTx))...)
 	sources.Get("", append(authMiddleware, sourceendpoints.ListSources(sourceCtrl, runTx))...)
-	sources.Put("/:id", append(authMiddleware, sourceendpoints.UpdateSource(sourceCtrl, runTx))...)
-	sources.Delete("/:id", append(authMiddleware, sourceendpoints.DeleteSource(sourceCtrl, runTx))...)
+	sources.Put("/:id", adminRoute(authMiddleware, requireAdmin, sourceendpoints.UpdateSource(sourceCtrl, runTx))...)
+	sources.Delete("/:id", adminRoute(authMiddleware, requireAdmin, sourceendpoints.DeleteSource(sourceCtrl, runTx))...)
 
+	// Articles are readable by every user; writing them is an administrator escape hatch for a news
+	// item that got out of hand (PROJECT.md), not part of the normal flow — the pipeline is what
+	// creates articles.
 	articles := api.Group("/articles")
-	articles.Post("/create", append(authMiddleware, articleendpoints.CreateArticle(articleCtrl, runTx))...)
+	articles.Post("/create", adminRoute(authMiddleware, requireAdmin, articleendpoints.CreateArticle(articleCtrl, runTx))...)
 	articles.Get("/:id/translate", append(authMiddleware, articleendpoints.TranslateArticle(articleCtrl, translator, runTx))...)
 	articles.Put("/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(articleCtrl, afCtrl, runTx))...)
 	articles.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, runTx))...)
 	articles.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, runTx))...)
-	articles.Put("/:id", append(authMiddleware, articleendpoints.UpdateArticle(articleCtrl, runTx))...)
-	articles.Delete("/:id", append(authMiddleware, articleendpoints.DeleteArticle(articleCtrl, runTx))...)
+	articles.Put("/:id", adminRoute(authMiddleware, requireAdmin, articleendpoints.UpdateArticle(articleCtrl, runTx))...)
+	articles.Delete("/:id", adminRoute(authMiddleware, requireAdmin, articleendpoints.DeleteArticle(articleCtrl, runTx))...)
 
 	// Development-only dry-run tools for the AI pipeline (treatment, judgement). They call the AI
 	// for real (consume quota) and expose internal pipeline behavior, so they must never be reachable
@@ -271,6 +294,20 @@ func main() {
 	}
 
 	log.Fatal(app.Listen(":" + apiPort))
+}
+
+// adminRoute composes the handler chain of an administrator-only route: authenticate, then authorize
+// against the database, then run the handler.
+//
+// It copies the shared auth chain into a fresh slice on purpose. Writing
+// `adminChain := append(authMiddleware, requireAdmin)` once and appending a handler to it per route
+// would give every route the same backing array, and each registration would overwrite the previous
+// route's handler in place — the routes would silently end up pointing at whichever handler was
+// registered last.
+func adminRoute(authMiddleware []fiber.Handler, requireAdmin, handler fiber.Handler) []fiber.Handler {
+	chain := make([]fiber.Handler, 0, len(authMiddleware)+2)
+	chain = append(chain, authMiddleware...)
+	return append(chain, requireAdmin, handler)
 }
 
 // SLM/LLM models are fixed to the ones declared in the stack (CLAUDE.md); the Groq model is

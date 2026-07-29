@@ -52,6 +52,9 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 	)
 
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
+	requireAdmin := middlewares.NewRequireAdminMiddleware(
+		middlewares.NewAdminResolver([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, userCtrl, runTx),
+	)
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 
@@ -60,8 +63,9 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl, []byte(jwtmock.TestJWTSecret)))
 	auth.Post("/refresh", authendpoints.RefreshToken(authCtrl))
 	auth.Post("/logout", append(authMiddleware, authendpoints.Logout(refreshTokenCtrl, runTx))...)
-	auth.Delete("/invalidate", authendpoints.Invalidate(refreshTokenCtrl, runTx))
-	auth.Delete("/invalidate-all", authendpoints.InvalidateAll(refreshTokenCtrl, runTx))
+	// Administrator-only: these revoke *other people's* sessions.
+	auth.Delete("/invalidate", adminChain(authMiddleware, requireAdmin, authendpoints.Invalidate(refreshTokenCtrl, runTx))...)
+	auth.Delete("/invalidate-all", adminChain(authMiddleware, requireAdmin, authendpoints.InvalidateAll(refreshTokenCtrl, runTx))...)
 
 	users := app.Group("/v1/users")
 	users.Get("/me", append(authMiddleware, userendpoints.GetMe())...)
@@ -79,6 +83,31 @@ func testOAuth2Config() *oauth2.Config {
 		Scopes:       []string{"email", "profile"},
 		Endpoint:     google.Endpoint,
 	}
+}
+
+// adminChain copies the shared auth chain before appending, for the same reason main.go does: reusing
+// one slice across registrations would let each route overwrite the previous route's handler.
+func adminChain(authMiddleware []fiber.Handler, requireAdmin, handler fiber.Handler) []fiber.Handler {
+	chain := make([]fiber.Handler, 0, len(authMiddleware)+2)
+	chain = append(chain, authMiddleware...)
+	return append(chain, requireAdmin, handler)
+}
+
+// testOAuth is the Google identity used by the flows that only need *some* logged-in user.
+func testOAuth() external.MockGoogleOAuth {
+	return external.MockGoogleOAuth{
+		UserInfo: external.GoogleUserInfo{
+			ID: "e2e-auth-admin", Email: "auth-admin@example.com", Name: "Auth Admin",
+		},
+	}
+}
+
+// promote flips the administrator flag on an existing user, the way it is actually done today
+// (PROJECT.md: a manual database change, no endpoint for it yet).
+func promote(t *testing.T, queries db.Querier, userID string) {
+	t.Helper()
+	_, err := queries.SetUserAdmin(context.Background(), db.SetUserAdminParams{ID: userID, Admin: true})
+	require.NoError(t, err)
 }
 
 // loginViaCallback performs a full Google OAuth2 login through the real two-step flow (start →

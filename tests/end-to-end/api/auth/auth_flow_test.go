@@ -259,10 +259,13 @@ func TestE2E_Refresh_InvalidToken(t *testing.T) {
 func TestE2E_InvalidateAll_MissingUserID(t *testing.T) {
 	requireNotProduction(t)
 
-	app, _, _ := setupE2EApp(t, external.MockGoogleOAuth{})
+	app, queries, _ := setupE2EApp(t, testOAuth())
+	user, _, token := loginViaCallback(t, app, queries)
+	promote(t, queries, user.ID)
 
 	req, err := http.NewRequest(http.MethodDelete, "/v1/auth/invalidate-all", nil)
 	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+token)
 
 	resp, err := app.Test(req)
 	require.NoError(t, err)
@@ -272,12 +275,91 @@ func TestE2E_InvalidateAll_MissingUserID(t *testing.T) {
 func TestE2E_Invalidate_MissingBody(t *testing.T) {
 	requireNotProduction(t)
 
-	app, _, _ := setupE2EApp(t, external.MockGoogleOAuth{})
+	app, queries, _ := setupE2EApp(t, testOAuth())
+	user, _, token := loginViaCallback(t, app, queries)
+	promote(t, queries, user.ID)
 
 	req, err := http.NewRequest(http.MethodDelete, "/v1/auth/invalidate", nil)
 	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+token)
 
 	resp, err := app.Test(req)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+// TestE2E_Invalidate_RequiresAdmin covers the hole 0.40 closed. Both routes revoke *other people's*
+// sessions and, until this version, took no credentials at all — anyone who could reach the API could
+// sign every user out of it.
+func TestE2E_Invalidate_RequiresAdmin(t *testing.T) {
+	requireNotProduction(t)
+
+	app, queries, _ := setupE2EApp(t, testOAuth())
+	user, rt, token := loginViaCallback(t, app, queries)
+
+	for _, tc := range []struct {
+		name   string
+		target string
+		body   string
+	}{
+		{"invalidate", "/v1/auth/invalidate", `{"refresh_token_id":"` + rt.ID + `"}`},
+		{"invalidate-all", "/v1/auth/invalidate-all?user_id=" + user.ID, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			anonymous, err := http.NewRequest(http.MethodDelete, tc.target, strings.NewReader(tc.body))
+			require.NoError(t, err)
+			if tc.body != "" {
+				anonymous.Header.Set("Content-Type", "application/json")
+			}
+			anonResp, err := app.Test(anonymous)
+			require.NoError(t, err)
+			assert.Equal(t, http.StatusUnauthorized, anonResp.StatusCode)
+
+			regular, err := http.NewRequest(http.MethodDelete, tc.target, strings.NewReader(tc.body))
+			require.NoError(t, err)
+			if tc.body != "" {
+				regular.Header.Set("Content-Type", "application/json")
+			}
+			regular.Header.Set("Authorization", "Bearer "+token)
+			regularResp, err := app.Test(regular)
+			require.NoError(t, err)
+			assert.Equal(t, http.StatusForbidden, regularResp.StatusCode)
+		})
+	}
+
+	// The session survived every refused attempt — it is still usable.
+	meReq, err := http.NewRequest(http.MethodGet, "/v1/users/me", nil)
+	require.NoError(t, err)
+	meReq.Header.Set("Authorization", "Bearer "+token)
+	meResp, err := app.Test(meReq)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, meResp.StatusCode)
+}
+
+// TestE2E_Invalidate_AdminRevokesAnotherUsersSession is the positive case: with the flag set, the
+// route does what it exists for.
+func TestE2E_Invalidate_AdminRevokesAnotherUsersSession(t *testing.T) {
+	requireNotProduction(t)
+
+	app, queries, _ := setupE2EApp(t, testOAuth())
+	user, rt, token := loginViaCallback(t, app, queries)
+	promote(t, queries, user.ID)
+
+	req, err := http.NewRequest(http.MethodDelete, "/v1/auth/invalidate", strings.NewReader(`{"refresh_token_id":"`+rt.ID+`"}`))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode)
+
+	// The revoked session is dead on the very next request, even though the access token has not
+	// expired: the auth middleware checks the session, not just the signature.
+	meReq, err := http.NewRequest(http.MethodGet, "/v1/users/me", nil)
+	require.NoError(t, err)
+	meReq.Header.Set("Authorization", "Bearer "+token)
+	meResp, err := app.Test(meReq)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusUnauthorized, meResp.StatusCode)
 }

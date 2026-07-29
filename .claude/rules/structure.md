@@ -13,7 +13,7 @@ O banco não aparece nesta árvore: desde a 0.37 é PostgreSQL (cliente-servidor
 ├── cmd                        (executáveis auxiliares fora da API)
 │   └── seed                   (scripts de seed de dev: usuário, sources, feeds, artigos, associações)
 ├── logger                     (sistema de log global, controlado por VERBOSE_MODE)
-├── middlewares                (middlewares HTTP: auth JWT, guard de manutenção por app_status)
+├── middlewares                (middlewares HTTP: auth JWT, autorização de admin, guard de manutenção por app_status)
 ├── migrations                 (migrações goose up/down, embutidas via embed)
 ├── pgadmin4                   (config do pgAdmin4: servers.json pré-registra o servidor de dev, sem a senha)
 ├── schemas                    (DTOs de request/response da API)

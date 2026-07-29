@@ -64,22 +64,34 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth, httpClient *http.
 	sourceCtrl := controllers.NewSourceController()
 	articleCtrl := controllers.NewArticleController()
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
+	requireAdmin := middlewares.NewRequireAdminMiddleware(
+		middlewares.NewAdminResolver([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, userCtrl, runTx),
+	)
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 
 	auth := app.Group("/v1/auth")
 	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl, []byte(jwtmock.TestJWTSecret)))
 
+	// Mirrors main.go: reading sources is open to any authenticated user, writing them is not.
 	s := app.Group("/v1/sources")
-	s.Post("/create", append(authMiddleware, sourceendpoints.CreateSource(sourceCtrl, runTx))...)
+	s.Post("/create", adminChain(authMiddleware, requireAdmin, sourceendpoints.CreateSource(sourceCtrl, runTx))...)
 	s.Get("/rss-discovery", append(authMiddleware, sourceendpoints.RSSDiscovery(httpClient))...)
-	s.Get("/:id/article-discovery", append(authMiddleware, sourceendpoints.SourceArticleDiscovery(sourceCtrl, articleCtrl, runTx, httpClient))...)
+	s.Get("/:id/article-discovery", adminChain(authMiddleware, requireAdmin, sourceendpoints.SourceArticleDiscovery(sourceCtrl, articleCtrl, runTx, httpClient))...)
 	s.Get("/:id", append(authMiddleware, sourceendpoints.GetSource(sourceCtrl, runTx))...)
 	s.Get("", append(authMiddleware, sourceendpoints.ListSources(sourceCtrl, runTx))...)
-	s.Put("/:id", append(authMiddleware, sourceendpoints.UpdateSource(sourceCtrl, runTx))...)
-	s.Delete("/:id", append(authMiddleware, sourceendpoints.DeleteSource(sourceCtrl, runTx))...)
+	s.Put("/:id", adminChain(authMiddleware, requireAdmin, sourceendpoints.UpdateSource(sourceCtrl, runTx))...)
+	s.Delete("/:id", adminChain(authMiddleware, requireAdmin, sourceendpoints.DeleteSource(sourceCtrl, runTx))...)
 
 	return app, queries
+}
+
+// adminChain copies the shared auth chain before appending, for the same reason main.go does: reusing
+// one slice across registrations would let each route overwrite the previous route's handler.
+func adminChain(authMiddleware []fiber.Handler, requireAdmin, handler fiber.Handler) []fiber.Handler {
+	chain := make([]fiber.Handler, 0, len(authMiddleware)+2)
+	chain = append(chain, authMiddleware...)
+	return append(chain, requireAdmin, handler)
 }
 
 func testOAuth2Config() *oauth2.Config {
@@ -106,6 +118,21 @@ func loginViaCallback(t *testing.T, app *fiber.App, queries db.Querier) (accessT
 	return token
 }
 
+// loginAsAdmin logs in and then promotes the user in the database, which is how an administrator is
+// actually made today (PROJECT.md: manual change, no endpoint yet). Most flows in this suite create,
+// update or delete sources, all of which are administrator-only — so they log in this way. No
+// re-login is needed after the promotion: authorization reads the row, not the token.
+func loginAsAdmin(t *testing.T, app *fiber.App, queries db.Querier) (accessToken string) {
+	t.Helper()
+
+	token := loginViaCallback(t, app, queries)
+	claims := testutils.ParseTestClaims(t, token, []byte(jwtmock.TestJWTSecret))
+	_, err := queries.SetUserAdmin(context.Background(), db.SetUserAdminParams{ID: claims.UserID, Admin: true})
+	require.NoError(t, err)
+
+	return token
+}
+
 // ── Full CRUD flow ────────────────────────────────────────────────────────────
 
 func TestE2E_Sources_FullCRUDFlow(t *testing.T) {
@@ -117,7 +144,7 @@ func TestE2E_Sources_FullCRUDFlow(t *testing.T) {
 		},
 	}
 	app, queries := setupE2EApp(t, oauth, http.DefaultClient)
-	token := loginViaCallback(t, app, queries)
+	token := loginAsAdmin(t, app, queries)
 
 	// Create
 	createBody := `{"name":"E2E Source News","url":"https://e2e-source.com","url_rss":"https://e2e-source.com/rss.xml"}`
@@ -195,7 +222,7 @@ func TestE2E_Sources_DuplicateURLRejected(t *testing.T) {
 		},
 	}
 	app, queries := setupE2EApp(t, oauth, http.DefaultClient)
-	token := loginViaCallback(t, app, queries)
+	token := loginAsAdmin(t, app, queries)
 
 	body := `{"name":"Dup News","url":"https://dup.com","url_rss":"https://dup.com/rss.xml"}`
 
@@ -226,7 +253,7 @@ func TestE2E_Sources_RecreateAfterSoftDelete(t *testing.T) {
 		},
 	}
 	app, queries := setupE2EApp(t, oauth, http.DefaultClient)
-	token := loginViaCallback(t, app, queries)
+	token := loginAsAdmin(t, app, queries)
 
 	body := `{"name":"Recreate News","url":"https://recreate.com","url_rss":"https://recreate.com/rss.xml"}`
 
@@ -293,6 +320,88 @@ func TestE2E_Sources_RequiresAuth(t *testing.T) {
 	}
 }
 
+// ── Administrator guard ───────────────────────────────────────────────────────
+
+// TestE2E_Sources_RegularUserReadsButCannotWrite walks the split from the user's side: a normal
+// account sees the same source catalogue as everyone else and is refused every attempt to change it.
+func TestE2E_Sources_RegularUserReadsButCannotWrite(t *testing.T) {
+	requireNotProduction(t)
+
+	oauth := external.MockGoogleOAuth{
+		UserInfo: external.GoogleUserInfo{
+			ID: "e2e-sources-guard", Email: "guard@example.com", Name: "Guard User",
+		},
+	}
+	app, queries := setupE2EApp(t, oauth, http.DefaultClient)
+
+	// An administrator puts one source in place first, so the regular user has something to read.
+	adminToken := loginAsAdmin(t, app, queries)
+	createBody := `{"name":"Guarded News","url":"https://guarded.com","url_rss":"https://guarded.com/rss.xml"}`
+	createReq, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(createBody))
+	createReq.Header.Set("Content-Type", "application/json")
+	createReq.Header.Set("Authorization", "Bearer "+adminToken)
+	createResp, err := app.Test(createReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, createResp.StatusCode)
+
+	var created map[string]any
+	require.NoError(t, readJSON(createResp, &created))
+	id := created["id"].(string)
+
+	// Demote: same session, same token, now a regular user.
+	claims := testutils.ParseTestClaims(t, adminToken, []byte(jwtmock.TestJWTSecret))
+	_, err = queries.SetUserAdmin(context.Background(), db.SetUserAdminParams{ID: claims.UserID, Admin: false})
+	require.NoError(t, err)
+	token := adminToken
+
+	// Reading still works.
+	listReq, _ := http.NewRequest(http.MethodGet, "/v1/sources", nil)
+	listReq.Header.Set("Authorization", "Bearer "+token)
+	listResp, err := app.Test(listReq)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, listResp.StatusCode)
+	assert.Len(t, decodePage(t, listResp), 1)
+
+	getReq, _ := http.NewRequest(http.MethodGet, "/v1/sources/"+id, nil)
+	getReq.Header.Set("Authorization", "Bearer "+token)
+	getResp, err := app.Test(getReq)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, getResp.StatusCode)
+
+	// Writing does not.
+	for _, tc := range []struct {
+		name   string
+		method string
+		path   string
+		body   string
+	}{
+		{"create", http.MethodPost, "/v1/sources/create", `{"name":"N","url":"https://n.com","url_rss":"https://n.com/rss"}`},
+		{"update", http.MethodPut, "/v1/sources/" + id, `{"name":"N","url":"https://n.com","url_rss":"https://n.com/rss"}`},
+		{"delete", http.MethodDelete, "/v1/sources/" + id, ""},
+		{"article-discovery", http.MethodGet, "/v1/sources/" + id + "/article-discovery", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req, err := http.NewRequest(tc.method, tc.path, strings.NewReader(tc.body))
+			require.NoError(t, err)
+			if tc.body != "" {
+				req.Header.Set("Content-Type", "application/json")
+			}
+			req.Header.Set("Authorization", "Bearer "+token)
+
+			resp, err := app.Test(req)
+			require.NoError(t, err)
+			assert.Equal(t, http.StatusForbidden, resp.StatusCode)
+		})
+	}
+
+	// And nothing was actually changed by the refused calls.
+	afterReq, _ := http.NewRequest(http.MethodGet, "/v1/sources", nil)
+	afterReq.Header.Set("Authorization", "Bearer "+token)
+	afterResp, err := app.Test(afterReq)
+	require.NoError(t, err)
+	assert.Len(t, decodePage(t, afterResp), 1)
+}
+
 // ── RSS Discovery ─────────────────────────────────────────────────────────────
 
 func TestE2E_RSSDiscovery_FindsAndReturnsFeeds(t *testing.T) {
@@ -308,7 +417,7 @@ func TestE2E_RSSDiscovery_FindsAndReturnsFeeds(t *testing.T) {
 		},
 	}
 	app, queries := setupE2EApp(t, oauth, mockHTTP)
-	token := loginViaCallback(t, app, queries)
+	token := loginAsAdmin(t, app, queries)
 
 	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss-discovery?url=https://site.com", nil)
 	require.NoError(t, err)
@@ -337,7 +446,7 @@ func TestE2E_RSSDiscovery_ReturnsEmptyWhenNotFound(t *testing.T) {
 		},
 	}
 	app, queries := setupE2EApp(t, oauth, mockHTTP)
-	token := loginViaCallback(t, app, queries)
+	token := loginAsAdmin(t, app, queries)
 
 	req, err := http.NewRequest(http.MethodGet, "/v1/sources/rss-discovery?url=https://nofeeds.com", nil)
 	require.NoError(t, err)
@@ -364,7 +473,7 @@ func TestE2E_Sources_ValidationErrors(t *testing.T) {
 		},
 	}
 	app, queries := setupE2EApp(t, oauth, http.DefaultClient)
-	token := loginViaCallback(t, app, queries)
+	token := loginAsAdmin(t, app, queries)
 
 	tt := []struct {
 		name       string

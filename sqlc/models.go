@@ -85,6 +85,7 @@ type User struct {
 	CreatedAt   utctime.Time     `json:"created_at"`
 	ModifiedAt  utctime.NullTime `json:"modified_at"`
 	RemovedAt   utctime.NullTime `json:"removed_at"`
+	Admin       bool             `json:"admin"`
 }
 
 type UserPreference struct {

@@ -1,6 +1,12 @@
 -- Mirror of the schema produced by migrations/, consumed by sqlc to type the queries.
--- Keep in sync with migrations/20260716120000_initial_schema.sql — this file is not executed
--- against any database; it is only sqlc's source of truth for column types.
+-- Keep in sync with everything under migrations/ — this file is not executed against any database;
+-- it is only sqlc's source of truth for column types.
+--
+-- Column ORDER matters here, not just the set of columns: the queries use SELECT * / RETURNING *, so
+-- sqlc generates the Scan in the order declared below and the driver returns them in the order the
+-- real table has. A column added by a later migration therefore has to be appended at the end of the
+-- table here, exactly where ALTER TABLE ... ADD COLUMN puts it — never inserted in the middle where
+-- it reads more naturally.
 
 CREATE TABLE users (
     id TEXT NOT NULL,
@@ -13,6 +19,8 @@ CREATE TABLE users (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at TIMESTAMPTZ,
     removed_at TIMESTAMPTZ,
+    -- Appended by migrations/20260729120000_users_admin_flag.sql (0.40). Stays last: see the note above.
+    admin BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (id),
     UNIQUE (google_id),
     UNIQUE (email)

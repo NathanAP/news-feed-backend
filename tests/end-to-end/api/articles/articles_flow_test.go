@@ -64,6 +64,9 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 	afCtrl := controllers.NewArticleFeedController()
 	sourceCtrl := controllers.NewSourceController()
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
+	requireAdmin := middlewares.NewRequireAdminMiddleware(
+		middlewares.NewAdminResolver([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, userCtrl, runTx),
+	)
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 
@@ -71,17 +74,27 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl, []byte(jwtmock.TestJWTSecret)))
 
 	s := app.Group("/v1/sources")
-	s.Post("/create", append(authMiddleware, sourceendpoints.CreateSource(sourceCtrl, runTx))...)
+	s.Post("/create", adminChain(authMiddleware, requireAdmin, sourceendpoints.CreateSource(sourceCtrl, runTx))...)
 
+	// Mirrors main.go: reading articles is open to any authenticated user, writing them is the
+	// administrator escape hatch.
 	a := app.Group("/v1/articles")
-	a.Post("/create", append(authMiddleware, articleendpoints.CreateArticle(articleCtrl, runTx))...)
+	a.Post("/create", adminChain(authMiddleware, requireAdmin, articleendpoints.CreateArticle(articleCtrl, runTx))...)
 	a.Put("/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(articleCtrl, afCtrl, runTx))...)
 	a.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, runTx))...)
 	a.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, runTx))...)
-	a.Put("/:id", append(authMiddleware, articleendpoints.UpdateArticle(articleCtrl, runTx))...)
-	a.Delete("/:id", append(authMiddleware, articleendpoints.DeleteArticle(articleCtrl, runTx))...)
+	a.Put("/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.UpdateArticle(articleCtrl, runTx))...)
+	a.Delete("/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.DeleteArticle(articleCtrl, runTx))...)
 
 	return app, queries
+}
+
+// adminChain copies the shared auth chain before appending, for the same reason main.go does: reusing
+// one slice across registrations would let each route overwrite the previous route's handler.
+func adminChain(authMiddleware []fiber.Handler, requireAdmin, handler fiber.Handler) []fiber.Handler {
+	chain := make([]fiber.Handler, 0, len(authMiddleware)+2)
+	chain = append(chain, authMiddleware...)
+	return append(chain, requireAdmin, handler)
 }
 
 // createSourceViaAPI creates a source through the real endpoint and returns its id.
@@ -114,6 +127,30 @@ func loginViaCallback(t *testing.T, app *fiber.App, queries db.Querier) string {
 	return token
 }
 
+// loginAsAdmin logs in and promotes the user in the database — how an administrator is actually made
+// today (PROJECT.md: manual change, no endpoint yet). The article write routes are administrator-only,
+// and so is creating the source these flows need, so most of this suite logs in this way.
+func loginAsAdmin(t *testing.T, app *fiber.App, queries db.Querier) string {
+	t.Helper()
+
+	token := loginViaCallback(t, app, queries)
+	claims := testutils.ParseTestClaims(t, token, []byte(jwtmock.TestJWTSecret))
+	_, err := queries.SetUserAdmin(context.Background(), db.SetUserAdminParams{ID: claims.UserID, Admin: true})
+	require.NoError(t, err)
+
+	return token
+}
+
+// demote flips the flag back off without touching the session, so a test can keep using the same
+// token and observe authorization change under it.
+func demote(t *testing.T, queries db.Querier, token string) {
+	t.Helper()
+
+	claims := testutils.ParseTestClaims(t, token, []byte(jwtmock.TestJWTSecret))
+	_, err := queries.SetUserAdmin(context.Background(), db.SetUserAdminParams{ID: claims.UserID, Admin: false})
+	require.NoError(t, err)
+}
+
 func TestE2E_Articles_FullCRUDFlow(t *testing.T) {
 	requireNotProduction(t)
 
@@ -123,7 +160,7 @@ func TestE2E_Articles_FullCRUDFlow(t *testing.T) {
 		},
 	}
 	app, queries := setupE2EApp(t, oauth)
-	token := loginViaCallback(t, app, queries)
+	token := loginAsAdmin(t, app, queries)
 	sourceID := createSourceViaAPI(t, app, token, "https://e2e-source.com", "https://e2e-source.com/rss.xml")
 
 	// Create
@@ -212,6 +249,93 @@ func TestE2E_Articles_RequiresAuth(t *testing.T) {
 	}
 }
 
+// TestE2E_Articles_RegularUserReadsButCannotWrite walks the article split from the user's side: news
+// is public to every account, editing it is the administrator escape hatch. The user keeps the exact
+// token they had as an administrator — only the database row changes — so a passing read next to a
+// refused write can only be explained by the guard reading that row.
+func TestE2E_Articles_RegularUserReadsButCannotWrite(t *testing.T) {
+	requireNotProduction(t)
+
+	oauth := external.MockGoogleOAuth{
+		UserInfo: external.GoogleUserInfo{
+			ID: "e2e-articles-guard", Email: "articles-guard@example.com", Name: "Articles Guard",
+		},
+	}
+	app, queries := setupE2EApp(t, oauth)
+	token := loginAsAdmin(t, app, queries)
+	sourceID := createSourceViaAPI(t, app, token, "https://e2e-guard.com", "https://e2e-guard.com/rss.xml")
+
+	createBody := `{"title":"Guarded","content":"# Guarded","url_original":"https://e2e-guard.com/a","keywords":["metallica","rock","metal","music","concert"],"source_id":"` + sourceID + `","language_original":"pt"}`
+	createReq, _ := http.NewRequest(http.MethodPost, "/v1/articles/create", strings.NewReader(createBody))
+	createReq.Header.Set("Content-Type", "application/json")
+	createReq.Header.Set("Authorization", "Bearer "+token)
+	createResp, err := app.Test(createReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, createResp.StatusCode)
+
+	var created map[string]any
+	require.NoError(t, readJSON(createResp, &created))
+	id := created["id"].(string)
+
+	demote(t, queries, token)
+
+	// Reading the article and the list still works.
+	getReq, _ := http.NewRequest(http.MethodGet, "/v1/articles/"+id, nil)
+	getReq.Header.Set("Authorization", "Bearer "+token)
+	getResp, err := app.Test(getReq)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, getResp.StatusCode)
+
+	listReq, _ := http.NewRequest(http.MethodGet, "/v1/articles", nil)
+	listReq.Header.Set("Authorization", "Bearer "+token)
+	listResp, err := app.Test(listReq)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, listResp.StatusCode)
+	assert.Len(t, decodePage(t, listResp), 1)
+
+	// Marking as read is a reader action, not an administrator one.
+	readReq, _ := http.NewRequest(http.MethodPut, "/v1/articles/"+id+"/read", nil)
+	readReq.Header.Set("Authorization", "Bearer "+token)
+	readResp, err := app.Test(readReq)
+	require.NoError(t, err)
+	assert.NotEqual(t, http.StatusForbidden, readResp.StatusCode)
+
+	// Writing does not work.
+	for _, tc := range []struct {
+		name   string
+		method string
+		path   string
+		body   string
+	}{
+		{"create", http.MethodPost, "/v1/articles/create", createBody},
+		{"update", http.MethodPut, "/v1/articles/" + id, `{"title":"Hacked","content":"# Hacked","url_original":"https://e2e-guard.com/a","keywords":["a","b","c","d","e"],"language_original":"pt"}`},
+		{"delete", http.MethodDelete, "/v1/articles/" + id, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req, err := http.NewRequest(tc.method, tc.path, strings.NewReader(tc.body))
+			require.NoError(t, err)
+			if tc.body != "" {
+				req.Header.Set("Content-Type", "application/json")
+			}
+			req.Header.Set("Authorization", "Bearer "+token)
+
+			resp, err := app.Test(req)
+			require.NoError(t, err)
+			assert.Equal(t, http.StatusForbidden, resp.StatusCode)
+		})
+	}
+
+	// The article survived the refused calls untouched.
+	afterReq, _ := http.NewRequest(http.MethodGet, "/v1/articles/"+id, nil)
+	afterReq.Header.Set("Authorization", "Bearer "+token)
+	afterResp, err := app.Test(afterReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, afterResp.StatusCode)
+	var after map[string]any
+	require.NoError(t, readJSON(afterResp, &after))
+	assert.Equal(t, "Guarded", after["title"])
+}
+
 func TestE2E_Articles_ValidationErrors(t *testing.T) {
 	requireNotProduction(t)
 
@@ -221,7 +345,7 @@ func TestE2E_Articles_ValidationErrors(t *testing.T) {
 		},
 	}
 	app, queries := setupE2EApp(t, oauth)
-	token := loginViaCallback(t, app, queries)
+	token := loginAsAdmin(t, app, queries)
 
 	tt := []struct {
 		name string

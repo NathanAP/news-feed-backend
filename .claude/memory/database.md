@@ -38,7 +38,13 @@ descartadas, não portadas — nenhum ambiente havia sido publicado e os dados e
 ### users
 
 `id`, `google_id` (UNIQUE), `email` (UNIQUE), `name`, `picture` (nullable), `status`,
-`last_login_at` (nullable), `created_at`, `modified_at`, `removed_at`.
+`last_login_at` (nullable), `created_at`, `modified_at`, `removed_at`, `admin`.
+
+`admin` (0.40): `BOOLEAN NOT NULL DEFAULT FALSE`, sem índice (só é lido por PK, nunca filtrado).
+É a fonte de verdade da autorização de administrador — o claim homônimo no JWT é só dica de client.
+A coluna **não** é escrita pelo `CreateUser`: quem promove é a query `SetUserAdmin`, então nenhum
+fluxo de login consegue criar um administrador. Fica no fim da tabela, onde o `ALTER TABLE` a colocou;
+como as queries usam `SELECT *`, a ordem de colunas do `schema.sql` precisa bater com a real.
 
 ### user_preferences (1:1 com users)
 

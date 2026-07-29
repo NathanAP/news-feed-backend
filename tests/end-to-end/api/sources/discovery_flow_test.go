@@ -28,7 +28,7 @@ func TestE2E_SourceDiscovery_DryRun(t *testing.T) {
 		},
 	}
 	app, queries := setupE2EApp(t, oauth, mockClient)
-	token := loginViaCallback(t, app, queries)
+	token := loginAsAdmin(t, app, queries)
 
 	// Create the source through the API.
 	createBody := `{"name":"E2E Disc News","url":"https://e2e-disc.com","url_rss":"` + feedURL + `"}`

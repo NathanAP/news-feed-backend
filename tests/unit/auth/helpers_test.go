@@ -138,18 +138,41 @@ func buildAuthRequest(t *testing.T, method, path string, body []byte) *http.Requ
 	return req
 }
 
-// setupApp builds a Fiber app with all auth routes wired for testing.
+// setupApp builds a Fiber app with all auth routes wired for testing, as an administrator.
 func setupApp(authCtrl *mockAuthCtrl, rtCtrl *mockRefreshTokenCtrl) *fiber.App {
+	return setupAppAs(authCtrl, rtCtrl, true)
+}
+
+// setupAppAsRegularUser builds the same routes for a caller who is not an administrator, to check
+// that the invalidate routes turn them away.
+func setupAppAsRegularUser(authCtrl *mockAuthCtrl, rtCtrl *mockRefreshTokenCtrl) *fiber.App {
+	return setupAppAs(authCtrl, rtCtrl, false)
+}
+
+func setupAppAs(authCtrl *mockAuthCtrl, rtCtrl *mockRefreshTokenCtrl, admin bool) *fiber.App {
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), rtCtrl, fakeTxRunner)
+	requireAdmin := middlewares.NewRequireAdminMiddleware(middlewares.NewAdminResolver(
+		[]byte(jwtmock.TestJWTSecret), rtCtrl, &jwtmock.MockUserController{Admin: admin}, fakeTxRunner,
+	))
 
 	auth := app.Group("/v1/auth")
 	auth.Get("/google", authendpoints.GoogleLogin(testOAuth2Config(), []byte(jwtmock.TestJWTSecret), []string{testutils.TestOAuthRedirectURI}))
 	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl, []byte(jwtmock.TestJWTSecret)))
 	auth.Post("/refresh", authendpoints.RefreshToken(authCtrl))
 	auth.Post("/logout", append(authMiddleware, authendpoints.Logout(rtCtrl, fakeTxRunner))...)
-	auth.Delete("/invalidate", authendpoints.Invalidate(rtCtrl, fakeTxRunner))
-	auth.Delete("/invalidate-all", authendpoints.InvalidateAll(rtCtrl, fakeTxRunner))
+	// Administrator-only since 0.40: these kill other people's sessions, so before the guard existed
+	// anyone at all could sign every user out.
+	auth.Delete("/invalidate", adminChain(authMiddleware, requireAdmin, authendpoints.Invalidate(rtCtrl, fakeTxRunner))...)
+	auth.Delete("/invalidate-all", adminChain(authMiddleware, requireAdmin, authendpoints.InvalidateAll(rtCtrl, fakeTxRunner))...)
 
 	return app
+}
+
+// adminChain copies the shared auth chain before appending, for the same reason main.go does: reusing
+// one slice across registrations would let each route overwrite the previous route's handler.
+func adminChain(authMiddleware []fiber.Handler, requireAdmin, handler fiber.Handler) []fiber.Handler {
+	chain := make([]fiber.Handler, 0, len(authMiddleware)+2)
+	chain = append(chain, authMiddleware...)
+	return append(chain, requireAdmin, handler)
 }

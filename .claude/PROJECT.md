@@ -93,6 +93,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - `refresh_token_id`: `UUID` do `refresh_token` relacionado.
     - `language_to_translate`: `enum` (opcional) com o idioma-alvo de tradução das preferências; `null` quando o usuário não quer tradução (apenas dica de client, não afeta a API).
     - `ai_personality`: `enum` contendo a personalidade da IA e presente nas preferências do usuário relacionado.
+    - `admin`: `boolean` indicando se o usuário é administrador. **Apenas dica de client**: a API sempre reconfere a flag no banco antes de autorizar uma ação de administrador (ver "Administradores").
 - Um struct chamado `Claims` mantém também esse mapeamento no código.
 - Se o usuário sofrer soft remove, os seus `refresh_tokens` também devem sofrer soft remove.
 - Se o usuário sofrer hard remove, os seus `refresh_tokens` também devem sofrer hard remove.
@@ -454,22 +455,37 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 ## Administradores
 
-- Os administradores da aplicação são usuários comuns que possuem uma flag `admin` marcada como `true`.
+- Os administradores da aplicação são usuários comuns que possuem uma flag `admin` marcada como `true` na tabela `users`.
 - Uma vez administradores, os usuários sempre são tratados como administradores e não mais como usuários comuns.
     - Apenas para documentação: no client há um botão que faz com que usuários administradores possam ver a aplicação como usuarios comuns, mas isso não afeta as requisições feitas.
+- A autorização deve sempre ler a flag no banco de dados e nunca do `access_token`.
+    - O `access_token` carrega um claim `admin` e o `GET base_url/v1/users/me` devolve o mesmo campo, mas ambos servem apenas como dica para o client decidir o que renderizar. É a mesma separação já usada em `language_to_translate`.
+    - O motivo é a revogação: se a decisão viesse do token, tirar o acesso de alguém só valeria quando o token dele expirasse (até `JWT_ACCESS_TOKEN_EXPIRY_MINUTES`), que é justamente o momento em que esperar é inaceitável. Lendo o banco, promover ou rebaixar vale já na requisição seguinte.
+    - O custo é uma consulta por requisição, paga apenas nas rotas exclusivas de administrador (baixo tráfego por natureza) e durante manutenção.
+    - A consequência é que ao promover alguém vale na API imediatamente, mas o client só enxerga a mudança quando o token for renovado. Como o claim só decide o que aparece na tela, o atraso é cosmético.
+- Um token emitido antes da existência do claim decodifica `admin` como `false`, ou seja, o padrão é sempre apontar como usuário comum.
+- Não é possível criar um administrador pelo fluxo de login: a query de criação de usuário não escreve essa coluna. A promoção é um ato separado e explícito.
 - Os administradores não são afetados por flags como a `system.app_status` ou derivados. Eles sempre podem fazer o que quiser mesmo que algo esteja inativo no momento.
     - Dito isso, se uma requisição estiver sendo feita por um administrador, ela precisa ser executada independente de qualquer inatividade atual da aplicação.
+    - Detalhes de como isso funciona (e por que `/v1/auth` é isento da manutenção) estão em "Painel de controle".
 - Os seguintes endpoints são de acesso exclusivos pelos administradores:
     - `POST base_url/v1/articles/create`.
     - `DELETE base_url/v1/articles/{id}`.
     - `PUT base_url/v1/articles/{id}`.
     - `DELETE base_url/v1/auth/invalidate`.
-    - `DELETE base_url/v1/auth/invalidate_all`.
+    - `DELETE base_url/v1/auth/invalidate-all`.
     - `POST base_url/v1/sources/create`.
     - `PUT base_url/v1/sources/{id}`.
     - `GET base_url/v1/sources/{id}/article-discovery`
     - `DELETE base_url/v1/sources/{id}`.
+    - `PUT base_url/v1/system/app-status`.
+- Os códigos de resposta desses endpoints seguem o padrão:
+    - Sem `access_token` válido: `401`.
+    - Com `access_token` válido de usuário comum: `403`.
+    - Falha ao consultar a flag no banco: `500`. Uma falha de infraestrutura nunca vira `403` pois dizer a um administrador legítimo que ele perdeu o acesso porque o banco piscou o mandaria caçar um problema de permissão que não existe.
+    - A checagem roda antes da validação do corpo da requisição, então um usuário comum recebe `403` mesmo enviando um payload inválido.
 - Por enquanto para um usuário se tornar administrador faremos apenas a alteração via banco de dados, ou seja, não há uma lista de e-mails fixa ou algo do gênero.
+    - Em desenvolvimento, o usuário criado pelo seed (`task sud` / `task sdfull`) já nasce administrador, e um usuário de seed criado antes disso é promovido na próxima execução do comando.
 
 ### Painel de controle
 
@@ -479,6 +495,17 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - `app_status`: estado da aplicação. Todos os endpoints devem garantir que o estado atual da aplicação é `true`. Quando em `false` o erro deve ser 503.
     - `last_article_discovery_at`: data do último descobrimento de notícias.
 - Novas funcionalidades virão futuramente.
+
+#### Manutenção (`app_status` em `false`)
+
+- As rotas abaixo continuam respondendo normalmente durante a manutenção, pois são registradas antes do guard:
+    - `GET base_url/v1/health`: para o monitoramento continuar enxergando a aplicação.
+    - `PUT base_url/v1/system/app-status`: para a aplicação sempre poder ser religada pela própria API.
+    - Todo o grupo `base_url/v1/auth`: login, callback e refresh.
+- A isenção do `/auth` não é conveniência, é a correção de um travamento: o bypass identifica o administrador pelo `access_token`, mas ele expira em `JWT_ACCESS_TOKEN_EXPIRY_MINUTES` e o `refresh_token` não carrega identidade que o bypass consiga ler. Com o `/auth` atrás do guard, um administrador cujo token expirasse durante a manutenção receberia 503 justamente do `refresh` — a única chamada que o levaria de volta ao endpoint que encerra a manutenção — e a única saída seria alterar o banco na mão.
+    - O custo disso é que um usuário comum também consegue logar e renovar token durante a manutenção. Como todo o resto responde 503 para ele, isso não dá acesso a nada.
+- Requisições de administradores atravessam a manutenção normalmente. A verificação de quem está chamando só acontece quando a aplicação já está desligada, então o caminho normal (aplicação no ar) não paga consulta nenhuma a mais.
+- Durante a manutenção a identificação do administrador é fail-closed: header ausente, token inválido, sessão encerrada (logout/invalidate) ou falha de banco resultam em 503. Em particular, um administrador que fez logout não atravessa a manutenção só porque o token dele ainda não expirou.
 
 ## Exclusão de registros
 

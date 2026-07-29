@@ -11,9 +11,12 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/require"
 
+	"github.com/nathanap/news-feed-backend/middlewares"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	systemendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/system"
 	db "github.com/nathanap/news-feed-backend/sqlc"
+	"github.com/nathanap/news-feed-backend/tests/fixtures"
+	jwtmock "github.com/nathanap/news-feed-backend/tests/mocks/services"
 )
 
 func requireNotProduction(t *testing.T) {
@@ -64,12 +67,58 @@ func (m *mockSystemCtrl) UpdateLastArticleDiscovery(ctx context.Context, q db.Qu
 
 var _ controllers.SystemControllerInterface = (*mockSystemCtrl)(nil)
 
+// mockRefreshTokenCtrl satisfies RefreshTokenControllerInterface so the auth middleware accepts any
+// well-signed token; the session itself is not what these tests are about.
+type mockRefreshTokenCtrl struct{}
+
+func (m *mockRefreshTokenCtrl) Create(_ context.Context, _ db.Querier, _ string) (db.RefreshToken, error) {
+	return db.RefreshToken{}, nil
+}
+func (m *mockRefreshTokenCtrl) FindByID(_ context.Context, _ db.Querier, _ string) (db.RefreshToken, error) {
+	return fixtures.NewTestRefreshToken("any"), nil
+}
+func (m *mockRefreshTokenCtrl) Extend(_ context.Context, _ db.Querier, _ string) error { return nil }
+func (m *mockRefreshTokenCtrl) Revoke(_ context.Context, _ db.Querier, _ string) error { return nil }
+func (m *mockRefreshTokenCtrl) RevokeAll(_ context.Context, _ db.Querier, _ string) error {
+	return nil
+}
+
+var _ controllers.RefreshTokenControllerInterface = (*mockRefreshTokenCtrl)(nil)
+
 func buildApp(ctrl controllers.SystemControllerInterface) *fiber.App {
+	return buildAppAs(ctrl, true)
+}
+
+func buildAppAsRegularUser(ctrl controllers.SystemControllerInterface) *fiber.App {
+	return buildAppAs(ctrl, false)
+}
+
+// buildAppAs mirrors main.go: the maintenance toggle is administrator-only (0.40) and is registered
+// ahead of the maintenance guard, so it stays reachable while the application is off.
+func buildAppAs(ctrl controllers.SystemControllerInterface, admin bool) *fiber.App {
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
-	app.Put("/v1/system/app-status", systemendpoints.UpdateAppStatus(ctrl, fakeTxRunner))
+	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
+	requireAdmin := middlewares.NewRequireAdminMiddleware(middlewares.NewAdminResolver(
+		[]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, &jwtmock.MockUserController{Admin: admin}, fakeTxRunner,
+	))
+
+	chain := make([]fiber.Handler, 0, len(authMiddleware)+2)
+	chain = append(chain, authMiddleware...)
+	chain = append(chain, requireAdmin, systemendpoints.UpdateAppStatus(ctrl, fakeTxRunner))
+	app.Put("/v1/system/app-status", chain...)
+
 	return app
 }
 
 func defaultApp() *fiber.App {
 	return buildApp(&mockSystemCtrl{})
+}
+
+func authHeader(t *testing.T) string {
+	t.Helper()
+	user := fixtures.NewTestUser()
+	rt := fixtures.NewTestRefreshToken(user.ID)
+	token, err := jwtmock.GenerateTestAccessToken(user, rt.ID)
+	require.NoError(t, err)
+	return "Bearer " + token
 }

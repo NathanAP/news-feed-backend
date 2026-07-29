@@ -26,11 +26,13 @@ Logout faz soft-remove do `refresh_token`; o `access_token` segue válido até e
 ## Claims do access_token (struct `schemas.Claims`)
 
 `user_id`, `email`, `name`, `picture`, `created_at`, `refresh_token_id`,
-`language_to_translate` (anulável), `ai_personality`. Ou seja, as preferências viajam no token —
-alterar preferências regenera o token. Se um endpoint precisar de um dado do usuário que
+`language_to_translate` (anulável), `ai_personality`, `admin`. Ou seja, as preferências viajam no
+token — alterar preferências regenera o token. Se um endpoint precisar de um dado do usuário que
 **não** está no token, é preciso reavaliar (renovar/invalidar tokens).
 A rota de tradução (`GET /articles/:id/translate`) usa o `language_to_translate` do token como
 idioma-alvo (nulo = sem alvo → 400); a `ai_personality` ajusta o tom.
+
+O claim `admin` é **dica de client**, não autorização: ver a seção de autorização abaixo.
 
 ## Middleware (`middlewares/auth.go`)
 
@@ -38,6 +40,30 @@ Duas etapas: (1) `parseJWT` valida assinatura/expiração e popula `claims` no c
 (2) `validateSession` confirma que o `refresh_token_id` do token ainda existe e está ativo
 no banco (logout/invalidate derrubam a sessão imediatamente). Falha em qualquer etapa → 401.
 `GetClaims(c)` recupera os claims dentro dos handlers.
+
+As duas peças internas (`parseAccessToken` e `checkSession`) são exportadas dentro do pacote porque o
+guard de manutenção também precisa identificar quem está chamando, e ele roda **antes** de qualquer
+autenticação por rota — sem isso haveria uma segunda cópia das regras, fadada a divergir.
+
+## Autorização de administrador (`middlewares/admin.go`, 0.40)
+
+- `AdminResolver` é a única definição de "é administrador" da aplicação, e ela **sempre lê
+  `users.admin` no banco** — nunca o claim. Motivo: se a decisão viesse do token, revogar o acesso de
+  alguém só valeria quando o token expirasse. O custo é uma query, paga só nas rotas de administrador.
+- `RequireAdmin` é montado **depois** do `authMiddleware` (ele responde "pode?", não "quem é?").
+  Não-admin → **403**; falha de banco → **500**, nunca 403.
+- `AdminResolver.IsRequestFromAdmin` serve o guard de manutenção: parseia o token do request cru,
+  valida a sessão e lê a flag. É fail-closed — qualquer coisa não confirmada vira "usuário comum".
+- Criar administrador não passa pelo login: a query `CreateUser` não escreve a coluna. Promoção é
+  `SetUserAdmin`, hoje chamada só pelo seed de desenvolvimento.
+
+## Manutenção e o grupo `/auth`
+
+Todo o grupo `/v1/auth` é **isento** do guard de `app_status` (junto com `/v1/health` e
+`PUT /v1/system/app-status`). Não é conveniência: o bypass identifica o administrador pelo
+`access_token`, que expira em cerca de uma hora, e o `refresh_token` não carrega identidade que o
+bypass leia. Com o `/auth` atrás do guard, um administrador cujo token expirasse durante a manutenção
+tomaria 503 do próprio `refresh` e ficaria trancado fora da aplicação, sem conseguir religá-la.
 
 ## Variáveis de ambiente relevantes (apenas as chaves)
 
@@ -49,5 +75,7 @@ no banco (logout/invalidate derrubam a sessão imediatamente). Falha em qualquer
 - Cadastro é **exclusivamente** via Google.
 - Não há rota de exclusão de usuário; um usuário inativo não consegue logar (ver
   `.claude/PROJECT.md` → "Usuário").
-- As rotas de invalidação (`/auth/invalidate`, `/auth/invalidate-all`) estão **abertas** por
-  enquanto (serão restritas a admin no futuro).
+- As rotas de invalidação (`/auth/invalidate`, `/auth/invalidate-all`) são exclusivas de
+  administrador desde a 0.40 — até então estavam abertas, sem exigir nem token.
+- Não há endpoint para promover alguém a administrador: é alteração manual no banco (em dev, o
+  usuário do seed já nasce administrador).

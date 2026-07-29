@@ -154,19 +154,42 @@ func buildApp(ctrl controllers.SourceControllerInterface, httpClient *http.Clien
 }
 
 func buildAppWithArticles(ctrl controllers.SourceControllerInterface, articleCtrl controllers.ArticleControllerInterface, httpClient *http.Client) *fiber.App {
+	return buildAppAs(ctrl, articleCtrl, httpClient, true)
+}
+
+// buildAppAsRegularUser wires the same routes for a caller whose database row is not an
+// administrator. Only the admin-only routes behave differently, and that difference is the point:
+// the token is identical in both apps, so a 403 here can only come from the database lookup.
+func buildAppAsRegularUser(ctrl controllers.SourceControllerInterface) *fiber.App {
+	return buildAppAs(ctrl, &mockArticleCtrl{}, http.DefaultClient, false)
+}
+
+func buildAppAs(ctrl controllers.SourceControllerInterface, articleCtrl controllers.ArticleControllerInterface, httpClient *http.Client, admin bool) *fiber.App {
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
+	requireAdmin := middlewares.NewRequireAdminMiddleware(middlewares.NewAdminResolver(
+		[]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, &jwtmock.MockUserController{Admin: admin}, fakeTxRunner,
+	))
 
+	// Mirrors main.go: reading sources is open to every authenticated user, changing them is not.
 	s := app.Group("/v1/sources")
-	s.Post("/create", append(authMiddleware, sourceendpoints.CreateSource(ctrl, fakeTxRunner))...)
+	s.Post("/create", adminChain(authMiddleware, requireAdmin, sourceendpoints.CreateSource(ctrl, fakeTxRunner))...)
 	s.Get("/rss-discovery", append(authMiddleware, sourceendpoints.RSSDiscovery(httpClient))...)
-	s.Get("/:id/article-discovery", append(authMiddleware, sourceendpoints.SourceArticleDiscovery(ctrl, articleCtrl, fakeTxRunner, httpClient))...)
+	s.Get("/:id/article-discovery", adminChain(authMiddleware, requireAdmin, sourceendpoints.SourceArticleDiscovery(ctrl, articleCtrl, fakeTxRunner, httpClient))...)
 	s.Get("/:id", append(authMiddleware, sourceendpoints.GetSource(ctrl, fakeTxRunner))...)
 	s.Get("", append(authMiddleware, sourceendpoints.ListSources(ctrl, fakeTxRunner))...)
-	s.Put("/:id", append(authMiddleware, sourceendpoints.UpdateSource(ctrl, fakeTxRunner))...)
-	s.Delete("/:id", append(authMiddleware, sourceendpoints.DeleteSource(ctrl, fakeTxRunner))...)
+	s.Put("/:id", adminChain(authMiddleware, requireAdmin, sourceendpoints.UpdateSource(ctrl, fakeTxRunner))...)
+	s.Delete("/:id", adminChain(authMiddleware, requireAdmin, sourceendpoints.DeleteSource(ctrl, fakeTxRunner))...)
 
 	return app
+}
+
+// adminChain copies the shared auth chain before appending, for the same reason main.go does: reusing
+// one slice across registrations would let each route overwrite the previous route's handler.
+func adminChain(authMiddleware []fiber.Handler, requireAdmin, handler fiber.Handler) []fiber.Handler {
+	chain := make([]fiber.Handler, 0, len(authMiddleware)+2)
+	chain = append(chain, authMiddleware...)
+	return append(chain, requireAdmin, handler)
 }
 
 func defaultApp() *fiber.App {
@@ -176,6 +199,17 @@ func defaultApp() *fiber.App {
 func authHeader(t *testing.T) string {
 	t.Helper()
 	user := fixtures.NewTestUser()
+	rt := fixtures.NewTestRefreshToken(user.ID)
+	token, err := jwtmock.GenerateTestAccessToken(user, rt.ID)
+	require.NoError(t, err)
+	return "Bearer " + token
+}
+
+// adminClaimHeader builds a token that *claims* administrator. Whether the request is actually
+// authorized still depends on the user row the app was built with, which is the point of having it.
+func adminClaimHeader(t *testing.T) string {
+	t.Helper()
+	user := fixtures.NewTestAdminUser()
 	rt := fixtures.NewTestRefreshToken(user.ID)
 	token, err := jwtmock.GenerateTestAccessToken(user, rt.ID)
 	require.NoError(t, err)

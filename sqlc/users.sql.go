@@ -13,7 +13,7 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (id, google_id, email, name, picture)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, google_id, email, name, picture, status, last_login_at, created_at, modified_at, removed_at
+RETURNING id, google_id, email, name, picture, status, last_login_at, created_at, modified_at, removed_at, admin
 `
 
 type CreateUserParams struct {
@@ -44,12 +44,13 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.CreatedAt,
 		&i.ModifiedAt,
 		&i.RemovedAt,
+		&i.Admin,
 	)
 	return i, err
 }
 
 const findUserByGoogleID = `-- name: FindUserByGoogleID :one
-SELECT id, google_id, email, name, picture, status, last_login_at, created_at, modified_at, removed_at FROM users
+SELECT id, google_id, email, name, picture, status, last_login_at, created_at, modified_at, removed_at, admin FROM users
 WHERE google_id = $1 AND status = TRUE AND removed_at IS NULL
 LIMIT 1
 `
@@ -68,12 +69,13 @@ func (q *Queries) FindUserByGoogleID(ctx context.Context, googleID string) (User
 		&i.CreatedAt,
 		&i.ModifiedAt,
 		&i.RemovedAt,
+		&i.Admin,
 	)
 	return i, err
 }
 
 const findUserByID = `-- name: FindUserByID :one
-SELECT id, google_id, email, name, picture, status, last_login_at, created_at, modified_at, removed_at FROM users
+SELECT id, google_id, email, name, picture, status, last_login_at, created_at, modified_at, removed_at, admin FROM users
 WHERE id = $1 AND status = TRUE AND removed_at IS NULL
 LIMIT 1
 `
@@ -92,6 +94,42 @@ func (q *Queries) FindUserByID(ctx context.Context, id string) (User, error) {
 		&i.CreatedAt,
 		&i.ModifiedAt,
 		&i.RemovedAt,
+		&i.Admin,
+	)
+	return i, err
+}
+
+const setUserAdmin = `-- name: SetUserAdmin :one
+UPDATE users
+SET admin = $2, modified_at = CURRENT_TIMESTAMP
+WHERE id = $1 AND status = TRUE AND removed_at IS NULL
+RETURNING id, google_id, email, name, picture, status, last_login_at, created_at, modified_at, removed_at, admin
+`
+
+type SetUserAdminParams struct {
+	ID    string `json:"id"`
+	Admin bool   `json:"admin"`
+}
+
+// SetUserAdmin is deliberately separate from CreateUser instead of an `admin` parameter on it: the
+// Google login flow is the only caller of CreateUser, and keeping the column out of that INSERT makes
+// it structurally impossible for a login to mint an administrator. Promotion is an explicit, separate
+// act. Today only the development seed calls this; a future admin-management endpoint would too.
+func (q *Queries) SetUserAdmin(ctx context.Context, arg SetUserAdminParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, setUserAdmin, arg.ID, arg.Admin)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.GoogleID,
+		&i.Email,
+		&i.Name,
+		&i.Picture,
+		&i.Status,
+		&i.LastLoginAt,
+		&i.CreatedAt,
+		&i.ModifiedAt,
+		&i.RemovedAt,
+		&i.Admin,
 	)
 	return i, err
 }

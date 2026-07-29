@@ -86,8 +86,9 @@ O `content` da **tradução** (§5) segue exatamente estas mesmas regras (é re-
   `{ refresh_token }` → novo `access_token` (e estende o refresh). Se o refresh falhar (`401`) →
   refazer o login.
 - **Claims dentro do `access_token`** (o client pode ler sem bater na API): `user_id`, `email`, `name`,
-  `picture`, `created_at`, `refresh_token_id`, `language_to_translate` (anulável), `ai_personality`.
-  Use para header do usuário (nome/foto) e para decidir mostrar a opção de tradução (§5).
+  `picture`, `created_at`, `refresh_token_id`, `language_to_translate` (anulável), `ai_personality`,
+  `admin`. Use para header do usuário (nome/foto), para decidir mostrar a opção de tradução (§5) e
+  para decidir mostrar a UI de administrador (§10).
 - **Logout:** `POST /v1/auth/logout` (soft-remove do refresh). O `access_token` ainda vale até expirar.
 - **Regeneração do token:** alterar preferências (e, no futuro, dados do usuário) **regenera o
   `access_token`** — a resposta já traz o novo. O client **deve substituir** o token guardado por esse.
@@ -183,8 +184,12 @@ has_next_page, has_previous_page } }`. Query `page` (≥1) e `page_size` (1–10
     - Não existe filtro por `status` — registros inativos nunca aparecem em lista nenhuma.
 - **Erros**: sempre `{ error: string }` + status HTTP adequado. Filosofia de "não encontrado": busca de
   **coleção** vazia → `200` com lista vazia; busca de **item único** inexistente → `404`.
-- **Manutenção**: quando o servidor está desligado (`app_status=false`), **toda rota responde `503`**
-  (exceto `GET /v1/health`), inclusive antes da autenticação. Trate `503` como "app em manutenção".
+- **Manutenção**: quando o servidor está desligado (`app_status=false`), **toda rota responde `503`**,
+  inclusive antes da autenticação. Trate `503` como "app em manutenção". Exceções que continuam
+  respondendo: `GET /v1/health`, `PUT /v1/system/app-status` e **todo o grupo `/v1/auth`** (login,
+  callback e refresh). Ou seja, **o login funciona durante a manutenção** — o usuário consegue entrar e
+  então leva `503` em tudo o mais; se o client tratar isso como "login quebrado", vai mostrar a
+  mensagem errada. Requisições de administrador atravessam a manutenção normalmente (§10).
 - **CORS**: só as origens configuradas no servidor (`CORS_ALLOWED_ORIGINS`). Auth é Bearer — **sem
   cookies/credentials**. Os headers que o client pode enviar também são configurados no servidor
   (`CORS_ALLOWED_HEADERS`, padrão `Authorization,Content-Type`): um header que o preflight não permite
@@ -213,6 +218,38 @@ Quando a API sair do túnel (deploy de verdade ou outro túnel sem interstitial)
 ser necessário e deve ser removido.
 - **`GET /v1/health`** (sem auth) devolve `{ status, version, app_status, server_time }` — útil para um
   healthcheck/tela de status no client.
+
+---
+
+## 10. Modo administrador (0.40)
+
+- Um usuário é administrador quando tem a flag `admin`. O client a lê de dois lugares equivalentes: o
+  claim `admin` do `access_token` (§3) e o campo `admin` de `GET /v1/users/me`. Ele **sempre vem no
+  JSON**, mesmo quando `false` — nunca é omitido.
+- **Esses campos são só uma dica de UI.** Quem autoriza é a API, que reconfere a flag no banco a cada
+  requisição de administrador. Não adianta o client "confiar" no claim para liberar algo: a rota
+  responde `403` do mesmo jeito. Use o campo apenas para decidir **o que renderizar**.
+- **Consequência prática:** promover alguém vale na API imediatamente, mas o `access_token` que a pessoa
+  já tem continua dizendo `admin: false` até ser renovado — ela consegue usar as rotas de administrador
+  antes de a UI de administrador aparecer. Se isso incomodar, force um `POST /v1/auth/refresh` (ou um
+  novo login) depois de promover alguém.
+- **Rotas exclusivas de administrador** (usuário comum recebe `403`; sem token, `401`):
+    - `POST /v1/articles/create`, `PUT /v1/articles/{id}`, `DELETE /v1/articles/{id}`
+    - `POST /v1/sources/create`, `PUT /v1/sources/{id}`, `DELETE /v1/sources/{id}`,
+      `GET /v1/sources/{id}/article-discovery`
+    - `DELETE /v1/auth/invalidate`, `DELETE /v1/auth/invalidate-all`
+    - `PUT /v1/system/app-status`
+- **Ler continua aberto a todo mundo**: `GET /v1/articles`, `GET /v1/articles/{id}`,
+  `PUT /v1/articles/{id}/read`, `GET /v1/sources` e `GET /v1/sources/{id}` valem para qualquer usuário
+  autenticado. A separação é escrita-vs-leitura, não a rota inteira.
+- **Trate `403` diferente de `401`.** `401` = sessão inválida → renovar token ou refazer login.
+  `403` = a sessão está boa, a pessoa é que não tem permissão → refazer login **não** resolve, e um
+  interceptor que desloga em qualquer erro de auth vai expulsar o usuário sem motivo.
+- O botão "ver como usuário comum" é **puramente visual**: muda o que o client renderiza e não afeta
+  requisição nenhuma. A API não tem noção desse modo.
+- Administradores **não** são bloqueados pela manutenção (§8): com `app_status=false` eles continuam
+  usando a aplicação normalmente, enquanto os demais recebem `503`.
+- Não existe endpoint para promover alguém: hoje é uma alteração manual no banco.
 
 ---
 

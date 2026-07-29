@@ -7,11 +7,26 @@ meta {
 delete {
   url: {{baseUrl}}/v1/auth/invalidate
   body: json
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
 }
 
 body:json {
   {
     "refresh_token_id": "{{refreshTokenId}}"
   }
+}
+
+docs {
+  Revoga uma sessão específica pelo id do refresh_token.
+
+  Exclusiva de administradores (0.40). Sem token: 401. Com token de usuário comum: 403.
+  A checagem lê a flag `admin` no banco, então promover ou rebaixar alguém vale já na requisição
+  seguinte, sem precisar renovar o token.
+
+  Em desenvolvimento o usuário do seed (`task sud` / `task sdfull`) já é administrador, então o
+  accessToken emitido por `task sdl` ou por POST /v1/users/dev-login funciona aqui.
 }

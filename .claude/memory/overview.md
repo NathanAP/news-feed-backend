@@ -80,8 +80,10 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
   (`LIMIT/OFFSET` + query de contagem irmã com os mesmos filtros); nada é filtrado ou fatiado em Go.
   Listagens ordenam por `created_at DESC, id DESC` — o desempate pelo `id` (UUIDv7) é o que mantém a
   paginação consistente quando a CRON grava várias notícias no mesmo instante.
-- `middlewares/` — `auth.go` (parse JWT + valida sessão); `app_status.go` (guard de manutenção
-  global: 503 quando `system.app_status` é falso, exceto `/health` e o toggle); `cors.go`
+- `middlewares/` — `auth.go` (parse JWT + valida sessão); `admin.go` (0.40: `AdminResolver` +
+  `RequireAdmin`, autorização de administrador lendo `users.admin` **no banco**, nunca o claim);
+  `app_status.go` (guard de manutenção global: 503 quando `system.app_status` é falso, exceto
+  `/health`, o toggle e todo o grupo `/auth` — e exceto requisições de administrador); `cors.go`
   (`CORS_ALLOWED_ORIGINS` + `CORS_ALLOWED_HEADERS`, ambos de env; origens vazias = fail-closed;
   headers vazios = default `Authorization,Content-Type`).
 - `tests/` — `unit/`, `integration/api/`, `end-to-end/api/`, `fixtures/`, `mocks/`, `utils/`.
@@ -90,7 +92,7 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
 
 | Domínio        | Tabela(s)                 | Resumo                                                                             |
 | -------------- | ------------------------- | ---------------------------------------------------------------------------------- |
-| Usuários/Auth  | `users`, `refresh_tokens` | Login só via Google + JWT                                                          |
+| Usuários/Auth  | `users`, `refresh_tokens` | Login só via Google + JWT; flag `admin` (0.40)                                     |
 | Preferências   | `user_preferences`        | 1:1 com usuário; idioma-alvo de tradução (anulável), personalidade IA              |
 | Fontes         | `sources`                 | Globais; CRUD + descoberta de RSS                                                  |
 | Notícias       | `articles`                | Globais; ligadas a uma `source`; CRUD (criação manual/admin por ora)               |
@@ -109,8 +111,10 @@ grava o `article` (com `language_original`) e por fim **julga** a quais
 feeds ele pertence (camada 1 SQL por keywords **com overlap** + camada 2 **triagem**: auto-associa
 overlap forte / descarta overlap 1 / IA só no borderline por `título + keywords` vs `JUDGEMENT_THRESHOLD`
 — envs `JUDGEMENT_AUTOASSOCIATE_RATIO`/`JUDGEMENT_MIN_MATCHES`, 0.36.4), gravando as associações em `articles_feeds`. **Tradução personalizada** on-demand por usuário já existe (0.23,
-LLM-only, read-only). Ainda **não** implementado: **resumo** por IA (depende de Redis), deploy,
-usuário administrador, exclusão de usuário.
+LLM-only, read-only). **Modo administrador** (0.40): flag `users.admin`, rotas de escrita de
+`articles`/`sources`, invalidação de sessões e o toggle de manutenção restritos a administradores
+(403 para usuário comum), com administradores atravessando a manutenção. Ainda **não** implementado:
+**resumo** por IA (depende de Redis), deploy, exclusão de usuário.
 
 ## Transações (regra central)
 

@@ -135,6 +135,11 @@ type Querier interface {
 	MarkArticleAsReadForUser(ctx context.Context, arg MarkArticleAsReadForUserParams) error
 	RevokeAllRefreshTokensByUserID(ctx context.Context, userID string) error
 	RevokeRefreshToken(ctx context.Context, id string) error
+	// SetUserAdmin is deliberately separate from CreateUser instead of an `admin` parameter on it: the
+	// Google login flow is the only caller of CreateUser, and keeping the column out of that INSERT makes
+	// it structurally impossible for a login to mint an administrator. Promotion is an explicit, separate
+	// act. Today only the development seed calls this; a future admin-management endpoint would too.
+	SetUserAdmin(ctx context.Context, arg SetUserAdminParams) (User, error)
 	SoftDeleteArticle(ctx context.Context, id string) error
 	SoftDeleteArticlesBySourceID(ctx context.Context, sourceID string) error
 	SoftDeleteFeedByIDAndUser(ctx context.Context, arg SoftDeleteFeedByIDAndUserParams) error

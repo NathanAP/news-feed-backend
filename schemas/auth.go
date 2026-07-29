@@ -20,6 +20,15 @@ type Claims struct {
 	CreatedAt           utctime.Time        `json:"created_at"`
 	LanguageToTranslate *enums.Language     `json:"language_to_translate"`
 	AIPersonality       enums.AIPersonality `json:"ai_personality"`
+	// Admin is a client hint, never an authorization source. The client reads it to decide whether to
+	// render the admin UI; the API always re-reads users.admin from the database before allowing an
+	// admin action (middlewares.RequireAdmin), so revoking someone takes effect on the next request
+	// instead of whenever their token happens to expire. Same split already used by
+	// LanguageToTranslate, which the client acts on but the API re-derives.
+	//
+	// It follows that a token issued before this field existed decodes as false — a regular user —
+	// which is the safe direction, so no session had to be invalidated when 0.40 shipped.
+	Admin bool `json:"admin"`
 	jwt.RegisteredClaims
 }
 

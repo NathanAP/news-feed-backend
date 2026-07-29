@@ -138,6 +138,58 @@ func TestGetMe_Success(t *testing.T) {
 	assert.Equal(t, user.ID, body.ID)
 	assert.Equal(t, user.Email, body.Email)
 	assert.Equal(t, user.Name, body.Name)
+	assert.False(t, body.Admin, "a regular user must not be reported as an administrator")
+}
+
+// TestGetMe_ReportsAdmin covers the field the client uses to decide whether to render the admin UI.
+// The route echoes the caller's own claims, so what it reports is whatever the token was issued with.
+func TestGetMe_ReportsAdmin(t *testing.T) {
+	requireNotProduction(t)
+
+	app := setupUsersApp()
+
+	admin := fixtures.NewTestAdminUser()
+	refreshToken := fixtures.NewTestRefreshToken(admin.ID)
+	token, err := jwtmock.GenerateTestAccessToken(admin, refreshToken.ID)
+	require.NoError(t, err)
+
+	req, err := http.NewRequest(http.MethodGet, "/v1/users/me", nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var body schemas.UserResponse
+	require.NoError(t, readJSON(resp, &body))
+	assert.True(t, body.Admin)
+}
+
+// The field must always be present, never omitted: a client cannot tell "regular user" from "this
+// API version does not know about administrators" if the key disappears when false.
+func TestGetMe_AlwaysIncludesAdminField(t *testing.T) {
+	requireNotProduction(t)
+
+	app := setupUsersApp()
+
+	user := fixtures.NewTestUser()
+	refreshToken := fixtures.NewTestRefreshToken(user.ID)
+	token, err := jwtmock.GenerateTestAccessToken(user, refreshToken.ID)
+	require.NoError(t, err)
+
+	req, err := http.NewRequest(http.MethodGet, "/v1/users/me", nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+
+	var raw map[string]any
+	require.NoError(t, readJSON(resp, &raw))
+	value, present := raw["admin"]
+	assert.True(t, present, "admin must always be serialized")
+	assert.Equal(t, false, value)
 }
 
 func TestGetMe_Unauthenticated(t *testing.T) {

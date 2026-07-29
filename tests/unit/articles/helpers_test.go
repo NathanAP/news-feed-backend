@@ -164,18 +164,41 @@ func (m *mockArticleFeedCtrl) MarkAsRead(ctx context.Context, q db.Querier, arti
 var _ controllers.ArticleFeedControllerInterface = (*mockArticleFeedCtrl)(nil)
 
 func buildApp(ctrl controllers.ArticleControllerInterface, afCtrl controllers.ArticleFeedControllerInterface) *fiber.App {
+	return buildAppAs(ctrl, afCtrl, true)
+}
+
+// buildAppAsRegularUser wires the same routes for a caller whose database row is not an
+// administrator: only the write routes change behaviour, and only because of that row.
+func buildAppAsRegularUser(ctrl controllers.ArticleControllerInterface, afCtrl controllers.ArticleFeedControllerInterface) *fiber.App {
+	return buildAppAs(ctrl, afCtrl, false)
+}
+
+func buildAppAs(ctrl controllers.ArticleControllerInterface, afCtrl controllers.ArticleFeedControllerInterface, admin bool) *fiber.App {
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
+	requireAdmin := middlewares.NewRequireAdminMiddleware(middlewares.NewAdminResolver(
+		[]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, &jwtmock.MockUserController{Admin: admin}, fakeTxRunner,
+	))
 
+	// Mirrors main.go: reading articles is open to every authenticated user, writing them is the
+	// administrator escape hatch.
 	a := app.Group("/v1/articles")
-	a.Post("/create", append(authMiddleware, articleendpoints.CreateArticle(ctrl, fakeTxRunner))...)
+	a.Post("/create", adminChain(authMiddleware, requireAdmin, articleendpoints.CreateArticle(ctrl, fakeTxRunner))...)
 	a.Put("/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(ctrl, afCtrl, fakeTxRunner))...)
 	a.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(ctrl, afCtrl, fakeTxRunner))...)
 	a.Get("", append(authMiddleware, articleendpoints.ListArticles(ctrl, fakeTxRunner))...)
-	a.Put("/:id", append(authMiddleware, articleendpoints.UpdateArticle(ctrl, fakeTxRunner))...)
-	a.Delete("/:id", append(authMiddleware, articleendpoints.DeleteArticle(ctrl, fakeTxRunner))...)
+	a.Put("/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.UpdateArticle(ctrl, fakeTxRunner))...)
+	a.Delete("/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.DeleteArticle(ctrl, fakeTxRunner))...)
 
 	return app
+}
+
+// adminChain copies the shared auth chain before appending, for the same reason main.go does: reusing
+// one slice across registrations would let each route overwrite the previous route's handler.
+func adminChain(authMiddleware []fiber.Handler, requireAdmin, handler fiber.Handler) []fiber.Handler {
+	chain := make([]fiber.Handler, 0, len(authMiddleware)+2)
+	chain = append(chain, authMiddleware...)
+	return append(chain, requireAdmin, handler)
 }
 
 func defaultApp() *fiber.App {

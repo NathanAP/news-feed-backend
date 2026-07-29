@@ -87,6 +87,25 @@ func (c *UserController) UpdateUserLastLogin(ctx context.Context, q db.Querier, 
 	return nil
 }
 
+// SetAdmin promotes or demotes a user on the given querier without committing. It is the only way an
+// administrator comes into existence: CreateUser does not touch the column, so no login path can
+// produce one by accident. Only the development seed calls it today (PROJECT.md keeps promotion a
+// manual act until an admin-management endpoint exists).
+//
+// A soft-removed user cannot be promoted — the query filters on the active predicate like every other
+// lookup, so a missing row means "no active user with that id" rather than a silent no-op.
+func (c *UserController) SetAdmin(ctx context.Context, q db.Querier, id string, admin bool) (db.User, error) {
+	user, err := q.SetUserAdmin(ctx, db.SetUserAdminParams{ID: id, Admin: admin})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return db.User{}, ErrUserNotFound
+		}
+		return db.User{}, fmt.Errorf("failed to set user admin flag: %w", err)
+	}
+
+	return user, nil
+}
+
 // SoftDeleteUser soft-deletes the user and cascades the soft-delete to its preferences,
 // refresh tokens and feeds on the given querier without committing. Running them together
 // (in the caller's transaction) guarantees a deleted user can no longer authenticate,

@@ -40,6 +40,10 @@ func GenerateTestAccessToken(user db.User, refreshTokenID string, prefs ...db.Us
 		CreatedAt:           user.CreatedAt,
 		LanguageToTranslate: languageToTranslate,
 		AIPersonality:       aiPersonality,
+		// Mirrors the real token: the claim follows the user row. Note that a test can deliberately
+		// hand an admin token to a user whose database row is not an administrator (and vice versa) —
+		// that mismatch is exactly what proves authorization reads the database, not the claim.
+		Admin: user.Admin,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

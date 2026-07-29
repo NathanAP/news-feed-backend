@@ -165,6 +165,7 @@ func (c *AuthController) GenerateAccessToken(user db.User, refreshTokenID string
 		CreatedAt:           user.CreatedAt,
 		LanguageToTranslate: LanguageToTranslatePtr(prefs),
 		AIPersonality:       enums.AIPersonality(prefs.AiPersonality),
+		Admin:               user.Admin,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(c.accessTokenExpiry)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

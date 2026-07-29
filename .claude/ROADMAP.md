@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.39.0.1
+0.40.0.0
 
 ## Versão 0.37.3.0
 
@@ -89,11 +89,39 @@ Decisões tomadas durante a execução:
 
 ## Versão 0.40.0.0
 
-- [ ] Criar o modo administrador
-    - Escrevi no PROJECT.md como isso vai funcionar
-    - Vamos precisar de uma migração
-    - O usuário dev pode ser marcado diretamente como um administrador ao ser criado.
-    - Lembrete: requisições do administrador não são afetadas pelo `system.app_status` quando estiver em `false`
+- [x] Criar o modo administrador
+    - Migração: `users.admin BOOLEAN NOT NULL DEFAULT FALSE` (fail-closed, sem índice — a flag só é
+      lida por PK). A promoção tem query própria (`SetUserAdmin`) em vez de virar parâmetro do
+      `CreateUser`: assim o fluxo de login fica **estruturalmente incapaz** de criar um administrador.
+    - **Autorização lê o banco, não o token.** O claim `admin` existe (e o `/users/me` o devolve), mas
+      só como dica de client — igual ao `language_to_translate`. Motivo: se a decisão viesse do token,
+      revogar acesso só valeria quando ele expirasse. Custo: 1 query, e só nas rotas admin.
+      Token antigo decodifica `admin` como `false`, então nenhuma sessão precisou ser invalidada.
+    - `middlewares/admin.go`: `AdminResolver` (uma definição de "é admin" para a app inteira) +
+      `RequireAdmin`. Não-admin → 403; falha de banco → 500, nunca 403.
+    - Bypass de manutenção contido no branch de indisponibilidade: com a app no ar o caminho é idêntico
+      ao anterior (nenhuma query a mais). Fail-closed — token ruim, sessão encerrada ou erro de banco
+      viram 503.
+    - Usuário dev nasce administrador; um usuário de seed anterior é promovido no lugar pelo `task sud`.
+
+Achados durante a execução (não estavam no planejamento):
+
+- **Três rotas estavam abertas sem autenticação nenhuma**: `DELETE /v1/auth/invalidate`,
+  `DELETE /v1/auth/invalidate-all` (qualquer um deslogava qualquer usuário) e
+  `PUT /v1/system/app-status` (qualquer um derrubava a API inteira). As duas primeiras já constavam
+  como "exclusivas de admin" no `PROJECT.md` mas não pediam nem token. Fechadas nesta versão.
+- **Deadlock do bypass**: `/auth/refresh` ficava atrás do guard, então um administrador com o
+  `access_token` expirado durante a manutenção não conseguia renovar — e o `refresh_token` não carrega
+  identidade que o bypass leia. Ficaria trancado fora da própria aplicação, só voltando pelo banco.
+  Solução: o grupo `/v1/auth` inteiro passou a ser isento do guard.
+- **`adminRoute` copia a cadeia de middlewares** em vez de reaproveitar o slice. Um
+  `append(authMiddleware, requireAdmin)` guardado e reusado faria as rotas compartilharem o mesmo array
+  de fundo, e cada registro sobrescreveria o handler do anterior.
+- **Ordem de colunas no `schema.sql`** importa, não só o conjunto: as queries usam `SELECT *`, então
+  uma coluna adicionada por migração precisa ficar no fim da tabela, onde o `ALTER TABLE` a coloca.
+  Registrado em comentário no arquivo.
+- Correções de documentação: `invalidate_all` → `invalidate-all` (a rota real usa hífen) e
+  `PUT /v1/system/app-status` entrou na lista de rotas exclusivas de administrador.
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 
