@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.39.0.0
+0.39.0.1
 
 ## Versão 0.37.3.0
 
@@ -78,7 +78,14 @@ Decisões tomadas durante a execução:
       são as alavancas reais da qualidade do match — recalibrar com dado real quando houver volume.
       Mantido 20 nesta versão por não ter dado pra justificar um número menor.
 
-## Futuro
+## Versão 0.39.0.1
+
+- [x] Keywords nos artigos de exemplo do seed (`cmd/seed/examples.json`)
+    - Os 20 artigos de exemplo não tinham `keywords`, então `task sda` populava tudo com `[]` e a
+      sugestão de keywords respondia vazio em dev (não era bug, era pool sem keywords).
+    - Cada artigo ganhou keywords em inglês minúsculo (específicos + genéricos, mín. 5), com overlap
+      com os feeds de exemplo — habilita também o julgamento em dev. Registros já no banco foram
+      atualizados no lugar. Tier `docs` (dado de seed, sem mudança de comportamento da app).
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 
