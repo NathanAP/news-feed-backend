@@ -137,7 +137,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Valores padrão:
         - idioma para tradução português
         - personalidade em `misto`
-- O usuário tem liberdade de alterar suas preferências para utilização do sistema da forma que preferir.
+- O usuário tem liberdade de alterar suas preferências para utilização da aplicação da forma que preferir.
 - Apenas os próprios usuários podem alterar suas preferências.
 - Usuários removidos (`status` em `false`) devem ficar com suas preferências excluídas também (`status` também deve ser setado para `false`)
 - O campo `language_to_translate` pode ser nulo, isso quer dizer que a pessoa nunca vai receber a opção de tradução no client.
@@ -151,8 +151,8 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 ## Fontes de notícias (sources)
 
 - As fontes de notícias são nossa principal fonte para obtenção de informações brutas.
-- A visibilidade das fontes de notícias são públicas a todos os usuários do sistema.
-- A manipulação (criação, edição ou remoção) de fonte de notícias é exclusiva para administradores do sistema, ou seja, para os usuários "comuns" as fontes de notícias parecem como pré-definidas.
+- A visibilidade das fontes de notícias são públicas a todos os usuários da aplicação.
+- A manipulação (criação, edição ou remoção) de fonte de notícias é exclusiva para administradores da aplicação, ou seja, para os usuários "comuns" as fontes de notícias parecem como pré-definidas.
 - Duas fontes de notícias não podem ter a mesma `url` ou o mesmo `url_rss`.
 - O payload de cadastro de uma fonte de notícias obriga o valor de `url_rss`. Para facilitar o encontro dessa URL, temos a rota `base_url/v1/sources/rss_discovery` que tenta descobrir automaticamente e fazer o parsing através do `gofeed` desse valor através dos seguintes padrões:
     - padrões comuns como acessar `/rss/`, `/feed/`, `/rss.xml/`, `/feed.xml`.
@@ -193,7 +193,10 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     ```json
     {
         "strategy": "related",
-        "suggestions": [ { "keyword": "rock", "count": 812 }, { "keyword": "concerts", "count": 133 } ]
+        "suggestions": [
+            { "keyword": "rock", "count": 812 },
+            { "keyword": "concerts", "count": 133 }
+        ]
     }
     ```
 - Não é paginado: é um indicador ranqueado (ver isenção em `conventions.md` e na seção "Paginação").
@@ -215,7 +218,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Esse endpoint deve ser exclusivo do usuário.
     - Esse endpoint deve ser paginado.
     - Esse endpoint deve trazer também os dados da tabela relacional (junction table) entre cada notícia e o feed.
-- As notícias só podem ser criadas, editadas ou excluídas por usuário administradores.
+- A manipulção de notícias (criação, edição ou remoção) é exclusiva para administradores da aplicação.
     - Essa regra existe apenas para casos extremos de uma notícia que saiu do controle.
 - As notícias possuem um campo `language_original` que serve para detectar quando uma tradução pode ou não ser feita no client.
     - O valor deste campo deve ser o mesmo `enum` de idiomas usado globalmente na aplicação.
@@ -451,10 +454,22 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 ## Administradores
 
-- Ainda não há uma implementação de administradores por enquanto.
-- Ações que deveriam ser feitas pelos usuários administradores por enquanto podem ser feitas por qualquer usuário "comum".
-- Endpoints que deveriam ser acessados pelos usuários administradores por enquanto podem ser feitas por qualquer usuário "comum".
-    - Atualmente são eles: `DELETE base_url/v1/auth/invalidate`, `DELETE base_url/v1/auth/invalidate_all`, `POST base_url/v1/sources/create`, `PUT base_url/v1/sources/{id}`, `DELETE base_url/v1/sources/{id}`
+- Os administradores da aplicação são usuários comuns que possuem uma flag `admin` marcada como `true`.
+- Uma vez administradores, os usuários sempre são tratados como administradores e não mais como usuários comuns.
+    - Apenas para documentação: no client há um botão que faz com que usuários administradores possam ver a aplicação como usuarios comuns, mas isso não afeta as requisições feitas.
+- Os administradores não são afetados por flags como a `system.app_status` ou derivados. Eles sempre podem fazer o que quiser mesmo que algo esteja inativo no momento.
+    - Dito isso, se uma requisição estiver sendo feita por um administrador, ela precisa ser executada independente de qualquer inatividade atual da aplicação.
+- Os seguintes endpoints são de acesso exclusivos pelos administradores:
+    - `POST base_url/v1/articles/create`.
+    - `DELETE base_url/v1/articles/{id}`.
+    - `PUT base_url/v1/articles/{id}`.
+    - `DELETE base_url/v1/auth/invalidate`.
+    - `DELETE base_url/v1/auth/invalidate_all`.
+    - `POST base_url/v1/sources/create`.
+    - `PUT base_url/v1/sources/{id}`.
+    - `GET base_url/v1/sources/{id}/article-discovery`
+    - `DELETE base_url/v1/sources/{id}`.
+- Por enquanto para um usuário se tornar administrador faremos apenas a alteração via banco de dados, ou seja, não há uma lista de e-mails fixa ou algo do gênero.
 
 ### Painel de controle
 

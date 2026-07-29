@@ -87,6 +87,14 @@ Decisões tomadas durante a execução:
       com os feeds de exemplo — habilita também o julgamento em dev. Registros já no banco foram
       atualizados no lugar. Tier `docs` (dado de seed, sem mudança de comportamento da app).
 
+## Versão 0.40.0.0
+
+- [ ] Criar o modo administrador
+    - Escrevi no PROJECT.md como isso vai funcionar
+    - Vamos precisar de uma migração
+    - O usuário dev pode ser marcado diretamente como um administrador ao ser criado.
+    - Lembrete: requisições do administrador não são afetadas pelo `system.app_status` quando estiver em `false`
+
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 
 - Aumentar o verbose mode (+++++++++++++++++++++ logs)
@@ -111,7 +119,6 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
 - Associação de notícias (como uma notícia se liga à outra?)
 - Aceitar URLs de embedding contidas na notícia para embeddar na nossa própria
 - Melhorar o tratamento para também atribuir classes e elementos HTML mais personalizados
-- Usuário administrador (lembrete: requisições do admin não são afetadas pelo `system.app_status` estando em `false`)
 - Opções de usuário administrador (desativar X, habilitar Y)
 - Endpoint para soft remove de usuário + testes de cascade (métodos já estão ok)
 - Compartilhamento de notícias
@@ -123,7 +130,6 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
 - Notificações em tempo real
 - Sistema de feedback de notícias
 - Descoberta automática de novas RSS feeds
-- Regras de administradores
 - SSE ou Websocket
     - Novas notícias chegaram
     - Rota `GET base_url/v1/feeds/check-for-new-articles`
