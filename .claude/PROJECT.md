@@ -632,18 +632,20 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
 ## CI/CD
 
 - A estrutura de CI/CD fica organizada na pasta `.github/workflows/`.
-- O CI constrói a imagem do Docker uma única vez a envia para um registry (AWS ECR) e depois o servidor apenas dá pull daquela tag e sobe.
-    - Dessa forma, o servidor nunca vê o código-fonte e nem builda ela.
-    - Assim o rollback se torna apontar para uma tag anterior apenas.
+- O CI constrói a imagem do Docker uma única vez e a envia para um registry (AWS ECR); depois o servidor apenas dá pull daquela tag e sobe.
+    - Dessa forma, o servidor nunca vê o código-fonte e nem builda a imagem.
+    - Assim o rollback se torna apenas apontar para uma tag anterior.
 - O arquivo `ci.yml` roda em todo PR e push no branch padrão:
     - `gofmt`
     - `go vet`
     - `go test ./...`
 - O arquivo `deploy.yml` funciona apenas nas branchs `staging` e `production`.
     - O fluxo é build -> push ECR -> deploy no EC2 via SSH.
-    - Autenticação AWS por OIDC.
-    - Segredos devem ficar no GitHub Environment.
+    - Autenticação AWS por OIDC (sem chave estática).
+    - Segredos de deploy\_(role AWS via OIDC, chave SSH, host) ficam no GitHub (secret do repositório + secrets por Environment). Não confundir com os segredos de runtime da aplicação (`JWT_SECRET_KEY`, senha do banco de dados, API keys): esses não ficam no GitHub, vêm sempre do `.env.<ambiente>` no próprio servidor (modelo atual).
+        - Futuramente virá de um secret store da AWS (SSM Parameter Store / Secrets Manager).
     - A variável `DEPLOY_ENABLED` deve estar em `true` para que o deploy ocorra.
+    - A lista completa de variáveis/secrets necessárias e o que o host precisa ter está em `.github/workflows/README.md`.
 
 ## Backup
 
@@ -661,7 +663,7 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
 - Este ambiente possui diversas habilidades exclusivas de desenvolvimento para cortar caminhos.
 - As pastas e comandos relacionados ao `raiz/cmd/` são exclusivos para serem usados neste ambiente.
 - As pastas e comandos relacionados ao `raiz/test/` está liberada para ser usada.
-- O arquivo `Taskfile.development.yaml` deve ser usado neste ambiente como `Taskfile.yaml`.
+- Há um único `Taskfile.yaml`. As habilidades exclusivas de desenvolvimento (rotas `dev-login`/`treatment`/`judgement` e os comandos de seed em `cmd/`) são liberadas pela variável `ENVIRONMENT=development` ao invés de um Taskfile separado.
 - Rotas exclusivas do ambiente de desenvolvimento:
     - `POST base_url/v1/users/dev-login`: loga o usuário dev diretamente, emitindo um `access_token` e um `refresh_token` sem a necessidade de `OAuth2`.
 
@@ -681,6 +683,7 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
 - Este é o ambiente de produção, todo cuidado é pouco.
 - A aplicação atua apenas via Docker neste ambiente, pelo overlay `docker-compose.production.yaml` (`task prod-up`).
 - O banco de dados vive em RDS por padrão, ou seja, sem container de Postgres e com a variável de ambiente `DATABASE_URL` apontando pro RDS.
+- Roda em **instância única**: a CRON de descoberta é in-process, então uma segunda réplica rodaria a descoberta de novo (notícia e chamada de IA duplicadas). Se precisar de mais réplicas, apenas uma pode ter `RSS_FEED_CRON_ACTIVE=true`.
 - Push na branch `production` dispara o `deploy.yml`.
 
 ### Variáveis globais úteis
