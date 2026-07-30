@@ -114,6 +114,8 @@ Decisões tomadas durante a execução:
     - CI/CD
     - Taskfile
     - Docker compose
+- [ ] Resolver problema de ter vários workers + CRON
+    - Precisamos de apenas uma instância
 
 ## Versão 0.43.0.0
 
