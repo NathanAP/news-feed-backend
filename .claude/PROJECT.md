@@ -685,7 +685,7 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
 
 ### Variáveis globais úteis
 
-- a variável `CLIENT_URL` possui a URL base do client.
+- A variável `CLIENT_URL` possui a URL base do client.
 
 ## Logs / debug manual
 
