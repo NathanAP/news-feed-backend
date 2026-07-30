@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.40.0.0
+0.42.0.0
 
 ## Versão 0.37.3.0
 
@@ -107,22 +107,50 @@ Decisões tomadas durante a execução:
 ## Versão 0.41.0.0
 
 - [x] Correção docker-compose e pgadmin
+    - **Split do compose**: `docker-compose.yaml` (base) + `docker-compose.override.yaml` (dev),
+      mesclados automaticamente pelo Compose. O pgAdmin saiu pro override — produção nunca o sobe por
+      **ausência** (o `-f` explícito de prod desliga o auto-override), não por alguém lembrar de removê-lo.
+    - **Bind em `127.0.0.1`** em todas as portas publicadas (api, postgres, pgadmin): deixam de ser
+      alcançáveis pela LAN. Túnel (ngrok/SSH) continua funcionando porque roda no host e alcança o loopback.
+    - Motivo original: o pgAdmin abre direto no dashboard (`SERVER_MODE=False`, sem login) — ok em dev
+      amarrado ao loopback, inaceitável exposto. A correção garante que ele não vaze.
 
 ## Versão 0.42.0.0
 
-- [ ] Preparações production / staging
-    - CI/CD
-    - Taskfile
-    - Docker compose
-- [ ] Resolver problema de ter vários workers + CRON
-    - Precisamos de apenas uma instância
+- [x] Preparações production / staging
+    - **Modelo de deploy invertido**: em vez de "pull do código + build no servidor" (o que estava no
+      `PROJECT.md`), o CI constrói a imagem **uma vez**, empurra pro ECR, e o servidor só dá `pull` da tag
+      e sobe. O servidor nunca vê código nem builda. Isso torna "apagar arquivos de dev" desnecessário: a
+      imagem final (multi-stage) já é só o binário, e as rotas de dev são barradas por `ENVIRONMENT` em
+      runtime.
+    - **Compose multi-ambiente**: o `postgres` saiu da base pra cada overlay (o Compose não remove um
+      serviço da base num override, e prod pode usar RDS em vez de container). Base = só `api` com imagem
+      parametrizada (`API_IMAGE`). Dev = postgres+pgadmin+build. `docker-compose.staging.yaml` = postgres
+      container. `docker-compose.production.yaml` = RDS por padrão (postgres comentado, removível).
+    - **Taskfile**: `staging-up/down/logs` e `prod-up/down/logs` com `-f` explícito + `--env-file`.
+    - **Templates de env**: `.env.staging.example` e `.env.production.example` (só nomes, segredos
+      marcados). `.gitignore` versiona os `.example`, ignora os reais.
+    - **CI/CD (GitHub Actions)**: `ci.yml` (fmt+vet+test, sempre ativo) e `deploy.yml`
+      (build→ECR→deploy EC2 via SSH+OIDC nos branches `staging`/`production`), inerte até
+      `DEPLOY_ENABLED=true`. Secrets por OIDC/Environment, nunca no YAML. Doc em `.github/workflows/README.md`.
+    - **Postgres de produção (RDS vs container)**: decisão adiada de propósito — o app só enxerga uma
+      connection string, então trocar é config, não rebuild. Backup fica na 0.43.
+- [x] Resolver problema de ter vários workers + CRON
+    - Resolvido **por disciplina operacional**: produção roda **instância única** (documentado no
+      `docker-compose.production.yaml`, nos templates de env e no README do CI). O fix de código
+      (lock distribuído / fila) continua arquivado na seção de escalabilidade futura — só vale a pena
+      quando precisar de mais de uma réplica.
 
 ## Versão 0.43.0.0
 
-- [ ] Na CRON, precisamos barrar usuários inativos
+- [ ] Na CRON, precisamos barrar usuários inativos de receber notícias, isso vai limpar bastante o feed.
     - Atualmente temos o campo de último login que pode ser útil pra isso.
+    - eu acho que 2 semanas já tá bom né?
 - [ ] Temos que pensar em backup também
     - O .env precisa incluir também o .env do ambiente né? Assim eu não perco ele e garanto que o meu .env tem os valores corretos daquele backup
+- [ ] Tentei colocar `https://www.petz.com.br/blog/` como fonte e ele não encontrou o RSS na URL `https://www.petz.com.br/blog/rss`, por quê?
+    - Me parece que vários RSS não trazem as notícias completas em seu RSS, apenas a URL que vai até ela. Tem como a gente contornar isso?
+    - Talvez a gente vá ter que acessar o link e tentar pegar o conteúdo dali, mas como?
 
 Achados durante a execução (não estavam no planejamento):
 

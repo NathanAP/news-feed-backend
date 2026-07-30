@@ -1,0 +1,77 @@
+# Deploy: build an immutable image, push it to Amazon ECR, and roll it out on the target EC2 host over
+# SSH. This replaces the old "git pull + build on the server" idea — the server never sees source code
+# or builds anything; it pulls a fixed image tag, which makes deploys reproducible and rollbacks a
+# matter of pointing at a previous tag.
+#
+# The environment is chosen by the branch: push to `staging` deploys staging, push to `production`
+# deploys production. Each maps to a GitHub Environment of the same name, so environment-scoped secrets
+# (EC2_HOST, EC2_SSH_KEY, ...) resolve to the right target.
+#
+# THIS WORKFLOW IS INERT UNTIL YOU TURN IT ON. It is skipped unless the repository variable
+# DEPLOY_ENABLED == 'true', so pushing to those branches before AWS exists does nothing (no failing
+# runs). To activate, once you have AWS:
+#   Repository VARIABLES:  DEPLOY_ENABLED=true, AWS_REGION=<region>, ECR_REPOSITORY=<repo name>
+#   Repository SECRET:     AWS_ROLE_ARN         (an IAM role trusted for GitHub OIDC — no static keys)
+#   Per-Environment SECRETS (staging, production): EC2_HOST, EC2_USER, EC2_SSH_KEY
+# The target host must already have the compose files and its .env.<environment> (with the real
+# secrets) in /opt/news-feed — the deploy only pulls the new image and restarts.
+name: Deploy
+
+on:
+    push:
+        branches: [staging, production]
+
+# Least privilege: OIDC needs id-token to mint the short-lived AWS credential; checkout needs contents.
+permissions:
+    id-token: write
+    contents: read
+
+jobs:
+    deploy:
+        if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+        runs-on: ubuntu-latest
+        environment: ${{ github.ref_name }}
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Configure AWS credentials (OIDC)
+              # Assumes an IAM role via GitHub's OIDC provider — no long-lived AWS keys stored in GitHub.
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+                  aws-region: ${{ vars.AWS_REGION }}
+
+            - name: Log in to Amazon ECR
+              id: ecr
+              uses: aws-actions/amazon-ecr-login@v2
+
+            - name: Build and push image
+              env:
+                  REGISTRY: ${{ steps.ecr.outputs.registry }}
+                  REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+                  # Tag by commit sha: every deploy is a distinct, addressable artifact, and a rollback is
+                  # just deploying an earlier sha.
+                  TAG: ${{ github.sha }}
+              run: |
+                  IMAGE="$REGISTRY/$REPOSITORY:$TAG"
+                  docker build -t "$IMAGE" .
+                  docker push "$IMAGE"
+                  echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+            - name: Deploy over SSH
+              uses: appleboy/ssh-action@v1
+              with:
+                  host: ${{ secrets.EC2_HOST }}
+                  username: ${{ secrets.EC2_USER }}
+                  key: ${{ secrets.EC2_SSH_KEY }}
+                  # Forward the freshly built image reference into the remote shell.
+                  envs: IMAGE
+                  script: |
+                      set -e
+                      cd /opt/news-feed
+                      ENV_NAME="${{ github.ref_name }}"   # 'staging' or 'production'
+                      export API_IMAGE="$IMAGE"
+                      docker compose --env-file ".env.$ENV_NAME" \
+                          -f docker-compose.yaml -f "docker-compose.$ENV_NAME.yaml" pull
+                      docker compose --env-file ".env.$ENV_NAME" \
+                          -f docker-compose.yaml -f "docker-compose.$ENV_NAME.yaml" up -d

@@ -631,7 +631,19 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
 
 ## CI/CD
 
-- A implementação de CI/CD será feita futuramente.
+- A estrutura de CI/CD fica organizada na pasta `.github/workflows/`.
+- O CI constrói a imagem do Docker uma única vez a envia para um registry (AWS ECR) e depois o servidor apenas dá pull daquela tag e sobe.
+    - Dessa forma, o servidor nunca vê o código-fonte e nem builda ela.
+    - Assim o rollback se torna apontar para uma tag anterior apenas.
+- O arquivo `ci.yml` roda em todo PR e push no branch padrão:
+    - `gofmt`
+    - `go vet`
+    - `go test ./...`
+- O arquivo `deploy.yml` funciona apenas nas branchs `staging` e `production`.
+    - O fluxo é build -> push ECR -> deploy no EC2 via SSH.
+    - Autenticação AWS por OIDC.
+    - Segredos devem ficar no GitHub Environment.
+    - A variável `DEPLOY_ENABLED` deve estar em `true` para que o deploy ocorra.
 
 ## Backup
 
@@ -657,27 +669,19 @@ As regras abaixo devem estar presente durante qualquer teste proposto:
 
 - Possui uma coleção de scripts e comandos task para serem executados no ambiente de desenvolvimento.
 - Nunca devem ser usados em homologação ou produção.
-- Devem ser excluídos pelo CI/CD nos ambientes de homologação e produção.
 
 ### Ambiente de homologação
 
 - Este ambiente simula o ambiente de produção da maneira mais próxima possível.
-- A aplicação atua apenas via Docker neste ambiente.
-- O script de CI/CD neste ambiente deve seguir os seguintes passos:
-    - Derrubar a aplicação.
-    - Realizar `git stash` e `git pull origin staging`.
-    - Excluir as pastas `raiz/.claude/`, `raiz/bruno/`, `raiz/cmd/` e `raiz/test/`.
-    - Subir a aplicação.
+- A aplicação atua apenas via Docker neste ambiente, pelo overlay `docker-compose.staging.yaml` (`task staging-up`). Usa um Postgres em container (dado descartável).
+- Push no branch `staging` dispara o `deploy.yml` → build da imagem → push no ECR → `pull` no host + `up -d`. O host não builda nem faz `git pull`; ele só tem os composes e o `.env.staging` (com os segredos) e roda a imagem nova.
 
-### Ambiente de homologação
+### Ambiente de produção
 
 - Este é o ambiente de produção, todo cuidado é pouco.
-- A aplicação atua apenas via Docker neste ambiente.
-- O script de CI/CD neste ambiente deve seguir os seguintes passos:
-    - Derrubar a aplicação.
-    - Realizar `git stash` e `git pull origin production`.
-    - Excluir as pastas `raiz/.claude/`, `raiz/bruno/`, `raiz/cmd/` e `raiz/test/`.
-    - Subir a aplicação.
+- A aplicação atua apenas via Docker neste ambiente, pelo overlay `docker-compose.production.yaml` (`task prod-up`).
+- O banco de dados vive em RDS por padrão, ou seja, sem container de Postgres e com a variável de ambiente `DATABASE_URL` apontando pro RDS.
+- Push na branch `production` dispara o `deploy.yml`.
 
 ### Variáveis globais úteis
 

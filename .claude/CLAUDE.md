@@ -137,6 +137,12 @@ e são chamados direto da raiz). Rodar `task` (ou `task help`) lista tudo. Alias
 
 - `task docker-start` (`ds`) — sobe API + PostgreSQL + PgAdmin4 via compose. `dr` (restart) · `dfr` (rebuild) · `dd` (down, **preserva os dados**) · `dp` (prune, **apaga o volume**).
 
+**Staging / Produção (0.42):**
+
+- `task staging-up` / `staging-down` / `staging-logs` — overlay de staging (base + `docker-compose.staging.yaml`, com `-f` explícito e `--env-file .env.staging`). Postgres container, sem pgAdmin.
+- `task prod-up` / `prod-down` / `prod-logs` — overlay de produção (base + `docker-compose.production.yaml`). RDS por padrão (postgres container comentado), sem pgAdmin. Exige `.env.production` (copie de `.env.production.example`).
+- Deploy é por CI (`.github/workflows/deploy.yml`): build da imagem no CI → ECR → `pull` no EC2. O servidor nunca builda. Inerte até `DEPLOY_ENABLED=true`. **Produção roda instância única** (CRON in-process).
+
 **Testes e qualidade** (testes exigem Docker ligado — sobem um Postgres descartável):
 
 - `task test-all` (`ta`) — todos os testes. Por camada: `tu` (unit) · `ti` (integração) · `te2e` (end-to-end).

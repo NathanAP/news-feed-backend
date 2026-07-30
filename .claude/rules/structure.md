@@ -7,8 +7,12 @@ Mostramos apenas a hierarquia de pastas com uma descrição em parênteses. Arqu
 O banco não aparece nesta árvore: desde a 0.37 é PostgreSQL (cliente-servidor), com os dados num volume do Docker em vez de um arquivo dentro do repositório.
 
 ```
-/                              (raiz: main.go, go.mod/go.sum, schema.sql, sqlc.yaml, Taskfile.yaml, Dockerfile, docker-compose.yaml + docker-compose.override.yaml, .env.example)
-│                              (compose base = postgres + api, roda em todo ambiente; o override é o delta de dev — só o pgAdmin — mesclado automaticamente pelo Compose)
+/                              (raiz: main.go, go.mod/go.sum, schema.sql, sqlc.yaml, Taskfile.yaml,
+│                               Dockerfile, .env.example + .env.staging.example + .env.production.example)
+│                              (composes: base = só a `api` (imagem parametrizada); override = dev
+│                               (postgres+pgadmin+build, auto-merge); staging/production = overlays por
+│                               ambiente com `-f` explícito, postgres removível em prod (RDS por padrão))
+├── .github                    (workflows do GitHub Actions: ci.yml sempre ativo; deploy.yml build→ECR→EC2, inerte até DEPLOY_ENABLED)
 ├── bruno                      (coleção de requisições do app externo Bruno)
 ├── cmd                        (executáveis auxiliares fora da API)
 │   └── seed                   (scripts de seed de dev: usuário, sources, feeds, artigos, associações)

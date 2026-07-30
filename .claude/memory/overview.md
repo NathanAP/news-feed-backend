@@ -113,8 +113,10 @@ overlap forte / descarta overlap 1 / IA só no borderline por `título + keyword
 — envs `JUDGEMENT_AUTOASSOCIATE_RATIO`/`JUDGEMENT_MIN_MATCHES`, 0.36.4), gravando as associações em `articles_feeds`. **Tradução personalizada** on-demand por usuário já existe (0.23,
 LLM-only, read-only). **Modo administrador** (0.40): flag `users.admin`, rotas de escrita de
 `articles`/`sources`, invalidação de sessões e o toggle de manutenção restritos a administradores
-(403 para usuário comum), com administradores atravessando a manutenção. Ainda **não** implementado:
-**resumo** por IA (depende de Redis), deploy, exclusão de usuário.
+(403 para usuário comum), com administradores atravessando a manutenção. **Estrutura de staging/produção
++ CI/CD** (0.42): compose multi-ambiente, Taskfile, templates de env e workflows do GitHub Actions
+prontos — falta só ter a AWS pra ligar o deploy. Ainda **não** implementado: **resumo** por IA (depende
+de Redis), backup, exclusão de usuário.
 
 ## Transações (regra central)
 
@@ -157,3 +159,12 @@ também é Go puro; healthcheck em `/health`; só inicia depois do banco healthy
 (o compose sobrescreve o `DATABASE_URL` do `.env`, que aponta para `localhost`, com o host `postgres`
 da rede interna). Em Docker use `KEYWORDS_MODE=groq|gemini` (Ollama local do host não é alcançável por
 `localhost` no container; `host.docker.internal` disponível via `extra_hosts`).
+
+**Ambientes e deploy (0.41/0.42)**: o compose é multi-ambiente. **Base** (`docker-compose.yaml`) = só a
+`api`, com imagem parametrizada (`API_IMAGE`). **Dev** (`docker-compose.override.yaml`, auto-merge) =
+postgres+pgadmin+`build`. **Staging/produção** = overlays com `-f` explícito (`task staging-up`/`prod-up`),
+que desliga o auto-override — pgAdmin nunca sobe fora de dev. Produção usa **RDS por padrão** (postgres
+container comentado, removível). Portas em `127.0.0.1` (0.41). **CI/CD** em `.github/workflows/`:
+`ci.yml` (fmt+vet+test, sempre ativo) e `deploy.yml` (build→ECR→EC2 via SSH/OIDC, inerte até
+`DEPLOY_ENABLED=true`). Modelo de deploy = **construir imagem no CI e enviar** (o servidor só dá `pull`,
+nunca builda). **Instância única em produção**: a CRON é in-process, réplicas duplicariam a descoberta.

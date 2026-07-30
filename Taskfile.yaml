@@ -124,6 +124,42 @@ tasks:
             - docker compose down --volumes --remove-orphans
             - docker system prune -f
 
+    # ── Staging / Production ───────────────────────────────────────────────────
+    # Explicit `-f` overlays (base + the environment file). Passing `-f` disables the automatic dev
+    # override, so these never pick up pgAdmin or the local build. They pull the image named by
+    # API_IMAGE (set by CI/deploy) instead of building. Each needs its own env file present:
+    # .env.staging / .env.production (gitignored; copy from the .example templates).
+
+    staging-up:
+        desc: Start the staging stack (base + staging overlay; container Postgres, no pgAdmin)
+        cmds:
+            - docker compose --env-file .env.staging -f docker-compose.yaml -f docker-compose.staging.yaml up -d
+
+    staging-down:
+        desc: Stop the staging stack (data volume is preserved)
+        cmds:
+            - docker compose --env-file .env.staging -f docker-compose.yaml -f docker-compose.staging.yaml down
+
+    staging-logs:
+        desc: Follow staging logs
+        cmds:
+            - docker compose --env-file .env.staging -f docker-compose.yaml -f docker-compose.staging.yaml logs -f
+
+    prod-up:
+        desc: Start the production stack (base + prod overlay; RDS by default, no Postgres container)
+        cmds:
+            - docker compose --env-file .env.production -f docker-compose.yaml -f docker-compose.production.yaml up -d
+
+    prod-down:
+        desc: Stop the production stack
+        cmds:
+            - docker compose --env-file .env.production -f docker-compose.yaml -f docker-compose.production.yaml down
+
+    prod-logs:
+        desc: Follow production logs
+        cmds:
+            - docker compose --env-file .env.production -f docker-compose.yaml -f docker-compose.production.yaml logs -f
+
     # ── Database ───────────────────────────────────────────────────────────────
 
     db-start:

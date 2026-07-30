@@ -1,32 +1,68 @@
-# Development overrides. Docker Compose merges this on top of docker-compose.yaml AUTOMATICALLY on
-# `docker compose up` (that is why `task ds`/`task dbs` take no extra flags). Everything here is a
-# dev-only convenience.
+# Development overlay. Docker Compose merges this on top of docker-compose.yaml AUTOMATICALLY on
+# `docker compose up` (that is why `task ds`/`task dbs` take no extra flags). Everything here is either
+# dev-only (pgAdmin) or the dev way of doing something the base leaves open (build the image locally,
+# run Postgres in a container, load the dev .env).
 #
-# The most important thing here is pgAdmin, and the most important thing about it is that it must NOT
-# run in staging/production: it is configured below in single-user desktop mode with NO login screen,
-# which is fine for a tool bound to loopback on a dev machine and unacceptable anywhere public.
-# Production applies its own file explicitly (`-f docker-compose.yaml -f docker-compose.prod.yaml`), and
-# an explicit `-f` disables this automatic override — so nothing declared here leaks outward.
+# It never reaches staging/production: those apply their own file with an explicit `-f`, and an explicit
+# `-f` disables this automatic override.
 services:
-    # Database UI, development convenience — the stack's declared inspector (CLAUDE.md).
+    api:
+        # Dev builds the image from source and tags it as the base's default name (news-feed-api:local).
+        # Staging/production instead set API_IMAGE to a registry tag and never build.
+        build: .
+        env_file:
+            - .env
+        environment:
+            # Override the .env DATABASE_URL (which points at localhost, for running the API on the host
+            # with `task ls`) so the containerized API reaches Postgres by its service name over the
+            # compose network. ${POSTGRES_*} are interpolated from the project .env.
+            DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+        depends_on:
+            # The API runs migrations on boot, so it must not start before Postgres is ready.
+            postgres:
+                condition: service_healthy
+
+    postgres:
+        container_name: news-feed-postgres
+        image: postgres:18-alpine
+        ports:
+            # Published so the API can also run on the host (`task ls`) and so a host client (pgAdmin,
+            # psql, a GUI) can reach it — but bound to loopback, not exposed to the LAN.
+            - "127.0.0.1:5432:5432"
+        environment:
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_DB: ${POSTGRES_DB}
+        volumes:
+            # Mounted at the parent rather than at PGDATA directly: the postgres:18 image places the
+            # data under a version-scoped path, and mounting the parent persists it either way.
+            - postgres_data:/var/lib/postgresql
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+            interval: 5s
+            timeout: 3s
+            retries: 10
+            start_period: 5s
+        restart: unless-stopped
+
+    # Database UI, development convenience — the stack's declared inspector (CLAUDE.md). Must NOT run in
+    # staging/production: it is in single-user desktop mode below with NO login screen.
     pgadmin4:
         container_name: news-feed-pgadmin4
         image: dpage/pgadmin4
         ports:
-            # Loopback-bound: the pgAdmin below has no login, so it must not be reachable from the LAN.
-            # A local tunnel (SSH is the right kind for this — private and authenticated, unlike a public
-            # ngrok tunnel) still works, because the tunnel process runs on this host and reaches loopback.
+            # Loopback-bound: no login, so it must not be reachable from the LAN. A local SSH tunnel still
+            # works (the tunnel runs on this host and reaches loopback) — the right kind for a tool with
+            # no auth, unlike a public tunnel.
             - "127.0.0.1:5050:80"
         environment:
             PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
             PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
-            # Single-user desktop mode: no login screen for a local dev tool. This is the reason pgAdmin
-            # opens straight into the dashboard — and the reason it may not be exposed publicly.
+            # Single-user desktop mode: no login screen for a local dev tool. This is why pgAdmin opens
+            # straight into the dashboard — and why it may not be exposed publicly.
             PGADMIN_CONFIG_SERVER_MODE: "False"
             PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
         volumes:
-            # servers.json pre-registers the connection so the server tree is already there on first
-            # open. It holds no password on purpose — pgAdmin prompts for it.
             - ./pgadmin4/servers.json:/pgadmin4/servers.json:ro
             - pgadmin_data:/var/lib/pgadmin
         depends_on:
@@ -35,4 +71,5 @@ services:
         restart: unless-stopped
 
 volumes:
+    postgres_data:
     pgadmin_data:

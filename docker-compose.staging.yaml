@@ -1,0 +1,43 @@
+# Staging overlay. Applied EXPLICITLY: `docker compose --env-file .env.staging -f docker-compose.yaml
+# -f docker-compose.staging.yaml up -d` (wrapped as `task staging-up`). The explicit `-f` disables the
+# dev override, so pgAdmin and the local build never come along.
+#
+# Staging deliberately runs a CONTAINER Postgres: its data is disposable and this keeps staging cheap
+# and self-contained. Production is where a managed database (RDS) earns its cost — see
+# docker-compose.prod.yaml.
+services:
+    api:
+        # No build: staging runs the exact image CI built and pushed. API_IMAGE comes from .env.staging
+        # (or the deploy step), e.g. an ECR tag pinned to a git sha — the same artifact that will be
+        # promoted to production.
+        env_file:
+            - .env.staging
+        environment:
+            # Reach the container Postgres by service name. ${POSTGRES_*} interpolate from .env.staging
+            # (passed via --env-file).
+            DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+        depends_on:
+            postgres:
+                condition: service_healthy
+
+    postgres:
+        container_name: news-feed-postgres-staging
+        image: postgres:18-alpine
+        # No published ports: only the API (same compose network) needs it. Nothing on the host or LAN
+        # should reach the staging database directly.
+        environment:
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_DB: ${POSTGRES_DB}
+        volumes:
+            - postgres_data_staging:/var/lib/postgresql
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+            interval: 5s
+            timeout: 3s
+            retries: 10
+            start_period: 5s
+        restart: unless-stopped
+
+volumes:
+    postgres_data_staging:

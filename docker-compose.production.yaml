@@ -1,0 +1,57 @@
+# Production overlay. Applied EXPLICITLY: `docker compose --env-file .env.production -f
+# docker-compose.yaml -f docker-compose.production.yaml up -d` (wrapped as `task prod-up`). The explicit
+# `-f` disables the dev override, so pgAdmin and the local build are never present.
+#
+# The file name matches the deploy branch and env file (production / .env.production /
+# docker-compose.production.yaml), so the deploy script can select the overlay with one variable.
+#
+# THE DATABASE DECISION (deferred on purpose, cheap to make later — the app only ever sees a connection
+# string, so switching is a config change, never a rebuild):
+#   * Default (recommended): a MANAGED database, AWS RDS. There is NO Postgres service here — the app
+#     talks to RDS through DATABASE_URL in .env.production. RDS gives automated backups, point-in-time
+#     restore and patching, and keeps the data independent of this host so the box can be rebuilt freely.
+#   * Alternative: a CONTAINER Postgres on this same host. Uncomment the block at the bottom AND the
+#     `depends_on` below, and point DATABASE_URL at @postgres. Simpler and free, but then backups and
+#     durability are entirely your responsibility (see the backup task on the roadmap).
+services:
+    api:
+        # Runs the immutable image CI built and pushed; API_IMAGE (an ECR tag) comes from .env.production
+        # or the deploy step. Never builds on the host.
+        env_file:
+            - .env.production
+        # DATABASE_URL is NOT set here: it comes from .env.production, so the same file decides between
+        # RDS and a container without touching this compose file.
+        #
+        # depends_on: uncomment ONLY if you enable the container Postgres block below. With RDS there is
+        # no local service to depend on.
+        # depends_on:
+        #     postgres:
+        #         condition: service_healthy
+
+    # --- Optional container Postgres (uncomment to use instead of RDS) --------------------------------
+    # postgres:
+    #     container_name: news-feed-postgres-prod
+    #     image: postgres:18-alpine
+    #     # No published ports: only the API reaches it, over the compose network.
+    #     environment:
+    #         POSTGRES_USER: ${POSTGRES_USER}
+    #         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    #         POSTGRES_DB: ${POSTGRES_DB}
+    #     volumes:
+    #         - postgres_data_prod:/var/lib/postgresql
+    #     healthcheck:
+    #         test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+    #         interval: 5s
+    #         timeout: 3s
+    #         retries: 10
+    #         start_period: 5s
+    #     restart: unless-stopped
+
+# volumes:
+#     postgres_data_prod:
+#
+# IMPORTANT — single instance only: the discovery CRON is in-process (RSS_FEED_CRON_ACTIVE). Do NOT
+# scale the api service; a second replica would run the discovery sweep a second time (duplicate
+# articles, duplicate AI calls). If you ever need more than one replica, keep RSS_FEED_CRON_ACTIVE=true
+# on exactly one and false on the rest. See the ROADMAP note on the distributed queue for the long-term
+# fix.

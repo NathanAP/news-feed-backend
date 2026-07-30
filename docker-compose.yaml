@@ -1,38 +1,37 @@
-# Base stack: the services that run in EVERY environment — Postgres and the API. Postgres is not split
-# into its own file; it is shared infrastructure, so it lives here alongside the API.
+# Base stack: the API service, shared by every environment. The database is NOT here — it is composed
+# in per environment, because production may use a managed database (AWS RDS) instead of a container,
+# and Docker Compose can ADD or modify a service in an overlay but cannot REMOVE one that the base
+# declares. Keeping the base as just the app is what makes "container Postgres in dev/staging, RDS in
+# production" a config choice rather than a fight with the merge rules.
 #
-# Development-only conveniences (pgAdmin) live in docker-compose.override.yaml, which Docker Compose
-# merges in AUTOMATICALLY on `docker compose up` — that is why `task ds`/`task dbs` need no extra flags.
-# A future production file is applied EXPLICITLY (`-f docker-compose.yaml -f docker-compose.prod.yaml`),
-# and an explicit `-f` disables the automatic override. So the dev-only pgAdmin never reaches production
-# by simply never being part of this base — not by anyone remembering to remove it.
+# How the overlays attach:
+#   * dev      — docker-compose.override.yaml, merged AUTOMATICALLY by `docker compose up` (so `task ds`
+#                needs no flags). Adds Postgres, pgAdmin, and `build: .`.
+#   * staging  — docker-compose.staging.yaml, applied EXPLICITLY (`task staging-up`). Adds a container
+#                Postgres.
+#   * prod     — docker-compose.prod.yaml, applied EXPLICITLY (`task prod-up`). No Postgres container by
+#                default (RDS); a commented block is there if you want a container instead.
+# An explicit `-f` disables the automatic dev override, so staging/production never pick up pgAdmin or
+# the local build.
 services:
     api:
         container_name: news-feed-api
-        build: .
+        # The image the API runs from. Dev builds it locally (the override adds `build: .`, which tags
+        # the result as this default name); staging/production set API_IMAGE to a registry tag (e.g. an
+        # ECR image built by CI) and never build on the host — they pull an immutable artifact.
+        image: ${API_IMAGE:-news-feed-api:local}
         ports:
             # Bound to loopback on purpose: reachable from this host (and from a tunnel/reverse proxy
-            # that runs ON this host, e.g. the ngrok dev tunnel or nginx), never directly from the LAN.
-            # A production file republishes this to whatever its edge requires.
-            - "127.0.0.1:3000:3000"
-        env_file:
-            - .env
-        environment:
-            # Overrides the DATABASE_URL from .env. That one points at localhost, which is what the
-            # API needs when it runs on the host (`task ls`); inside the compose network the database
-            # answers to the service name instead. Keeping both means the same .env serves both ways
-            # of running the API, which is the point: only the database is Docker-mandatory.
-            DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
-        depends_on:
-            # The API runs migrations on boot, so it must not start before Postgres accepts
-            # connections — otherwise the first boot races the database and dies.
-            postgres:
-                condition: service_healthy
-        # Lets the container reach services running on the host (e.g. a native Ollama) via
-        # `host.docker.internal`. Automatic on Docker Desktop; this makes it work on Linux too. In Docker
-        # prefer KEYWORDS_MODE=groq|gemini; only set OLLAMA_BASE_URL=http://host.docker.internal:11434 if
-        # you really want the host's local Ollama.
+            # that runs ON this host, e.g. the ngrok dev tunnel or an nginx/ALB in front), never directly
+            # from the LAN. In production the edge (reverse proxy / load balancer) terminates TLS and
+            # forwards here; a prod overlay can rebind if its topology needs something else.
+            - "127.0.0.1:${API_PORT:-3000}:${API_PORT:-3000}"
+        # No env_file here on purpose: each overlay names its own (.env, .env.staging, .env.production),
+        # so production never accidentally loads a dev .env — and a missing dev file cannot break a prod
+        # boot. The base alone is a template, never run on its own.
         extra_hosts:
+            # Lets the container reach services on the host (e.g. a native Ollama) via
+            # `host.docker.internal`. Automatic on Docker Desktop; this makes it work on Linux too.
             - "host.docker.internal:host-gateway"
         healthcheck:
             # /health is exempt from the maintenance guard, so it answers 200 whenever the app is up.
@@ -48,32 +47,3 @@ services:
             retries: 5
             start_period: 10s
         restart: unless-stopped
-
-    postgres:
-        container_name: news-feed-postgres
-        image: postgres:18-alpine
-        ports:
-            # Published so the API can also run on the host (`task ls`) and so a host client (pgAdmin,
-            # psql, a GUI) can reach it directly — but bound to loopback, not exposed to the LAN.
-            # The pgAdmin container does NOT use this published port; it reaches Postgres by service
-            # name over the compose network.
-            - "127.0.0.1:5432:5432"
-        environment:
-            POSTGRES_USER: ${POSTGRES_USER}
-            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-            POSTGRES_DB: ${POSTGRES_DB}
-        volumes:
-            # Mounted at the parent rather than at PGDATA directly: the postgres:18 image places the
-            # data under a version-scoped path, and mounting the parent persists it either way.
-            - postgres_data:/var/lib/postgresql
-        healthcheck:
-            # pg_isready is the image's own readiness probe. It gates the API's depends_on above.
-            test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-            interval: 5s
-            timeout: 3s
-            retries: 10
-            start_period: 5s
-        restart: unless-stopped
-
-volumes:
-    postgres_data:
