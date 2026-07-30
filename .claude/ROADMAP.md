@@ -104,6 +104,24 @@ Decisões tomadas durante a execução:
       viram 503.
     - Usuário dev nasce administrador; um usuário de seed anterior é promovido no lugar pelo `task sud`.
 
+## Versão 0.41.0.0
+
+- [x] Correção docker-compose e pgadmin
+
+## Versão 0.42.0.0
+
+- [ ] Preparações production / staging
+    - CI/CD
+    - Taskfile
+    - Docker compose
+
+## Versão 0.43.0.0
+
+- [ ] Na CRON, precisamos barrar usuários inativos
+    - Atualmente temos o campo de último login que pode ser útil pra isso.
+- [ ] Temos que pensar em backup também
+    - O .env precisa incluir também o .env do ambiente né? Assim eu não perco ele e garanto que o meu .env tem os valores corretos daquele backup
+
 Achados durante a execução (não estavam no planejamento):
 
 - **Três rotas estavam abertas sem autenticação nenhuma**: `DELETE /v1/auth/invalidate`,
