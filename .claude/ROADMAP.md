@@ -144,10 +144,8 @@ Decisões tomadas durante a execução:
 ## Versão 0.43.0.0
 
 - [ ] Na CRON, precisamos barrar usuários inativos de receber notícias, isso vai limpar bastante o feed.
-    - Atualmente temos o campo de último login que pode ser útil pra isso.
+    - Vamos ter que criar um campo no usuário pra poder entender sua última atividade
     - eu acho que 2 semanas já tá bom né?
-- [ ] Temos que pensar em backup também
-    - O .env precisa incluir também o .env do ambiente né? Assim eu não perco ele e garanto que o meu .env tem os valores corretos daquele backup
 - [ ] Tentei colocar `https://www.petz.com.br/blog/` como fonte e ele não encontrou o RSS na URL `https://www.petz.com.br/blog/rss`, por quê?
     - Me parece que vários RSS não trazem as notícias completas em seu RSS, apenas a URL que vai até ela. Tem como a gente contornar isso?
     - Talvez a gente vá ter que acessar o link e tentar pegar o conteúdo dali, mas como?

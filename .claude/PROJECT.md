@@ -131,6 +131,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Testes de cascade envolvendo o usuário podem ser ignorados por enquanto.
     - Consequência atual: um usuário inativo (soft removed) não consegue logar atualmente pois o login busca apenas usuários ativos e a unicidade de `google_id`/`email` impediria um novo cadastro.
         - Isso é aceitável hoje porque não há endpoint de exclusão. Quando esse endpoint for criado, o comportamento (reativar o registro vs. recadastrar vs. tratar como LGPD/erasure) precisa ser decidido. Por ser uma decisão mais complexa do que parece vamos manter assim por enquanto.
+- Um usuário se torna automaticamente inativo para a descoberta de notícias após 15 dias de inatividade.
 
 ## Preferências do usuário
 
@@ -381,9 +382,10 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - `JUDGEMENT_THRESHOLD`: `threshold` de score da IA para considerar notícias pertencentes a um feed.
     - `JUDGEMENT_AUTOASSOCIATE_RATIO`: fração (0-1) das keywords do feed que a notícia precisa cobrir para ser auto-associada sem passar pela IA.
     - `JUDGEMENT_MIN_MATCHES`: mínimo de keywords em comum para um candidato chegar na IA; abaixo disso é descartado também sem IA.
-- O julgamento funciona através de duas etapas:
+- O julgamento funciona através de três etapas:
+    - Busca por usuários aptos: busca quais usuários estão aptos a receber a notícia.
     - Comparação de palavras chave: filtro em SQL que encontra os feeds candidatos e conta quantas keywords cada um casou (overlap).
-    - Triagem + julgamento: usando o overlap, cada candidato é auto-associado (overlap alto), descartado (overlap trivial) ou enviado à IA (borderline). Isso mantém o custo de IA baixo mesmo quando uma notícia genérica casa muitos feeds.
+    - Julgamento (triagem + IA): usando o overlap, cada candidato é auto-associado (overlap alto), descartado (overlap trivial) ou enviado à IA (borderline). Isso mantém o custo de IA baixo mesmo quando uma notícia genérica casa muitos feeds.
     - Gravação no banco de dados: forma um registro da associção entre feed e notícia no banco de dados.
 - O julgamento de notícias nunca é feito de forma retroativa.
 - O julgamento de notícias só pode considerar feeds que estão ativos.
@@ -397,9 +399,14 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
         - A camada 1 compara palavras-chave e a camada 2 usa `título + keywords`.
     - Esse endpoint responde os dados do julgamento de notícias antes da gravação no banco de dados, ou seja, até a penúltima etapa.
 
+### Busca por usuários aptos
+
+- A primeira etapa existe apenas para garantir que a notícia vá chegar apenas para os usuários ativos.
+    - Usuários são considerados ativos quando a data presente no campo `last_active_at` estiver entre hoje e 15 dias atrás.
+
 ### Comparação de palavras chave
 
-- A primeira etapa é a mais simples: ela realiza uma filtragem de quais feeds são os melhores candidatos a seguirem adiante através de uma comparação de palavras-chave da notícia.
+- A segunda etapa realiza uma filtragem de quais feeds são os melhores candidatos a seguirem adiante através de uma comparação de palavras-chave da notícia.
 - Essa filtragem é feita inteiramente em SQL.
     - As palavras-chave (tanto da notícia quanto dos feeds) são armazenadas como arrays JSON de strings minúsculas, então usamos `json_each` para expandir ambos os lados em linhas e um `JOIN` por igualdade exata de palavra-chave.
     - Um feed é candidato quando tem pelo menos uma palavra-chave em comum com a notícia.
