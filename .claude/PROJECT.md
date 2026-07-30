@@ -221,6 +221,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Esse endpoint deve trazer também os dados da tabela relacional (junction table) entre cada notícia e o feed.
 - A manipulção de notícias (criação, edição ou remoção) é exclusiva para administradores da aplicação.
     - Essa regra existe apenas para casos extremos de uma notícia que saiu do controle.
+    - A criação não passa pelo julgamento automaticamente. A ideia desse endpoint na verdade é abrir a futura possibilidade de notícias patrocinadas. Por enquanto ela existe apenas por padronização geral mesmo.
 - As notícias possuem um campo `language_original` que serve para detectar quando uma tradução pode ou não ser feita no client.
     - O valor deste campo deve ser o mesmo `enum` de idiomas usado globalmente na aplicação.
     - Utiliza-se a biblioteca `lingua-go` para fazer a detecção durante o tratamento de notícias.
