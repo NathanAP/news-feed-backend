@@ -1,0 +1,38 @@
+# Development overrides. Docker Compose merges this on top of docker-compose.yaml AUTOMATICALLY on
+# `docker compose up` (that is why `task ds`/`task dbs` take no extra flags). Everything here is a
+# dev-only convenience.
+#
+# The most important thing here is pgAdmin, and the most important thing about it is that it must NOT
+# run in staging/production: it is configured below in single-user desktop mode with NO login screen,
+# which is fine for a tool bound to loopback on a dev machine and unacceptable anywhere public.
+# Production applies its own file explicitly (`-f docker-compose.yaml -f docker-compose.prod.yaml`), and
+# an explicit `-f` disables this automatic override — so nothing declared here leaks outward.
+services:
+    # Database UI, development convenience — the stack's declared inspector (CLAUDE.md).
+    pgadmin4:
+        container_name: news-feed-pgadmin4
+        image: dpage/pgadmin4
+        ports:
+            # Loopback-bound: the pgAdmin below has no login, so it must not be reachable from the LAN.
+            # A local tunnel (SSH is the right kind for this — private and authenticated, unlike a public
+            # ngrok tunnel) still works, because the tunnel process runs on this host and reaches loopback.
+            - "127.0.0.1:5050:80"
+        environment:
+            PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+            PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+            # Single-user desktop mode: no login screen for a local dev tool. This is the reason pgAdmin
+            # opens straight into the dashboard — and the reason it may not be exposed publicly.
+            PGADMIN_CONFIG_SERVER_MODE: "False"
+            PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+        volumes:
+            # servers.json pre-registers the connection so the server tree is already there on first
+            # open. It holds no password on purpose — pgAdmin prompts for it.
+            - ./pgadmin4/servers.json:/pgadmin4/servers.json:ro
+            - pgadmin_data:/var/lib/pgadmin
+        depends_on:
+            postgres:
+                condition: service_healthy
+        restart: unless-stopped
+
+volumes:
+    pgadmin_data:

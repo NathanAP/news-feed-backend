@@ -1,9 +1,20 @@
+# Base stack: the services that run in EVERY environment — Postgres and the API. Postgres is not split
+# into its own file; it is shared infrastructure, so it lives here alongside the API.
+#
+# Development-only conveniences (pgAdmin) live in docker-compose.override.yaml, which Docker Compose
+# merges in AUTOMATICALLY on `docker compose up` — that is why `task ds`/`task dbs` need no extra flags.
+# A future production file is applied EXPLICITLY (`-f docker-compose.yaml -f docker-compose.prod.yaml`),
+# and an explicit `-f` disables the automatic override. So the dev-only pgAdmin never reaches production
+# by simply never being part of this base — not by anyone remembering to remove it.
 services:
     api:
         container_name: news-feed-api
         build: .
         ports:
-            - "3000:3000"
+            # Bound to loopback on purpose: reachable from this host (and from a tunnel/reverse proxy
+            # that runs ON this host, e.g. the ngrok dev tunnel or nginx), never directly from the LAN.
+            # A production file republishes this to whatever its edge requires.
+            - "127.0.0.1:3000:3000"
         env_file:
             - .env
         environment:
@@ -42,9 +53,11 @@ services:
         container_name: news-feed-postgres
         image: postgres:18-alpine
         ports:
-            # Published so the API can also run on the host (`task ls`) and so any client (pgAdmin,
-            # psql, a GUI) can reach it directly.
-            - "5432:5432"
+            # Published so the API can also run on the host (`task ls`) and so a host client (pgAdmin,
+            # psql, a GUI) can reach it directly — but bound to loopback, not exposed to the LAN.
+            # The pgAdmin container does NOT use this published port; it reaches Postgres by service
+            # name over the compose network.
+            - "127.0.0.1:5432:5432"
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -62,28 +75,5 @@ services:
             start_period: 5s
         restart: unless-stopped
 
-    # Database UI, development convenience — the stack's declared inspector (CLAUDE.md).
-    pgadmin4:
-        container_name: news-feed-pgadmin4
-        image: dpage/pgadmin4
-        ports:
-            - "5050:80"
-        environment:
-            PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
-            PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
-            # Single-user desktop mode: no login screen for a local dev tool.
-            PGADMIN_CONFIG_SERVER_MODE: "False"
-            PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
-        volumes:
-            # servers.json pre-registers the connection so the server tree is already there on first
-            # open. It holds no password on purpose — pgAdmin prompts for it.
-            - ./pgadmin4/servers.json:/pgadmin4/servers.json:ro
-            - pgadmin_data:/var/lib/pgadmin
-        depends_on:
-            postgres:
-                condition: service_healthy
-        restart: unless-stopped
-
 volumes:
     postgres_data:
-    pgadmin_data:
