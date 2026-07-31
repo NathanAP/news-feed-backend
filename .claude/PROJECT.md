@@ -388,8 +388,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - `JUDGEMENT_AUTOASSOCIATE_RATIO`: fração (0-1) das keywords do feed que a notícia precisa cobrir para ser auto-associada sem passar pela IA.
     - `JUDGEMENT_MIN_MATCHES`: mínimo de keywords em comum para um candidato chegar na IA; abaixo disso é descartado também sem IA.
 - O julgamento funciona através de três etapas:
-    - Busca por usuários aptos: busca quais usuários estão aptos a receber a notícia.
-    - Comparação de palavras chave: filtro em SQL que encontra os feeds candidatos e conta quantas keywords cada um casou (overlap).
+    - Preparação (busca por usuários aptos + comparação de palavras chave): busca quais usuários estão aptos a receber a notícia para depois realizar uma filtragem em SQL que encontra os feeds candidatos e conta quantas keywords cada um casou (overlap)
     - Julgamento (triagem + IA): usando o overlap, cada candidato é auto-associado (overlap alto), descartado (overlap trivial) ou enviado à IA (borderline). Isso mantém o custo de IA baixo mesmo quando uma notícia genérica casa muitos feeds.
     - Gravação no banco de dados: forma um registro da associção entre feed e notícia no banco de dados.
 - O julgamento de notícias nunca é feito de forma retroativa.
@@ -404,15 +403,11 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
         - A camada 1 compara palavras-chave e a camada 2 usa `título + keywords`.
     - Esse endpoint responde os dados do julgamento de notícias antes da gravação no banco de dados, ou seja, até a penúltima etapa.
 
-### Busca por usuários aptos
+### Preparação (busca por usuários aptos + comparação de palavras chave)
 
-- A primeira etapa existe apenas para garantir que a notícia vá chegar apenas para os usuários ativos.
-    - Usuários são considerados ativos quando a data presente no campo `last_active_at` estiver entre hoje e 15 dias atrás.
-    - Isso implica que usuários inativos vão acabar perdendo as notícias que foram descobertas durante o tempo de inatividade.
-
-### Comparação de palavras chave
-
-- A segunda etapa realiza uma filtragem de quais feeds são os melhores candidatos a seguirem adiante através de uma comparação de palavras-chave da notícia.
+- A preparação serve para garantir que a notícia vá chegar apenas para os usuários ativos e realizar uma filtragem de quais feeds são os melhores candidatos a seguirem adiante através de uma comparação de palavras-chave da notícia.
+- Usuários são considerados ativos quando a data presente no campo `last_active_at` estiver entre hoje e 15 dias atrás.
+- Isso implica que usuários inativos vão acabar perdendo as notícias que foram descobertas durante o tempo de inatividade.
 - Essa filtragem é feita inteiramente em SQL.
     - As palavras-chave (tanto da notícia quanto dos feeds) são armazenadas como arrays JSON de strings minúsculas, então usamos `json_each` para expandir ambos os lados em linhas e um `JOIN` por igualdade exata de palavra-chave.
     - Um feed é candidato quando tem pelo menos uma palavra-chave em comum com a notícia.
@@ -420,13 +415,13 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 ### Julgamento (triagem + IA)
 
-- O primeiro passo do julgamento passa por uma triagem barata baseada no overlap de keywords (o `ratio` é `overlap / nº de keywords do feed`):
+- A triagem é um passo barato baseada no overlap de keywords (o `ratio` é `overlap / nº de keywords do feed`):
     - `ratio >= JUDGEMENT_AUTOASSOCIATE_RATIO` faz uma auto-associação sem IA, ou seja, overlap forte é sinal suficiente.
     - overlap `< JUDGEMENT_MIN_MATCHES` faz descarte sem IA.
     - o resto (bateu >= `JUDGEMENT_MIN_MATCHES` mas ratio < `JUDGEMENT_AUTOASSOCIATE_RATIO`) marca para borderline e vai para a IA.
 - Dessa forma o custo de IA não escala de forma notícias x feeds candidatos, a triagem tira o grosso (feeds fortes e feeds fracos) de graça e só manda o meio para a IA, desacoplando o custo do total de feeds.
 - Filosofia dos riscos: auto-associar errado (falso positivo) é chato mas recuperável; descartar errado (falso negativo) faz o usuário nunca ver a notícia. Por isso o descarte é conservador (só 1 keyword), enquanto o auto-associar usa uma fração; e o threshold/ratio são calibráveis por env. O ajuste fino "de verdade" (peso por especificidade da keyword / embeddings) é futuro.
-- A etapa de IA define um `score` entre 0 e 100 a partir de `título + keywords` da notícia contra as keywords do feed, comparado ao `JUDGEMENT_THRESHOLD`. Como o corpo não é enviado, o threshold deve ser re-calibrado quando esses parâmetros mudarem.
+- O passo de IA define um `score` entre 0 e 100 a partir de `título + keywords` da notícia contra as keywords do feed, comparado ao `JUDGEMENT_THRESHOLD`. Como o corpo não é enviado, o threshold deve ser re-calibrado quando esses parâmetros mudarem.
 
 ### Gravação da associação no banco de dados
 
