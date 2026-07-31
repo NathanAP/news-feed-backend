@@ -135,7 +135,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Diferente do campo `last_active_at`, este controla quando o usuário fez o último processo de login completo pelo Google (e consequentemente cria uma nova sessão / `refresh_token`).
 - O campo `last_active_at` faz o controle de quando o usuário esteve ativo pela última vez na aplicação.
     - Ao criar um novo usuário, este campo já vem preenchido com `now` por padrão para evitar que o usuário de desenvolvimento tenha um valor de data fixado.
-    - Este campo é atualizado cada vez que o usuário passar pelo endpoint que renova a validade seu token por uma hora ou quando um login for realizado (atualizando tanto este campo quanto `last_login_at`).
+    - Este campo é atualizado cada vez que o usuário passar pelo endpoint que renova a validade do seu token por uma hora ou quando um login for realizado (atualizando tanto este campo quanto `last_login_at`).
     - Um usuário se torna automaticamente inativo para a descoberta de notícias após uma quantidade de dias de inatividade, definida pela variável de ambiente chamada `DAYS_UNTIL_USER_IS_INACTIVE`.
         - Este campo também pode receber o valor em `-1` para indicar que o tempo de dias é infinito, assim um usuário de desenvolvimento não se torna inativo nunca.
     - Isso implica que usuários inativos vão acabar perdendo as notícias que foram descobertas durante o tempo de inatividade.
@@ -188,16 +188,17 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 ### Sugestão de palavras-chave
 
 - Ao montar um feed, o usuário recebe sugestões de palavras-chave para adicionar, através do endpoint `GET base_url/v1/feeds/keyword-suggestions`.
-    - As sugestões saem do acervo **global** de notícias (notícias são públicas), então não há escopo por usuário — mas o endpoint exige autenticação.
-    - O objetivo de produto é **empurrar o usuário para palavras-chave genéricas** (gênero/categoria como `rock`, `concerts`, `albums`): o específico ("metallica") a pessoa lembra sozinha, o genérico é o que ela esquece e é justamente o que faz a notícia bater no feed na camada 1 do julgamento. Por isso o ranking é por contagem de ocorrência crua, sem penalizar termos genéricos — é uma decisão consciente, não uma limitação.
+    - As sugestões saem do acervo global de notícias, então não há escopo por usuário, mas o endpoint exige autenticação.
+    - O objetivo de produto é empurrar o usuário para palavras-chave genéricas (gênero/categoria como `rock`, `concerts`, `albums`), pois o específico ("metallica") a pessoa lembra sozinha então o genérico é o que ela esquece e é justamente o que faz a notícia bater no feed na etapa de julgamento. Por isso o ranking é por contagem de ocorrência crua, sem penalizar termos genéricos.
 - O endpoint aceita os seguintes parâmetros de query (todos opcionais):
     - `keywords`: as palavras-chave já escolhidas, separadas por vírgula. São normalizadas no servidor (trim, minúsculas, deduplicadas, vazias descartadas); passar mais que o teto de um feed (`FeedKeywordsMax`) resulta em 400.
-    - `limit`: quantas sugestões trazer (padrão 10, mínimo 1, máximo 50). Nunca gera erro — valores inválidos caem no padrão e são limitados à faixa.
-- O endpoint opera em duas estratégias, decididas no servidor, e **sempre devolve alguma sugestão** (nunca fica vazio quando há notícias):
-    - `related`: quando há palavras-chave escolhidas, sugere as que mais **co-ocorrem** com elas (aparecem nas mesmas notícias). É topical, não temporal — não sofre janela de tempo.
-    - `popular`: quando nada foi escolhido, **ou** quando a estratégia `related` não encontrou nada, sugere as palavras-chave mais frequentes nas notícias recentes.
+    - `limit`: quantas sugestões trazer (padrão 10, mínimo 1, máximo 50).
+- O endpoint opera em duas estratégias, decididas no servidor, e sempre devolve alguma sugestão, ou seja, nunca fica vazio quando há notícias:
+    - `related`: quando há palavras-chave escolhidas, sugere as que mais co-ocorrem com elas (aparecem nas mesmas notícias). É topical, não temporal, ou seja, não sofre janela de tempo.
+    - `popular`: quando nada foi escolhido ou quando a estratégia `related` não encontrou nada, sugere as palavras-chave mais frequentes nas notícias recentes.
         - "Recente" é controlado pela variável de ambiente `KEYWORD_SUGGESTIONS_WINDOW_DAYS` (padrão 30 dias; `-1` desliga a janela e considera todo o histórico). A janela existe tanto por produto ("popular agora") quanto por custo — é uma agregação da tabela inteira, então limitá-la no tempo evita varrer todo o acervo.
     - A palavra-chave já escolhida nunca é sugerida de volta (vale para as duas estratégias).
+    - Este endpoint não é paginado (ver isenção em `conventions.md` e na seção "Paginação").
 - A resposta ecoa qual estratégia gerou a lista, para o client rotular ("Relacionadas às suas escolhas" vs "Populares agora") e para o fallback ser observável sem ler log:
     ```json
     {
@@ -208,9 +209,8 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
         ]
     }
     ```
-- Não é paginado: é um indicador ranqueado (ver isenção em `conventions.md` e na seção "Paginação").
 - Apenas notícias ativas alimentam as contagens (uma notícia soft-removida é invisível aqui, como em qualquer busca).
-- Ponto em aberto conhecido: a **faixa máxima de palavras-chave do feed** (`FeedKeywordsMax`, hoje 20) e os knobs de triagem do julgamento (`JUDGEMENT_AUTOASSOCIATE_RATIO` etc.) são as alavancas reais da qualidade do match, e devem ser recalibrados com dado real quando houver volume de feeds. A sugestão de keywords foi entregue com ranking simples (contagem crua) de propósito, para observar o comportamento real antes de investir em ranking mais elaborado (ex.: peso por especificidade / lift).
+- Ponto em aberto conhecido: a faixa máxima de palavras-chave do feed (`FeedKeywordsMax`, hoje 20) e os knobs de triagem do julgamento (`JUDGEMENT_AUTOASSOCIATE_RATIO` etc.) são as alavancas reais da qualidade do match, e devem ser recalibrados com dado real quando houver volume de feeds. A sugestão de keywords foi entregue com ranking simples (contagem crua) de propósito, para observar o comportamento real antes de investir em ranking mais elaborado (ex.: peso por especificidade / lift).
 
 ## Notícias
 
@@ -242,7 +242,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - O campo de palavras-chave é uma lista de `string` (no formato `JSON array (TEXT)`).
     - Quanto mais palavras-chave uma notícia tem, mais amplo vai ser a distribuição aos feeds durante o julgamento.
     - As palavras-chave devem misturar termos específicos (pessoas, marcas, lugares, eventos) e genéricos (gênero/categoria/domínio, ex.: `rock`, `metal`, `music`, `sports`).
-        - Os genéricos são o que permite a um feed genérico casar uma notícia de entidades específicas na camada 1 do julgamento mais facilmente.
+        - Os genéricos são o que permite a um feed genérico casar uma notícia de entidades específicas na etapa de julgamento mais facilmente.
 - Alterar as palavras-chave de uma notícia não faz com que um novo julgamento aconteça.
 - As notícias estão diretamente ligadas à uma fonte de notícias, por isso é obrigatório também passar uma referência (`source_id`) à qual ela pertence.
     - Este campo é obrigatório e imutável.
@@ -402,7 +402,6 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Esse endpoint é considerada uma dry-run, ou seja, ela não cria ou altera nenhum registro do banco de dados.
     - O body deste endpoint deve aceitar um `json` contendo os dados necessários para se fazer a simulação de um julgamento.
         - Evite a necessidade de passar um `id` de notícias válido, assim poderemos fazer simulações mais rapidamente.
-        - A camada 1 compara palavras-chave e a camada 2 usa `título + keywords`.
     - Esse endpoint responde os dados do julgamento de notícias antes da gravação no banco de dados, ou seja, até a penúltima etapa.
 
 ### Preparação (busca por usuários aptos + comparação de palavras chave)
@@ -410,7 +409,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - A preparação serve para garantir que a notícia vá chegar apenas para os usuários ativos e realizar uma filtragem de quais feeds são os melhores candidatos a seguirem adiante através de uma comparação de palavras-chave da notícia.
     - A sessão de usuários trata as regras sobre inatividade.
 - Essa filtragem é feita inteiramente em SQL.
-    - As palavras-chave (tanto da notícia quanto dos feeds) são armazenadas como arrays JSON de strings minúsculas, então usamos `json_each` para expandir ambos os lados em linhas e um `JOIN` por igualdade exata de palavra-chave.
+    - As palavras-chave (tanto da notícia quanto dos feeds) são armazenadas como arrays JSON de strings minúsculas, então usamos `jsonb_array_elements_text` para expandir ambos os lados em linhas e um `JOIN` por igualdade exata de palavra-chave.
     - Um feed é candidato quando tem pelo menos uma palavra-chave em comum com a notícia.
     - A query agrupa por feed e **conta o overlap** (`COUNT(DISTINCT ...) AS overlap_count`) — esse número é o sinal usado pela triagem (query `FindCandidateFeedsByKeywords`).
 
