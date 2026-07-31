@@ -135,6 +135,8 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Este campo é atualizado cada vez que o usuário passar pelo endpoint que renova a validade seu token por uma hora.
     - Um usuário se torna automaticamente inativo para a descoberta de notícias após 15 dias de inatividade.
     - Isso implica que usuários inativos vão acabar perdendo as notícias que foram descobertas durante o tempo de inatividade.
+- O campo `last_login_at` faz o controle de quando o usuário logou pela última vez.
+    - Diferente do campo `last_active_at`, este controla quando foi a última vez que um token foi criado.
 
 ## Preferências do usuário
 
