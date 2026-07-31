@@ -169,6 +169,10 @@ Decisões tomadas durante a execução:
     - A gente precisa de uma CRON pra cada worker?
     - E se a CRON demorar demais?
 
+## Versão 0.46.0.0
+
+- [ ] Revisão
+
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 
 - Aumentar o verbose mode (+++++++++++++++++++++ logs)
