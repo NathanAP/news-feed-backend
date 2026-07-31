@@ -35,7 +35,7 @@ func judgeCandidate(id string, feedKeywords []string, overlap int) controllers.F
 // FindCandidatesByKeywords is exercised; the rest satisfy the interface. By default it returns one
 // borderline candidate (7 keywords, 2 overlapping → 28% < 30% and >= 2 matches) so layer 2 (AI) runs.
 type mockJudgeFeedCtrl struct {
-	findCandidatesFn func(ctx context.Context, q db.Querier, keywords []string) ([]controllers.FeedCandidate, error)
+	findCandidatesFn func(ctx context.Context, q db.Querier, keywords []string, inactiveDays int) ([]controllers.FeedCandidate, error)
 }
 
 func (m *mockJudgeFeedCtrl) Create(_ context.Context, _ db.Querier, userID, _ string, _ []string) (db.Feed, error) {
@@ -44,9 +44,9 @@ func (m *mockJudgeFeedCtrl) Create(_ context.Context, _ db.Querier, userID, _ st
 func (m *mockJudgeFeedCtrl) FindByID(_ context.Context, _ db.Querier, _, userID string) (db.Feed, error) {
 	return fixtures.NewTestFeed(userID), nil
 }
-func (m *mockJudgeFeedCtrl) FindCandidatesByKeywords(ctx context.Context, q db.Querier, keywords []string) ([]controllers.FeedCandidate, error) {
+func (m *mockJudgeFeedCtrl) FindCandidatesByKeywords(ctx context.Context, q db.Querier, keywords []string, inactiveDays int) ([]controllers.FeedCandidate, error) {
 	if m.findCandidatesFn != nil {
-		return m.findCandidatesFn(ctx, q, keywords)
+		return m.findCandidatesFn(ctx, q, keywords, inactiveDays)
 	}
 	return []controllers.FeedCandidate{
 		judgeCandidate("01900000-0000-7000-8000-000000000001", []string{"a", "b", "c", "d", "e", "f", "g"}, 2),
@@ -71,7 +71,7 @@ func judgementApp(feedCtrl controllers.FeedControllerInterface, judger ai.Judger
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
 	judgers := map[string]ai.Judger{"local": judger, "groq": judger, "gemini": judger}
-	app.Post("/v1/articles/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, "local", 70, 0.30, 2, fakeTxRunner))...)
+	app.Post("/v1/articles/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, "local", 70, 0.30, 2, -1, fakeTxRunner))...)
 	return app
 }
 
@@ -118,7 +118,7 @@ func TestJudgeArticle_AutoAssociatesStrongOverlap(t *testing.T) {
 	// 5-keyword feed with 3 overlapping (60% >= 30%) → auto-associated, no AI. The judger would error
 	// if called, proving no AI ran.
 	strong := &mockJudgeFeedCtrl{
-		findCandidatesFn: func(_ context.Context, _ db.Querier, _ []string) ([]controllers.FeedCandidate, error) {
+		findCandidatesFn: func(_ context.Context, _ db.Querier, _ []string, _ int) ([]controllers.FeedCandidate, error) {
 			return []controllers.FeedCandidate{
 				judgeCandidate("01900000-0000-7000-8000-00000000000a", []string{"a", "b", "c", "d", "e"}, 3),
 			}, nil
@@ -145,7 +145,7 @@ func TestJudgeArticle_DiscardsSingleKeywordOverlap(t *testing.T) {
 
 	// 1 overlapping keyword (< min 2) → discarded, no AI.
 	weak := &mockJudgeFeedCtrl{
-		findCandidatesFn: func(_ context.Context, _ db.Querier, _ []string) ([]controllers.FeedCandidate, error) {
+		findCandidatesFn: func(_ context.Context, _ db.Querier, _ []string, _ int) ([]controllers.FeedCandidate, error) {
 			return []controllers.FeedCandidate{
 				judgeCandidate("01900000-0000-7000-8000-00000000000b", []string{"a", "b", "c", "d", "e"}, 1),
 			}, nil
@@ -202,7 +202,7 @@ func TestJudgeArticle_NoCandidates(t *testing.T) {
 	requireNotProduction(t)
 
 	noCandidates := &mockJudgeFeedCtrl{
-		findCandidatesFn: func(_ context.Context, _ db.Querier, _ []string) ([]controllers.FeedCandidate, error) {
+		findCandidatesFn: func(_ context.Context, _ db.Querier, _ []string, _ int) ([]controllers.FeedCandidate, error) {
 			return []controllers.FeedCandidate{}, nil
 		},
 	}

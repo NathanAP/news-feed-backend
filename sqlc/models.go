@@ -75,17 +75,18 @@ type System struct {
 }
 
 type User struct {
-	ID          string           `json:"id"`
-	GoogleID    string           `json:"google_id"`
-	Email       string           `json:"email"`
-	Name        string           `json:"name"`
-	Picture     sql.NullString   `json:"picture"`
-	Status      bool             `json:"status"`
-	LastLoginAt utctime.NullTime `json:"last_login_at"`
-	CreatedAt   utctime.Time     `json:"created_at"`
-	ModifiedAt  utctime.NullTime `json:"modified_at"`
-	RemovedAt   utctime.NullTime `json:"removed_at"`
-	Admin       bool             `json:"admin"`
+	ID           string           `json:"id"`
+	GoogleID     string           `json:"google_id"`
+	Email        string           `json:"email"`
+	Name         string           `json:"name"`
+	Picture      sql.NullString   `json:"picture"`
+	Status       bool             `json:"status"`
+	LastLoginAt  utctime.NullTime `json:"last_login_at"`
+	CreatedAt    utctime.Time     `json:"created_at"`
+	ModifiedAt   utctime.NullTime `json:"modified_at"`
+	RemovedAt    utctime.NullTime `json:"removed_at"`
+	Admin        bool             `json:"admin"`
+	LastActiveAt utctime.Time     `json:"last_active_at"`
 }
 
 type UserPreference struct {

@@ -48,7 +48,10 @@ type TreatmentProcessor struct {
 	clientURL   string
 	urlVerbose  bool
 	concurrency int
-	verbose     bool
+	// inactiveDays is passed to judgement layer 1 so feeds of users not seen within that many days are
+	// skipped; -1 disables the filter (every user counts as active).
+	inactiveDays int
+	verbose      bool
 }
 
 func NewTreatmentProcessor(
@@ -62,20 +65,22 @@ func NewTreatmentProcessor(
 	clientURL string,
 	urlVerbose bool,
 	concurrency int,
+	inactiveDays int,
 	verbose bool,
 ) *TreatmentProcessor {
 	return &TreatmentProcessor{
-		runTx:       runTx,
-		articleCtrl: articleCtrl,
-		feedCtrl:    feedCtrl,
-		afCtrl:      afCtrl,
-		detector:    detector,
-		keyworder:   keyworder,
-		evaluator:   evaluator,
-		clientURL:   clientURL,
-		urlVerbose:  urlVerbose,
-		concurrency: concurrency,
-		verbose:     verbose,
+		runTx:        runTx,
+		articleCtrl:  articleCtrl,
+		feedCtrl:     feedCtrl,
+		afCtrl:       afCtrl,
+		detector:     detector,
+		keyworder:    keyworder,
+		evaluator:    evaluator,
+		clientURL:    clientURL,
+		urlVerbose:   urlVerbose,
+		concurrency:  concurrency,
+		inactiveDays: inactiveDays,
+		verbose:      verbose,
 	}
 }
 
@@ -204,7 +209,7 @@ func (p *TreatmentProcessor) judge(ctx context.Context, article db.Article, keyw
 	var candidates []controllers.FeedCandidate
 	if err := p.runTx(ctx, func(q db.Querier) error {
 		var e error
-		candidates, e = p.feedCtrl.FindCandidatesByKeywords(ctx, q, keywords)
+		candidates, e = p.feedCtrl.FindCandidatesByKeywords(ctx, q, keywords, p.inactiveDays)
 		return e
 	}); err != nil {
 		p.log(fmt.Sprintf("    judge candidate lookup failed for %s: %v", article.ID, err), logger.ColorRed)

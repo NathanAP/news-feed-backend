@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.42.0.0
+0.43.0.0
 
 ## Versão 0.37.3.0
 
@@ -143,12 +143,31 @@ Decisões tomadas durante a execução:
 
 ## Versão 0.43.0.0
 
-- [ ] Na CRON, precisamos barrar usuários inativos de receber notícias, isso vai limpar bastante o feed.
-    - Vamos ter que criar um campo no usuário pra poder entender sua última atividade
+- [x] Na CRON, barrar usuários inativos de receber notícias
+    - Migração `users.last_active_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP`. O `ADD COLUMN`
+      já faz o backfill (toda linha existente recebe a hora da migração), então ninguém vira inativo
+      no deploy. Novo usuário nasce com `now()` (acabou de logar).
+    - **Sinal de atividade, não de login**: `last_active_at` é escrito no `/auth/refresh` (o batimento
+      ~horário), no login e no `dev-login`. Diferente do `last_login_at`, que só muda no login completo
+      do Google (~30 dias) e marcaria um usuário diário como inativo.
+    - Filtro na **camada 1** (`FindCandidateFeedsByKeywords`): um `JOIN users` com predicado de
+      atividade dentro da MESMA query — o custo de IA cai porque feeds de inativos nem viram candidatos.
+      `DAYS_UNTIL_USER_IS_INACTIVE` controla a janela; `-1` desliga (todo mundo ativo). Threaded do
+      `main.go` até o processor da CRON e o dry-run de julgamento.
+    - Aceito de propósito: julgamento não é retroativo, então quem volta perdeu as notícias do período
+      inativo (documentado no `PROJECT.md`).
+    - Testes: filtro pega inativo / mantém ativo / `-1` ignora (integração contra o Postgres); e o
+      refresh realmente carimba `last_active_at` (o elo sem o qual o filtro se auto-sabota).
 
 ## Versão 0.44.0.0
 
 - [ ] Adicionar o campo `fetch_full_content` às fontes de notícias
+
+## Versão 0.45.0.0
+
+- [ ] Entender como a CRON pode ser organizada
+    - A gente precisa de uma CRON pra cada worker?
+    - E se a CRON demorar demais?
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 

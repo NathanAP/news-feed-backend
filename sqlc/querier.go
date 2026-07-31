@@ -7,7 +7,6 @@ package db
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 
 	utctime "github.com/nathanap/news-feed-backend/services/utctime"
 )
@@ -56,6 +55,12 @@ type Querier interface {
 	FindArticleFeedsByArticleAndUser(ctx context.Context, arg FindArticleFeedsByArticleAndUserParams) ([]ArticlesFeed, error)
 	// Judgement layer 1 (keyword overlap): returns every active feed (of any user) that shares at
 	// least one keyword with the article, along with overlap_count (how many distinct keywords matched).
+	// Restricted to feeds owned by an ACTIVE user (0.43): the join to users drops feeds whose owner has
+	// not been seen within inactive_days, so the CRON stops routing news (and paying for AI) to abandoned
+	// accounts. inactive_days = -1 disables the window (every user counts as active); a positive N means
+	// last_active_at must be within N days. The owner must also be active (status/removed_at) like every
+	// other related lookup. Judgement is not retroactive, so an account that comes back has permanently
+	// missed the articles discovered while it was inactive - this is the accepted trade-off.
 	// Both sides are JSONB arrays of lowercase strings, so jsonb_array_elements_text expands each into
 	// rows and the join matches on exact keyword equality. The LATERAL is what lets the expansion of
 	// f.keywords reference the feed row being scanned; the article's side does not depend on the row, so
@@ -75,7 +80,7 @@ type Querier interface {
 	// either way), so it cannot change the result set - it only lets the planner discard non-candidates
 	// before the expensive expansion. It must be kept in sync with the join's matching rule: both sides
 	// compare the same lowercase text keys.
-	FindCandidateFeedsByKeywords(ctx context.Context, keywords json.RawMessage) ([]FindCandidateFeedsByKeywordsRow, error)
+	FindCandidateFeedsByKeywords(ctx context.Context, arg FindCandidateFeedsByKeywordsParams) ([]FindCandidateFeedsByKeywordsRow, error)
 	FindFeedByIDAndUser(ctx context.Context, arg FindFeedByIDAndUserParams) (Feed, error)
 	FindRefreshTokenByID(ctx context.Context, id string) (RefreshToken, error)
 	FindSourceByID(ctx context.Context, id string) (Source, error)
@@ -175,6 +180,9 @@ type Querier interface {
 	UpdateSource(ctx context.Context, arg UpdateSourceParams) (Source, error)
 	UpdateSystemAppStatus(ctx context.Context, appStatus bool) (System, error)
 	UpdateSystemLastArticleDiscovery(ctx context.Context, lastArticleDiscoveryAt utctime.NullTime) (System, error)
+	// UpdateUserLastActive stamps the user's activity heartbeat. Called on every /auth/refresh (the
+	// hourly ping) and on login. This is the signal the discovery filter reads to skip inactive users.
+	UpdateUserLastActive(ctx context.Context, id string) error
 	UpdateUserLastLogin(ctx context.Context, id string) error
 	UpdateUserPreferences(ctx context.Context, arg UpdateUserPreferencesParams) (UserPreference, error)
 }

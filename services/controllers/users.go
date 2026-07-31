@@ -87,6 +87,16 @@ func (c *UserController) UpdateUserLastLogin(ctx context.Context, q db.Querier, 
 	return nil
 }
 
+// UpdateUserLastActive stamps the user's activity heartbeat (last_active_at). It is called on every
+// token refresh and on login, so an actively-used account keeps a fresh timestamp; the discovery
+// filter (judgement layer 1) reads it to skip feeds of users who have gone quiet.
+func (c *UserController) UpdateUserLastActive(ctx context.Context, q db.Querier, id string) error {
+	if err := q.UpdateUserLastActive(ctx, id); err != nil {
+		return fmt.Errorf("failed to update last active: %w", err)
+	}
+	return nil
+}
+
 // SetAdmin promotes or demotes a user on the given querier without committing. It is the only way an
 // administrator comes into existence: CreateUser does not touch the column, so no login path can
 // produce one by accident. Only the development seed calls it today (PROJECT.md keeps promotion a

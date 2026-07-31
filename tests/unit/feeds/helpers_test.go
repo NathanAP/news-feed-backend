@@ -63,7 +63,7 @@ var _ controllers.RefreshTokenControllerInterface = (*mockRefreshTokenCtrl)(nil)
 type mockFeedCtrl struct {
 	createFn         func(ctx context.Context, q db.Querier, userID, name string, keywords []string) (db.Feed, error)
 	findByIDFn       func(ctx context.Context, q db.Querier, id, userID string) (db.Feed, error)
-	findCandidatesFn func(ctx context.Context, q db.Querier, keywords []string) ([]controllers.FeedCandidate, error)
+	findCandidatesFn func(ctx context.Context, q db.Querier, keywords []string, inactiveDays int) ([]controllers.FeedCandidate, error)
 	listFn           func(ctx context.Context, q db.Querier, userID string, filter controllers.ListFeedsFilter) ([]db.Feed, int64, error)
 	listAllFn        func(ctx context.Context, q db.Querier, userID string) ([]db.Feed, error)
 	updateFn         func(ctx context.Context, q db.Querier, id, userID, name string, keywords []string) (db.Feed, error)
@@ -82,9 +82,9 @@ func (m *mockFeedCtrl) FindByID(ctx context.Context, q db.Querier, id, userID st
 	}
 	return fixtures.NewTestFeed(userID), nil
 }
-func (m *mockFeedCtrl) FindCandidatesByKeywords(ctx context.Context, q db.Querier, keywords []string) ([]controllers.FeedCandidate, error) {
+func (m *mockFeedCtrl) FindCandidatesByKeywords(ctx context.Context, q db.Querier, keywords []string, inactiveDays int) ([]controllers.FeedCandidate, error) {
 	if m.findCandidatesFn != nil {
-		return m.findCandidatesFn(ctx, q, keywords)
+		return m.findCandidatesFn(ctx, q, keywords, inactiveDays)
 	}
 	return []controllers.FeedCandidate{}, nil
 }

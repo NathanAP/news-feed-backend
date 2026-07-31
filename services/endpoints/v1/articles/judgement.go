@@ -22,7 +22,7 @@ import (
 // or overridden per call via the body's `judgement_mode` (local | groq | gemini). It stops at the
 // penultimate step: it does NOT write any articles_feeds association. It does call the AI for real
 // (consumes quota) and reads real feeds. Open for now (admin-future).
-func JudgeArticle(feedCtrl controllers.FeedControllerInterface, judgers map[string]ai.Judger, defaultMode string, threshold int, autoAssociateRatio float64, minMatches int, runTx controllers.TransactionRunner) fiber.Handler {
+func JudgeArticle(feedCtrl controllers.FeedControllerInterface, judgers map[string]ai.Judger, defaultMode string, threshold int, autoAssociateRatio float64, minMatches int, inactiveDays int, runTx controllers.TransactionRunner) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
@@ -54,7 +54,7 @@ func JudgeArticle(feedCtrl controllers.FeedControllerInterface, judgers map[stri
 		var candidates []controllers.FeedCandidate
 		if err := runTx(c.Context(), func(q db.Querier) error {
 			var e error
-			candidates, e = feedCtrl.FindCandidatesByKeywords(c.Context(), q, req.Article.Keywords)
+			candidates, e = feedCtrl.FindCandidatesByKeywords(c.Context(), q, req.Article.Keywords, inactiveDays)
 			return e
 		}); err != nil {
 			logger.Log(fmt.Sprintf("candidate lookup failed: %v", err), logger.ColorRed)

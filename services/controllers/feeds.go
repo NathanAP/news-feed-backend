@@ -124,7 +124,11 @@ type FeedCandidate struct {
 // first layer of judgement: it narrows the whole feed set down to plausible candidates before the
 // (expensive) AI scoring. Keywords are normalized to the same lowercase JSON representation used for
 // storage so equality matches.
-func (c *FeedController) FindCandidatesByKeywords(ctx context.Context, q db.Querier, keywords []string) ([]FeedCandidate, error) {
+//
+// inactiveDays restricts candidates to feeds owned by a user seen within that many days (last_active_at);
+// -1 disables the restriction (every user counts as active). This is what keeps the CRON from routing
+// news, and spending AI, on abandoned accounts.
+func (c *FeedController) FindCandidatesByKeywords(ctx context.Context, q db.Querier, keywords []string, inactiveDays int) ([]FeedCandidate, error) {
 	if len(keywords) == 0 {
 		return []FeedCandidate{}, nil
 	}
@@ -134,7 +138,10 @@ func (c *FeedController) FindCandidatesByKeywords(ctx context.Context, q db.Quer
 		return nil, err
 	}
 
-	rows, err := q.FindCandidateFeedsByKeywords(ctx, encodedKeywords)
+	rows, err := q.FindCandidateFeedsByKeywords(ctx, db.FindCandidateFeedsByKeywordsParams{
+		Keywords:     encodedKeywords,
+		InactiveDays: int32(inactiveDays),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to find candidate feeds: %w", err)
 	}

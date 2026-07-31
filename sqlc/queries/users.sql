@@ -18,6 +18,13 @@ UPDATE users
 SET last_login_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
 WHERE id = $1 AND status = TRUE AND removed_at IS NULL;
 
+-- UpdateUserLastActive stamps the user's activity heartbeat. Called on every /auth/refresh (the
+-- hourly ping) and on login. This is the signal the discovery filter reads to skip inactive users.
+-- name: UpdateUserLastActive :exec
+UPDATE users
+SET last_active_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
+WHERE id = $1 AND status = TRUE AND removed_at IS NULL;
+
 -- SetUserAdmin is deliberately separate from CreateUser instead of an `admin` parameter on it: the
 -- Google login flow is the only caller of CreateUser, and keeping the column out of that INSERT makes
 -- it structurally impossible for a login to mint an administrator. Promotion is an explicit, separate

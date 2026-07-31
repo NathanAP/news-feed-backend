@@ -43,6 +43,12 @@ WHERE user_id = $1 AND status = TRUE AND removed_at IS NULL;
 -- name: FindCandidateFeedsByKeywords :many
 -- Judgement layer 1 (keyword overlap): returns every active feed (of any user) that shares at
 -- least one keyword with the article, along with overlap_count (how many distinct keywords matched).
+-- Restricted to feeds owned by an ACTIVE user (0.43): the join to users drops feeds whose owner has
+-- not been seen within inactive_days, so the CRON stops routing news (and paying for AI) to abandoned
+-- accounts. inactive_days = -1 disables the window (every user counts as active); a positive N means
+-- last_active_at must be within N days. The owner must also be active (status/removed_at) like every
+-- other related lookup. Judgement is not retroactive, so an account that comes back has permanently
+-- missed the articles discovered while it was inactive - this is the accepted trade-off.
 -- Both sides are JSONB arrays of lowercase strings, so jsonb_array_elements_text expands each into
 -- rows and the join matches on exact keyword equality. The LATERAL is what lets the expansion of
 -- f.keywords reference the feed row being scanned; the article's side does not depend on the row, so
@@ -65,6 +71,10 @@ WHERE user_id = $1 AND status = TRUE AND removed_at IS NULL;
 SELECT f.id, f.status, f.name, f.keywords, f.user_id, f.created_at, f.modified_at, f.removed_at,
        COUNT(DISTINCT fk.value) AS overlap_count
 FROM feeds f
+JOIN users u ON u.id = f.user_id
+  AND u.status = TRUE AND u.removed_at IS NULL
+  AND (sqlc.arg(inactive_days)::int = -1
+       OR u.last_active_at > CURRENT_TIMESTAMP - make_interval(days => sqlc.arg(inactive_days)::int))
 CROSS JOIN LATERAL jsonb_array_elements_text(f.keywords) AS fk(value)
 JOIN jsonb_array_elements_text(sqlc.arg(keywords)::jsonb) AS ak(value) ON ak.value = fk.value
 WHERE f.status = TRUE AND f.removed_at IS NULL

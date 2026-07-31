@@ -51,6 +51,10 @@ func (m *MockUserController) UpdateUserLastLogin(_ context.Context, _ db.Querier
 	return nil
 }
 
+func (m *MockUserController) UpdateUserLastActive(_ context.Context, _ db.Querier, _ string) error {
+	return nil
+}
+
 func (m *MockUserController) SetAdmin(_ context.Context, _ db.Querier, id string, admin bool) (db.User, error) {
 	user := fixtures.NewTestUser()
 	user.ID = id

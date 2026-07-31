@@ -46,6 +46,12 @@ A coluna **não** é escrita pelo `CreateUser`: quem promove é a query `SetUser
 fluxo de login consegue criar um administrador. Fica no fim da tabela, onde o `ALTER TABLE` a colocou;
 como as queries usam `SELECT *`, a ordem de colunas do `schema.sql` precisa bater com a real.
 
+`last_active_at` (0.43): `TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP`, sem índice. Sinal de
+**atividade** (não de login): escrito no `/auth/refresh`, no login e no `dev-login` (query
+`UpdateUserLastActive`). É lido pela camada 1 do julgamento (`FindCandidateFeedsByKeywords` faz um
+`JOIN users` e descarta feeds de usuários não vistos dentro de `DAYS_UNTIL_USER_IS_INACTIVE` dias; `-1`
+desliga). Backfill automático no `ADD COLUMN`; usuário novo nasce com `now()`. Também no fim da tabela.
+
 ### user_preferences (1:1 com users)
 
 `id`, `user_id` (UNIQUE, FK users), `status`, `language_to_translate`

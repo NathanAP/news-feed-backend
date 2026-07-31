@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -54,7 +55,7 @@ func setupWithConcurrency(t *testing.T, aiClient ai.Client, concurrency int) (co
 	evaluator := judgement.NewEvaluator(aiClient, 70, 0.30, 2)
 	detector := &servicemocks.MockLanguageDetector{}
 	// clientURL empty: url treatment is skipped for these tests (they assert on other behavior).
-	processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, detector, aiClient, evaluator, "", false, concurrency, false)
+	processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, detector, aiClient, evaluator, "", false, concurrency, -1, false)
 	return runTx, queries, processor
 }
 
@@ -121,7 +122,7 @@ func TestIntegration_Processor_NullLanguageOnDetectionFailure(t *testing.T) {
 	evaluator := judgement.NewEvaluator(aiClient, 70, 0.30, 2)
 	processor := discovery.NewTreatmentProcessor(
 		runTx, controllers.NewArticleController(), controllers.NewFeedController(),
-		controllers.NewArticleFeedController(), failingDetector, aiClient, evaluator, "", false, 1, false,
+		controllers.NewArticleFeedController(), failingDetector, aiClient, evaluator, "", false, 1, -1, false,
 	)
 
 	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{item("https://src.com/nolang")}))
@@ -154,7 +155,7 @@ func TestIntegration_Processor_RewritesInternalLinks(t *testing.T) {
 	processor := discovery.NewTreatmentProcessor(
 		runTx, controllers.NewArticleController(), controllers.NewFeedController(),
 		controllers.NewArticleFeedController(), &servicemocks.MockLanguageDetector{}, aiClient, evaluator,
-		"https://client.app", false, 1, false,
+		"https://client.app", false, 1, -1, false,
 	)
 
 	newItem := discovery.DiscoveredArticle{
@@ -355,4 +356,79 @@ func TestIntegration_Processor_AIFailureDoesNotPersist(t *testing.T) {
 	articles, err := queries.ListAllArticles(t.Context())
 	require.NoError(t, err)
 	assert.Empty(t, articles, "a keyword failure must leave nothing persisted")
+}
+
+// TestIntegration_Processor_SkipsInactiveUserFeed exercises the 0.43 filter through the WHOLE pipeline
+// (mocked AI, real DB), not just the query: two users own an identical auto-associate feed, one active
+// and one backdated past the window. Running discovery over one article must associate it to the active
+// user's feed and skip the inactive one's — proving the processor threads inactiveDays into judgement.
+func TestIntegration_Processor_SkipsInactiveUserFeed(t *testing.T) {
+	requireNotProduction(t)
+
+	// Auto-associate band (3/5 overlap with the mock keyworder's alpha..epsilon) → no AI. The Judge
+	// errors if reached, so any association here is pre-AI and purely the keyword+activity filter.
+	noAI := &external.MockAIClient{
+		JudgeFn: func(_ context.Context, _ []string, _ string, _ []string) (int, error) {
+			return 0, assert.AnError
+		},
+	}
+
+	database := testutils.SetupTestDB(t)
+	queries := db.New(database)
+	runTx := controllers.NewTransactionRunner(database)
+	_, err := queries.CreateSource(t.Context(), db.CreateSourceParams{
+		ID: sourceID, Name: "Test Source", Url: "https://src.com", UrlRss: "https://src.com/rss",
+	})
+	require.NoError(t, err)
+
+	// inactiveDays = 15: the pipeline must drop feeds of users not seen within 15 days.
+	processor := discovery.NewTreatmentProcessor(
+		runTx, controllers.NewArticleController(), controllers.NewFeedController(),
+		controllers.NewArticleFeedController(), &servicemocks.MockLanguageDetector{}, noAI,
+		judgement.NewEvaluator(noAI, 70, 0.30, 2), "", false, 1, 15, false,
+	)
+
+	const keywords = `["alpha","beta","gamma","music","concert"]`
+	activeUser, activeFeed := seedDiscoveryUserWithFeed(t, queries, "a1", keywords)
+	inactiveUser, _ := seedDiscoveryUserWithFeed(t, queries, "b2", keywords)
+	// Backdate the second user well past the window.
+	_, err = database.ExecContext(context.Background(),
+		"UPDATE users SET last_active_at = $1 WHERE id = $2",
+		time.Now().UTC().AddDate(0, 0, -40), inactiveUser)
+	require.NoError(t, err)
+
+	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{item("https://src.com/inactivefilter")}))
+
+	articles, err := queries.ListAllArticles(t.Context())
+	require.NoError(t, err)
+	require.Len(t, articles, 1)
+
+	active := articleFeedAssociations(t, runTx, activeUser, articles[0].ID)
+	require.Len(t, active, 1, "active user's feed must be associated")
+	assert.Equal(t, activeFeed, active[0].FeedID)
+
+	inactive := articleFeedAssociations(t, runTx, inactiveUser, articles[0].ID)
+	assert.Empty(t, inactive, "inactive user's feed must be skipped by the pipeline")
+}
+
+// seedDiscoveryUserWithFeed is seedUserWithFeed with a 2-hex suffix, so two distinct users (and feeds)
+// can coexist in one test without colliding on the fixed fixture ids.
+func seedDiscoveryUserWithFeed(t *testing.T, queries db.Querier, suffix, keywords string) (userID, feedID string) {
+	t.Helper()
+	user := fixtures.NewTestUser()
+	user.ID = "01900000-0000-7000-8000-0000000000" + suffix
+	user.GoogleID = "google-disc-" + suffix
+	user.Email = suffix + "-disc@example.com"
+	_, err := queries.CreateUser(t.Context(), db.CreateUserParams{
+		ID: user.ID, GoogleID: user.GoogleID, Email: user.Email, Name: user.Name, Picture: user.Picture,
+	})
+	require.NoError(t, err)
+
+	feed := fixtures.NewTestFeed(user.ID)
+	feed.ID = "019000fd-0000-7000-8000-0000000000" + suffix
+	created, err := queries.CreateFeed(t.Context(), db.CreateFeedParams{
+		ID: feed.ID, Name: feed.Name, Keywords: json.RawMessage(keywords), UserID: user.ID,
+	})
+	require.NoError(t, err)
+	return user.ID, created.ID
 }

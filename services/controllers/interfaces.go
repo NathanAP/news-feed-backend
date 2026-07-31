@@ -21,6 +21,7 @@ type UserControllerInterface interface {
 	FindUserByID(ctx context.Context, q db.Querier, id string) (db.User, error)
 	FindUserByGoogleID(ctx context.Context, q db.Querier, googleID string) (db.User, error)
 	UpdateUserLastLogin(ctx context.Context, q db.Querier, id string) error
+	UpdateUserLastActive(ctx context.Context, q db.Querier, id string) error
 	SetAdmin(ctx context.Context, q db.Querier, id string, admin bool) (db.User, error)
 	SoftDeleteUser(ctx context.Context, q db.Querier, id string) error
 }
@@ -70,7 +71,7 @@ type ArticleControllerInterface interface {
 type FeedControllerInterface interface {
 	Create(ctx context.Context, q db.Querier, userID, name string, keywords []string) (db.Feed, error)
 	FindByID(ctx context.Context, q db.Querier, id, userID string) (db.Feed, error)
-	FindCandidatesByKeywords(ctx context.Context, q db.Querier, keywords []string) ([]FeedCandidate, error)
+	FindCandidatesByKeywords(ctx context.Context, q db.Querier, keywords []string, inactiveDays int) ([]FeedCandidate, error)
 	List(ctx context.Context, q db.Querier, userID string, filter ListFeedsFilter) ([]db.Feed, int64, error)
 	ListAll(ctx context.Context, q db.Querier, userID string) ([]db.Feed, error)
 	Update(ctx context.Context, q db.Querier, id, userID, name string, keywords []string) (db.Feed, error)

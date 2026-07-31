@@ -21,6 +21,9 @@ func NewTestUser() db.User {
 		CreatedAt:   utctime.New(time.Date(2026, 6, 19, 12, 0, 0, 0, time.UTC)),
 		ModifiedAt:  utctime.NullTime{},
 		RemovedAt:   utctime.NullTime{},
+		// Active "now" by default so a fixture user is never treated as inactive by the discovery
+		// filter. Tests that need an inactive user set LastActiveAt to a past date explicitly.
+		LastActiveAt: utctime.New(time.Now().UTC()),
 	}
 }
 

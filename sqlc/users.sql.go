@@ -13,7 +13,7 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (id, google_id, email, name, picture)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, google_id, email, name, picture, status, last_login_at, created_at, modified_at, removed_at, admin
+RETURNING id, google_id, email, name, picture, status, last_login_at, created_at, modified_at, removed_at, admin, last_active_at
 `
 
 type CreateUserParams struct {
@@ -45,12 +45,13 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.ModifiedAt,
 		&i.RemovedAt,
 		&i.Admin,
+		&i.LastActiveAt,
 	)
 	return i, err
 }
 
 const findUserByGoogleID = `-- name: FindUserByGoogleID :one
-SELECT id, google_id, email, name, picture, status, last_login_at, created_at, modified_at, removed_at, admin FROM users
+SELECT id, google_id, email, name, picture, status, last_login_at, created_at, modified_at, removed_at, admin, last_active_at FROM users
 WHERE google_id = $1 AND status = TRUE AND removed_at IS NULL
 LIMIT 1
 `
@@ -70,12 +71,13 @@ func (q *Queries) FindUserByGoogleID(ctx context.Context, googleID string) (User
 		&i.ModifiedAt,
 		&i.RemovedAt,
 		&i.Admin,
+		&i.LastActiveAt,
 	)
 	return i, err
 }
 
 const findUserByID = `-- name: FindUserByID :one
-SELECT id, google_id, email, name, picture, status, last_login_at, created_at, modified_at, removed_at, admin FROM users
+SELECT id, google_id, email, name, picture, status, last_login_at, created_at, modified_at, removed_at, admin, last_active_at FROM users
 WHERE id = $1 AND status = TRUE AND removed_at IS NULL
 LIMIT 1
 `
@@ -95,6 +97,7 @@ func (q *Queries) FindUserByID(ctx context.Context, id string) (User, error) {
 		&i.ModifiedAt,
 		&i.RemovedAt,
 		&i.Admin,
+		&i.LastActiveAt,
 	)
 	return i, err
 }
@@ -103,7 +106,7 @@ const setUserAdmin = `-- name: SetUserAdmin :one
 UPDATE users
 SET admin = $2, modified_at = CURRENT_TIMESTAMP
 WHERE id = $1 AND status = TRUE AND removed_at IS NULL
-RETURNING id, google_id, email, name, picture, status, last_login_at, created_at, modified_at, removed_at, admin
+RETURNING id, google_id, email, name, picture, status, last_login_at, created_at, modified_at, removed_at, admin, last_active_at
 `
 
 type SetUserAdminParams struct {
@@ -130,6 +133,7 @@ func (q *Queries) SetUserAdmin(ctx context.Context, arg SetUserAdminParams) (Use
 		&i.ModifiedAt,
 		&i.RemovedAt,
 		&i.Admin,
+		&i.LastActiveAt,
 	)
 	return i, err
 }
@@ -142,6 +146,19 @@ WHERE id = $1 AND removed_at IS NULL
 
 func (q *Queries) SoftDeleteUser(ctx context.Context, id string) error {
 	_, err := q.db.ExecContext(ctx, softDeleteUser, id)
+	return err
+}
+
+const updateUserLastActive = `-- name: UpdateUserLastActive :exec
+UPDATE users
+SET last_active_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
+WHERE id = $1 AND status = TRUE AND removed_at IS NULL
+`
+
+// UpdateUserLastActive stamps the user's activity heartbeat. Called on every /auth/refresh (the
+// hourly ping) and on login. This is the signal the discovery filter reads to skip inactive users.
+func (q *Queries) UpdateUserLastActive(ctx context.Context, id string) error {
+	_, err := q.db.ExecContext(ctx, updateUserLastActive, id)
 	return err
 }
 

@@ -139,6 +139,9 @@ func main() {
 	judgementThreshold := parseThreshold(os.Getenv("JUDGEMENT_THRESHOLD"))
 	judgementAutoAssociateRatio := parseAutoAssociateRatio(os.Getenv("JUDGEMENT_AUTOASSOCIATE_RATIO"))
 	judgementMinMatches := parseMinMatches(os.Getenv("JUDGEMENT_MIN_MATCHES"))
+	// How many days a user can go without any activity (token refresh or login) before the discovery
+	// filter stops routing news to their feeds. -1 disables the filter (every user counts as active).
+	inactiveDays := parseInactiveDays(os.Getenv("DAYS_UNTIL_USER_IS_INACTIVE"))
 	defaultJudger := judgers[judgementDefaultMode]
 	if defaultJudger == nil {
 		log.Printf("JUDGEMENT_MODE %q not recognized (use local, groq or gemini); judgement disabled by default", judgementDefaultMode)
@@ -255,7 +258,7 @@ func main() {
 	// literally do not exist outside development (defense in depth beyond any runtime check).
 	if os.Getenv("ENVIRONMENT") == "development" {
 		articles.Post("/treatment", append(authMiddleware, articleendpoints.TreatArticle(keyworders, keywordsDefaultMode, detector, articleCtrl, runTx, clientURL, urlTreatmentVerbose))...)
-		articles.Post("/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, judgementDefaultMode, judgementThreshold, judgementAutoAssociateRatio, judgementMinMatches, runTx))...)
+		articles.Post("/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, judgementDefaultMode, judgementThreshold, judgementAutoAssociateRatio, judgementMinMatches, inactiveDays, runTx))...)
 		log.Println("Development mode: POST /v1/articles/treatment and /v1/articles/judgement enabled")
 	}
 
@@ -278,7 +281,7 @@ func main() {
 		cronVerbose := os.Getenv("RSS_FEED_CRON_VERBOSE_MODE") == "true"
 		discoveryConcurrency := parseConcurrency(os.Getenv("DISCOVERY_CONCURRENCY"))
 		discoveryMaxArticles := parseMaxArticles(os.Getenv("DISCOVERY_MAX_ARTICLES"))
-		processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, detector, defaultKeyworder, evaluator, clientURL, urlTreatmentVerbose, discoveryConcurrency, cronVerbose)
+		processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, detector, defaultKeyworder, evaluator, clientURL, urlTreatmentVerbose, discoveryConcurrency, inactiveDays, cronVerbose)
 		runner := cron.NewDiscoveryRunner(runTx, sourceCtrl, systemCtrl, processor, discoveryHTTPClient, discoveryConcurrency, discoveryMaxArticles, cronVerbose)
 		scheduler, err := cron.NewScheduler(os.Getenv("RSS_FEED_CRON_SCHEDULE"), runner)
 		if err != nil {
@@ -326,6 +329,9 @@ const (
 	// "popular" keyword suggestions look back this many days by default, so they track what is hot
 	// now rather than all-time. -1 in the env disables the window.
 	defaultKeywordSuggestionsWindowDays = 30
+	// A user not seen (token refresh or login) within this many days is skipped by the discovery
+	// filter, so the CRON stops routing news to abandoned accounts. -1 disables the filter.
+	defaultDaysUntilUserIsInactive = 15
 )
 
 // buildModeClients pre-builds an AI client for every mode (local | groq | gemini). The same set of
@@ -431,6 +437,23 @@ func parseSuggestionWindowDays(s string) int {
 		log.Printf("Invalid KEYWORD_SUGGESTIONS_WINDOW_DAYS %q (want integer >= -1), using default %d",
 			s, defaultKeywordSuggestionsWindowDays)
 		return defaultKeywordSuggestionsWindowDays
+	}
+	return n
+}
+
+// parseInactiveDays reads how many days without activity make a user "inactive" for the discovery
+// filter. -1 disables the filter (every user is treated as active); a positive value is the window.
+// 0 is rejected (it would freeze every feed immediately, which is never intended) and falls back to
+// the default, as does any other invalid input.
+func parseInactiveDays(s string) int {
+	if s == "" {
+		return defaultDaysUntilUserIsInactive
+	}
+	n, err := strconv.Atoi(s)
+	if err != nil || n == 0 || n < -1 {
+		log.Printf("Invalid DAYS_UNTIL_USER_IS_INACTIVE %q (want -1 to disable, or an integer >= 1), using default %d",
+			s, defaultDaysUntilUserIsInactive)
+		return defaultDaysUntilUserIsInactive
 	}
 	return n
 }

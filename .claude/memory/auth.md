@@ -23,6 +23,13 @@ Logout faz soft-remove do `refresh_token`; o `access_token` segue válido até e
   token. Expira em `JWT_REFRESH_TOKEN_EXPIRY_DAYS`. Só o endpoint `/auth/refresh` renova a
   expiração.
 
+## Atividade do usuário (`last_active_at`, 0.43)
+
+O login, o `/auth/refresh` e o `dev-login` carimbam `users.last_active_at` com a hora atual. É o sinal
+de **atividade** usado pela descoberta para pular feeds de usuários inativos (não confundir com
+`last_login_at`, que só muda no login completo do Google). Não vai no `access_token` — é campo só de
+banco. Ver `database.md` e `PROJECT.md` (seção Usuário / "Busca por usuários aptos").
+
 ## Claims do access_token (struct `schemas.Claims`)
 
 `user_id`, `email`, `name`, `picture`, `created_at`, `refresh_token_id`,

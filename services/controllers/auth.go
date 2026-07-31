@@ -84,6 +84,12 @@ func (c *AuthController) HandleGoogleCallback(ctx context.Context, code string) 
 			return err
 		}
 
+		// Login is activity too: stamp last_active_at so a returning user is immediately "active" for
+		// the discovery filter, without waiting for their first token refresh.
+		if err := c.userCtrl.UpdateUserLastActive(ctx, q, user.ID); err != nil {
+			return err
+		}
+
 		prefs, err = c.prefCtrl.FindByUserID(ctx, q, user.ID)
 		if err != nil {
 			return err
@@ -129,6 +135,12 @@ func (c *AuthController) RefreshAccessToken(ctx context.Context, refreshTokenID 
 
 		prefs, err = c.prefCtrl.FindByUserID(ctx, q, user.ID)
 		if err != nil {
+			return err
+		}
+
+		// A refresh is the app's "still here" heartbeat (it fires roughly every access-token expiry,
+		// ~1h), so it is the write that keeps last_active_at fresh for an active user.
+		if err := c.userCtrl.UpdateUserLastActive(ctx, q, user.ID); err != nil {
 			return err
 		}
 

@@ -21,6 +21,8 @@ CREATE TABLE users (
     removed_at TIMESTAMPTZ,
     -- Appended by migrations/20260729120000_users_admin_flag.sql (0.40). Stays last: see the note above.
     admin BOOLEAN NOT NULL DEFAULT FALSE,
+    -- Appended by migrations/20260731120000_users_last_active_at.sql (0.43). Stays last: see the note above.
+    last_active_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE (google_id),
     UNIQUE (email)

@@ -39,6 +39,12 @@ func DevLogin(
 				return err
 			}
 
+			// dev-login is a login: keep last_active_at fresh so the seeded dev user is not treated as
+			// inactive by the discovery filter after the dev database has been sitting idle.
+			if err := userCtrl.UpdateUserLastActive(c.Context(), q, user.ID); err != nil {
+				return err
+			}
+
 			rt, err := refreshCtrl.Create(c.Context(), q, user.ID)
 			if err != nil {
 				return err
