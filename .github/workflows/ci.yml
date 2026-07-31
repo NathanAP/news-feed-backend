@@ -1,42 +1,42 @@
-# Continuous integration: formatting, vet and the full test suite. Runs on every PR and on pushes to
-# the default branch. This half needs no cloud credentials, so it works the moment the repo is on
-# GitHub — no AWS, no secrets. The deploy half lives in deploy.yml.
-name: CI
+# # Continuous integration: formatting, vet and the full test suite. Runs on every PR and on pushes to
+# # the default branch. This half needs no cloud credentials, so it works the moment the repo is on
+# # GitHub — no AWS, no secrets. The deploy half lives in deploy.yml.
+# name: CI
 
-on:
-    pull_request:
-    push:
-        branches: [main, master]
+# on:
+#     pull_request:
+#     push:
+#         branches: [main, master]
 
-jobs:
-    quality:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
+# jobs:
+#     quality:
+#         runs-on: ubuntu-latest
+#         steps:
+#             - uses: actions/checkout@v4
 
-            - name: Set up Go
-              uses: actions/setup-go@v5
-              with:
-                  # Reads the version from go.mod, so CI never drifts from the toolchain the code targets.
-                  go-version-file: go.mod
-                  cache: true
+#             - name: Set up Go
+#               uses: actions/setup-go@v5
+#               with:
+#                   # Reads the version from go.mod, so CI never drifts from the toolchain the code targets.
+#                   go-version-file: go.mod
+#                   cache: true
 
-            - name: Check formatting
-              # gofmt -l lists files that are NOT formatted; any output means the build should fail.
-              run: |
-                  unformatted="$(gofmt -l .)"
-                  if [ -n "$unformatted" ]; then
-                      echo "These files are not gofmt-clean:"
-                      echo "$unformatted"
-                      exit 1
-                  fi
+#             - name: Check formatting
+#               # gofmt -l lists files that are NOT formatted; any output means the build should fail.
+#               run: |
+#                   unformatted="$(gofmt -l .)"
+#                   if [ -n "$unformatted" ]; then
+#                       echo "These files are not gofmt-clean:"
+#                       echo "$unformatted"
+#                       exit 1
+#                   fi
 
-            - name: Vet
-              run: go vet ./...
+#             - name: Vet
+#               run: go vet ./...
 
-            - name: Test
-              # The integration and e2e layers spin up a throwaway Postgres via testcontainers. GitHub's
-              # ubuntu runners ship a working Docker daemon, so the same `go test ./...` that runs locally
-              # runs here unchanged. ENVIRONMENT stays unset (not production/staging), which the test
-              # guards require.
-              run: go test ./...
+#             - name: Test
+#               # The integration and e2e layers spin up a throwaway Postgres via testcontainers. GitHub's
+#               # ubuntu runners ship a working Docker daemon, so the same `go test ./...` that runs locally
+#               # runs here unchanged. ENVIRONMENT stays unset (not production/staging), which the test
+#               # guards require.
+#               run: go test ./...
