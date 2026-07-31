@@ -150,25 +150,6 @@ Decisões tomadas durante a execução:
     - Me parece que vários RSS não trazem as notícias completas em seu RSS, apenas a URL que vai até ela. Tem como a gente contornar isso?
     - Talvez a gente vá ter que acessar o link e tentar pegar o conteúdo dali, mas como?
 
-Achados durante a execução (não estavam no planejamento):
-
-- **Três rotas estavam abertas sem autenticação nenhuma**: `DELETE /v1/auth/invalidate`,
-  `DELETE /v1/auth/invalidate-all` (qualquer um deslogava qualquer usuário) e
-  `PUT /v1/system/app-status` (qualquer um derrubava a API inteira). As duas primeiras já constavam
-  como "exclusivas de admin" no `PROJECT.md` mas não pediam nem token. Fechadas nesta versão.
-- **Deadlock do bypass**: `/auth/refresh` ficava atrás do guard, então um administrador com o
-  `access_token` expirado durante a manutenção não conseguia renovar — e o `refresh_token` não carrega
-  identidade que o bypass leia. Ficaria trancado fora da própria aplicação, só voltando pelo banco.
-  Solução: o grupo `/v1/auth` inteiro passou a ser isento do guard.
-- **`adminRoute` copia a cadeia de middlewares** em vez de reaproveitar o slice. Um
-  `append(authMiddleware, requireAdmin)` guardado e reusado faria as rotas compartilharem o mesmo array
-  de fundo, e cada registro sobrescreveria o handler do anterior.
-- **Ordem de colunas no `schema.sql`** importa, não só o conjunto: as queries usam `SELECT *`, então
-  uma coluna adicionada por migração precisa ficar no fim da tabela, onde o `ALTER TABLE` a coloca.
-  Registrado em comentário no arquivo.
-- Correções de documentação: `invalidate_all` → `invalidate-all` (a rota real usa hífen) e
-  `PUT /v1/system/app-status` entrou na lista de rotas exclusivas de administrador.
-
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 
 - Aumentar o verbose mode (+++++++++++++++++++++ logs)
