@@ -131,12 +131,12 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Testes de cascade envolvendo o usuário podem ser ignorados por enquanto.
     - Consequência atual: um usuário inativo (soft removed) não consegue logar atualmente pois o login busca apenas usuários ativos e a unicidade de `google_id`/`email` impediria um novo cadastro.
         - Isso é aceitável hoje porque não há endpoint de exclusão. Quando esse endpoint for criado, o comportamento (reativar o registro vs. recadastrar vs. tratar como LGPD/erasure) precisa ser decidido. Por ser uma decisão mais complexa do que parece vamos manter assim por enquanto.
-- O campo `last_active_at` faz o controle de quando o usuário esteve ativo pela última vez na aplicação.
-    - Este campo é atualizado cada vez que o usuário passar pelo endpoint que renova a validade seu token por uma hora.
-    - Um usuário se torna automaticamente inativo para a descoberta de notícias após 15 dias de inatividade.
-    - Isso implica que usuários inativos vão acabar perdendo as notícias que foram descobertas durante o tempo de inatividade.
 - O campo `last_login_at` faz o controle de quando o usuário logou pela última vez.
     - Diferente do campo `last_active_at`, este controla quando foi a última vez que um token foi criado.
+- O campo `last_active_at` faz o controle de quando o usuário esteve ativo pela última vez na aplicação.
+    - Este campo é atualizado cada vez que o usuário passar pelo endpoint que renova a validade seu token por uma hora ou quando um login for realizado (atualizando tanto este campo quanto `last_login_at`).
+    - Um usuário se torna automaticamente inativo para a descoberta de notícias após 15 dias de inatividade.
+    - Isso implica que usuários inativos vão acabar perdendo as notícias que foram descobertas durante o tempo de inatividade.
 
 ## Preferências do usuário
 
