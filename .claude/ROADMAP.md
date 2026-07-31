@@ -145,10 +145,10 @@ Decisões tomadas durante a execução:
 
 - [ ] Na CRON, precisamos barrar usuários inativos de receber notícias, isso vai limpar bastante o feed.
     - Vamos ter que criar um campo no usuário pra poder entender sua última atividade
-    - eu acho que 2 semanas já tá bom né?
-- [ ] Tentei colocar `https://www.petz.com.br/blog/` como fonte e ele não encontrou o RSS na URL `https://www.petz.com.br/blog/rss`, por quê?
-    - Ainda nesse ponto, o RSS da petz me mostrou que alguns blogs simplesmente não trazem o conteúdo completo em seu RSS, apenas uma URL para acessar... o que fazer?
-    - Talvez a gente vá ter que acessar o link e tentar pegar o conteúdo dali, mas como?
+
+## Versão 0.44.0.0
+
+- [ ] Adicionar o campo `fetch_full_content` às fontes de notícias
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 

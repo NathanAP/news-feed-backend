@@ -166,6 +166,9 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - O payload de cadastro de uma fonte de notícias obriga o valor de `url_rss`. Para facilitar o encontro dessa URL, temos a rota `base_url/v1/sources/rss-discovery` que tenta descobrir automaticamente e fazer o parsing através do `gofeed` desse valor através dos seguintes padrões:
     - padrões comuns como acessar `/rss/`, `/feed/`, `/rss.xml/`, `/feed.xml`.
     - padroes de parsing HTML para encontrar `<link rel="alternate" type="application/rss+xml">`.
+- As fontes de notícias possuem um campo booleano chamado `fetch_full_content` que é responsável por controlar se naquela fonte é necessário acessar a URL original para obter o conteúdo por lá ao invés do próprio RSS.
+    - Esta variável será utilizada na etapa de tratamento da notícia para obter o conteúdo acessando diretamente a URL original e obtendo o conteúdo da notícia por lá.
+    - Isso é necessário por conta de fontes de notícias que omitem o conteúdo diretamente no RSS.
 
 ## Feed
 
@@ -300,13 +303,14 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 ## Tratamento de notícias
 
-- O tratamento de notícias ocorre em duas etapas principais:
+- O tratamento de notícias ocorre em alguns passos principais:
+    - Identificação da notícia: verifica se o campo `fetch_full_content` da fonte de notícias está ativa ou não para entender de onde o conteúdo deve ser resgatado.
     - Detecção de idioma: detecta automaticamente qual é o idioma original da notícia.
     - Tratamento de URLs: busca URLs na notícia para tentar descobrir se ela está conectando à outra(s) notícia(s) existente(s) no nosso banco de dados.
     - Sanatização do conteúdo: utiliza a biblioteca `bluemonday` para filtrar e sanatizar trechos indesejados da notícia.
     - Nomeação de palavras-chave: elenca palavras-chave para a notícia.
     - Gravação no banco de dados: forma um registro de notícia no banco de dados.
-- A IA **não toca no corpo** da notícia: o tratamento de URLs e a sanitização são determinísticos (sem IA). A única etapa que usa IA é a nomeação de palavras-chave.
+- A IA não toca no corpo da notícia: o tratamento de URLs e a sanitização são determinísticos (sem IA). A única etapa que usa IA é a nomeação de palavras-chave.
 - Os modelos de SLM e LLM utilizados na etapa de palavras-chave devem estar na stack em `CLAUDE.md`.
 - Em termos de código, o método completo precisa ser independente para poder ser chamado fora da CRON caso necessário.
 - Um endpoint de teste para esse processo pode ser encontrado em `POST base_url/v1/articles/treatment`.
@@ -317,6 +321,14 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - O body deste endpoint deve aceitar:
         - `article`: um `json` contendo os dados de uma notícia, obtidos diretamente através da descoberta de notícias.
     - Esse endpoint responde pelos dados do tratamento de notícias.
+
+### Identificação da notícia
+
+- A etapa de identificação da notícia existe por conta de alguns RSS que não trazem o conteúdo da notícia completa no seu corpo.
+- Nesse momento o campo `fetch_full_content` da fonte de notícias é verificado.
+    - Caso esteja marcado em `true`, uma nova requisição à URL original da notícia será feita para obter o corpo original completo dela.
+    - Caso contrário, o processo segue naturalmente utilizando o conteúdo atribuído ao próprio RSS.
+- Um exemplo é o RSS da Petz (`https://www.petz.com.br/blog/rss`) que traz apenas um breve resumo do conteúdo.
 
 ### Detecção de idioma
 
