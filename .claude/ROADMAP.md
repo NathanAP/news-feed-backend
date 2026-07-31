@@ -147,7 +147,7 @@ Decisões tomadas durante a execução:
     - Vamos ter que criar um campo no usuário pra poder entender sua última atividade
     - eu acho que 2 semanas já tá bom né?
 - [ ] Tentei colocar `https://www.petz.com.br/blog/` como fonte e ele não encontrou o RSS na URL `https://www.petz.com.br/blog/rss`, por quê?
-    - Me parece que vários RSS não trazem as notícias completas em seu RSS, apenas a URL que vai até ela. Tem como a gente contornar isso?
+    - Ainda nesse ponto, o RSS da petz me mostrou que alguns blogs simplesmente não trazem o conteúdo completo em seu RSS, apenas uma URL para acessar... o que fazer?
     - Talvez a gente vá ter que acessar o link e tentar pegar o conteúdo dali, mas como?
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
