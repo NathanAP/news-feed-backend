@@ -161,10 +161,6 @@ Decisões tomadas durante a execução:
 
 ## Versão 0.44.0.0
 
-- [ ] Adicionar o campo `fetch_full_content` às fontes de notícias
-
-## Versão 0.45.0.0
-
 - [ ] Entender como a CRON pode ser organizada
     - A gente precisa de uma CRON pra cada worker?
     - E se a CRON demorar demais?
