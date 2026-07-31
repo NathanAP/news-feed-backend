@@ -134,8 +134,9 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - O campo `last_login_at` faz o controle de quando o usuário logou pela última vez.
     - Diferente do campo `last_active_at`, este controla quando foi a última vez que um token foi criado.
 - O campo `last_active_at` faz o controle de quando o usuário esteve ativo pela última vez na aplicação.
+    - Ao criar um novo usuário, este campo já vem preenchido com `now` por padrão para evitar que o usuário de desenvolvimento tenha um valor de data fixado.
     - Este campo é atualizado cada vez que o usuário passar pelo endpoint que renova a validade seu token por uma hora ou quando um login for realizado (atualizando tanto este campo quanto `last_login_at`).
-    - Um usuário se torna automaticamente inativo para a descoberta de notícias após 15 dias de inatividade.
+    - Um usuário se torna automaticamente inativo para a descoberta de notícias após uma quantidade de dias de inatividade, definida pela variável de ambiente chamada `DAYS_UNTIL_USER_IS_INACTIVE`.
     - Isso implica que usuários inativos vão acabar perdendo as notícias que foram descobertas durante o tempo de inatividade.
 
 ## Preferências do usuário
@@ -406,8 +407,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 ### Preparação (busca por usuários aptos + comparação de palavras chave)
 
 - A preparação serve para garantir que a notícia vá chegar apenas para os usuários ativos e realizar uma filtragem de quais feeds são os melhores candidatos a seguirem adiante através de uma comparação de palavras-chave da notícia.
-- Usuários são considerados ativos quando a data presente no campo `last_active_at` estiver entre hoje e 15 dias atrás.
-- Isso implica que usuários inativos vão acabar perdendo as notícias que foram descobertas durante o tempo de inatividade.
+    - A sessão de usuários trata as regras sobre inatividade.
 - Essa filtragem é feita inteiramente em SQL.
     - As palavras-chave (tanto da notícia quanto dos feeds) são armazenadas como arrays JSON de strings minúsculas, então usamos `json_each` para expandir ambos os lados em linhas e um `JOIN` por igualdade exata de palavra-chave.
     - Um feed é candidato quando tem pelo menos uma palavra-chave em comum com a notícia.
