@@ -407,7 +407,6 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 - Neste passo o conteúdo da notícia recém salva é analisado em busca de cada URL presente no atributo `href` das tags `<a>`.
     - Para cada uma encontrada, um registro é criado em `article_outbound_links`, preenchendo o campo `href` com a URL e o `article_id` com o id da notícia.
-- Agora que temos os valores de `id` de cada registro em `article_outbound_links`, são eles quem substituem a URL presente no atributo `href` das tags `<a>` da notícia.
 
 #### Reorganização das referências
 
@@ -498,6 +497,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Se a preferência `language_to_translate` for nula (sem alvo configurado), o resultado deve ser 400.
     - Se o `language_to_translate` alvo e a `language_original` da notícia forem iguais, o resultado deve ser 400.
     - Se a `language_original` da notícia for `null`, o resultado deve ser 400.
+- Lembrete: ao receber o conteúdo da notícia para tradução, será necessário fazer a busca pelas URLs na tabela `article_outbound_links` antes de qualquer outra operação para não arriscar perder o `id` em alguma re-sanitização ou operação similar.
 
 ## Resumindo notícias
 
