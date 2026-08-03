@@ -184,8 +184,7 @@ Decisões tomadas durante a execução:
     - Lembrete: é necessário um método para fazer a "troca" pela URL da tabela nova quando for responder por uma notícia
     - Lembrete: testes serão afetados
     - Lembrete: endpoints serão afetados
-- [ ]
-- [ ] Alterar o fluxo de tratamento de notícias
+- [ ] Alterar o fluxo de tratamento de notícias para integrar os novos passos de banco de dados
     - Lembrete: provavelmente isso vai afetar o que está na pasta cmd/seed
 
 ## Versão 0.46.0.0
