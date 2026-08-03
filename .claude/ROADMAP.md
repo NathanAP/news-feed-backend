@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.43.0.0
+0.44.0.0
 
 ## Versão 0.37.3.0
 
@@ -161,11 +161,23 @@ Decisões tomadas durante a execução:
 
 ## Versão 0.44.0.0
 
-- [ ] Entender como a CRON pode ser organizada
-    - A gente precisa de uma CRON pra cada worker?
-    - E se a CRON demorar demais?
+- [x] Entender como a CRON pode ser organizada — e corrigir dois furos de robustez que a análise achou
+    - **"Uma CRON por worker?"** Não, nunca. A CRON é o **gatilho/produtor** (um tick = uma varredura);
+      workers são **consumidores** (hoje o pool de `DISCOVERY_CONCURRENCY` num processo; amanhã, réplicas).
+      Uma CRON por worker = varredura duplicada = descoberta e IA duplicadas. Ao escalar pra M réplicas o
+      alvo é **uma varredura só**: scheduler dedicado (uma réplica com `RSS_FEED_CRON_ACTIVE=true`) agora,
+      advisory lock do Postgres quando precisar de réplicas idênticas. A fila distribuída segue arquivada.
+    - **"E se demorar demais?"** Toda chamada externa já tem timeout (RSS 30s, Gemini 60s, Ollama/Groq
+      120s), então um sweep é longo mas **finito** — timeout por sweep foi descartado (só cortaria sweep
+      legítimo). O que faltava eram dois guards no scheduler:
+        - `SkipIfStillRunning`: sweep que passa do intervalo não gera um segundo concorrente. **Não é
+          correção de integridade** (o índice único de `url_original` já colapsa duplicata em uma linha e
+          o perdedor sai antes do julgamento) — é **economia de IA** (dois sweeps nomeando keywords do
+          mesmo artigo).
+        - `Recover`: panic numa varredura vira log, não derruba o processo. A CRON é in-process, então sem
+          isso um sweep ruim levava a API junto — o `recover.New()` do Fiber (0.37.3) só cobre HTTP.
 
-## Versão 0.46.0.0
+## Versão 0.45.0.0
 
 - [ ] Revisão
 

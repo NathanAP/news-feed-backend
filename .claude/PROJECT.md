@@ -274,6 +274,17 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Dito isso, é importante ter essa conferência para garantir que tanto o feed quanto a notícia estão ativas.
 - Registros nessa tabela sofrem de hard remove quando o feed ou a notícia atrelado a ele sofrem de hard remove (efeito cascata de ambos os lados).
 
+## URLs externas de notícias
+
+- Esse trecho se trata inteiramente sobre uma funcionalidade futura, nada aqui está ou deve ser implementado.
+- A tabela de URLs externas de notícias serve para corrigir o link entre notícias de forma retroativa.
+- Essa tabela deve se chamar `article_outbound_links`.
+- Ao detectar uma URL em uma notícia em uma tag `<a href="external_url">`, um novo registro deve ser criado nessa tabela e a tag passa a receber o `id` criado, ficando então `<a href="article_outbound_link.id">`.
+- A existência dessa tabela se motiva ao fato de que a URL presente no conteúdo de uma notícia já existente nunca será alterada. Fazer uma varredura cada vez que uma notícia chega é muito pesada, cara e difícil de ser processada.
+- Por exemplo, se a notícia `A` possui uma URL externa `url_b` e coincidentemente a notícia `B` chega mais tarde como representante da URL externa `url_b`, o conteúdo da notícia `A` nunca é alterado, mesmo que aquela URL esteja presente conosco.
+- A solução para isso é a criação dessa tabela, que possui os campos `id`, `article_id` e `href`, com índice. Dessa forma, ao chegar uma notícia, a gente percorre os registros dessa tabela e altera apenas esse campo.
+- É necessário também criar uma funcionalidade para respostas que envolvem as notícias de forma correta. Sempre que uma notícia servir de resposta para um endpoint, é necessário trocar de `<a href="article_outbound_link.id">` para `<a href="article_outbound_link.href">`.
+
 ## Descobrindo uma notícia
 
 - A descoberta de notícias opera de acordo com as seguintes variáveis de ambiente:
@@ -298,6 +309,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
         - `id`: uma fonte de notícias válida.
         - `last_article_discovery_at` (query opcional): uma data para fazer o teste sem depender da espera de uma notícia nova naquela fonte de notícias.
     - Esse endpoint responde dados dos artigos descobertos.
+- O scheduler protege cada tick da CRON: `SkipIfStillRunning` (um sweep que passa do intervalo não gera um segundo concorrente — economia de IA, já que o índice único de `url_original` sozinho impede notícia duplicada) e `Recover` (panic numa varredura vira log, não derruba a app in-process).
 
 ## Tratamento de notícias
 

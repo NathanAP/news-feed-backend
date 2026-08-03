@@ -190,10 +190,38 @@ type Scheduler struct {
 	cron *robfigcron.Cron
 }
 
+// cronLogger routes the job-wrapper events below into the app's logger. It only ever fires on the two
+// rare-but-important events those wrappers emit — a skipped tick (Info) and a recovered panic (Error) —
+// so it adds no noise to a normal run. The engine's own logger is left at its default.
+type cronLogger struct{}
+
+func (cronLogger) Info(msg string, _ ...any) {
+	logger.Log("@@@ CRON - "+msg+" @@@", logger.ColorYellow)
+}
+
+func (cronLogger) Error(err error, msg string, _ ...any) {
+	logger.Log(fmt.Sprintf("@@@ CRON PANIC RECOVERED - %s: %v @@@", msg, err), logger.ColorRed)
+}
+
 // NewScheduler builds a scheduler that runs the discovery sweep on the given schedule (e.g.
 // "@every 15m"). It does not start ticking until Start is called.
+//
+// Each tick is wrapped by two guards:
+//   - SkipIfStillRunning: if a sweep is still running when the next tick fires, that tick is skipped
+//     instead of starting a second sweep concurrently. Overlapping sweeps would NOT corrupt data (the
+//     partial unique index on articles.url_original collapses a duplicate to a single row, and the
+//     loser is dropped before judgement), but both would spend AI naming keywords for the same
+//     articles — so this is a cost guard, not a correctness one.
+//   - Recover: a panic inside a sweep is logged and swallowed instead of crashing the process. The
+//     CRON runs in-process, so without this one bad sweep would take the whole API down, which the
+//     project forbids ("exceções não devem derrubar a aplicação"). Fiber's recover covers HTTP
+//     handlers only, never this goroutine.
 func NewScheduler(schedule string, runner *DiscoveryRunner) (*Scheduler, error) {
-	c := robfigcron.New()
+	l := cronLogger{}
+	c := robfigcron.New(robfigcron.WithChain(
+		robfigcron.Recover(l),
+		robfigcron.SkipIfStillRunning(l),
+	))
 	if _, err := c.AddFunc(schedule, func() {
 		_ = runner.Run(context.Background())
 	}); err != nil {
