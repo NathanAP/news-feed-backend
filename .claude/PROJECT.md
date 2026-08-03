@@ -276,14 +276,18 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 ## URLs externas de notícias
 
-- Esse trecho se trata inteiramente sobre uma funcionalidade futura, nada aqui está ou deve ser implementado.
-- A tabela de URLs externas de notícias serve para corrigir o link entre notícias de forma retroativa.
-- Essa tabela deve se chamar `article_outbound_links`.
-- Ao detectar uma URL em uma notícia em uma tag `<a href="external_url">`, um novo registro deve ser criado nessa tabela e a tag passa a receber o `id` criado, ficando então `<a href="article_outbound_link.id">`.
+- A tabela de URLs externas de notícias (`article_outbound_links`) serve para corrigir o link entre notícias de forma retroativa.
+- Ao detectar uma URL em uma notícia em uma tag `<a href="{url}">`, um novo registro deve ser criado nessa tabela e a tag passa a receber o `id` criado, resultando em `<a href="{article_outbound_link_id}">`.
 - A existência dessa tabela se motiva ao fato de que a URL presente no conteúdo de uma notícia já existente nunca será alterada. Fazer uma varredura cada vez que uma notícia chega é muito pesada, cara e difícil de ser processada.
-- Por exemplo, se a notícia `A` possui uma URL externa `url_b` e coincidentemente a notícia `B` chega mais tarde como representante da URL externa `url_b`, o conteúdo da notícia `A` nunca é alterado, mesmo que aquela URL esteja presente conosco.
-- A solução para isso é a criação dessa tabela, que possui os campos `id`, `article_id` e `href`, com índice. Dessa forma, ao chegar uma notícia, a gente percorre os registros dessa tabela e altera apenas esse campo.
-- É necessário também criar uma funcionalidade para respostas que envolvem as notícias de forma correta. Sempre que uma notícia servir de resposta para um endpoint, é necessário trocar de `<a href="article_outbound_link.id">` para `<a href="article_outbound_link.href">`.
+    - Por exemplo, se a notícia `A` possui uma URL externa `url_b` e coincidentemente a notícia `B` chega mais tarde como representante da URL externa `url_b`, o conteúdo da notícia `A` nunca é alterado, mesmo que aquela URL esteja presente aqui.
+    - O ideal é que a notícia `A` tenha inicialmente a URL externa (`url_b`) arquivada e quando chegar a notícia `B` ela sofra alteração para a nova URL.
+- A solução para isso é a criação dessa tabela, que possui os seguintes campos além dos convencionais (`id`, `created_at`, etc):
+    - `article_id`: a notícia à qual essa tabela esta se referindo.
+    - `href`: a URL da notícia, seja ela interna ou externa, com índice.
+- Essa tabela não possui os campos `status` e `removed_at` e seus registros não podem ser excluídos diretamente por endpoints. Dito isso:
+    - Se uma notícia sofrer soft remove, nada acontece ao(s) registro(s) de `article_id` desta tabela.
+    - Se uma notícia sofrer hard remove, o(s) registro(s) que possuam seu `article_id` nesta tabela também são excluídos (efeito cascata).
+- É necessária uma funcionalidade centralizada para todas as vezes que uma notícia servir de resposta em um endpoint, trocando de `<a href="{article_outbound_link.id}">` para `<a href="{article_outbound_link.href}">`.
 
 ## Descobrindo uma notícia
 
@@ -318,7 +322,9 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Tratamento de URLs: busca URLs na notícia para tentar descobrir se ela está conectando à outra(s) notícia(s) existente(s) no nosso banco de dados.
     - Sanatização do conteúdo: utiliza a biblioteca `bluemonday` para filtrar e sanatizar trechos indesejados da notícia.
     - Nomeação de palavras-chave: elenca palavras-chave para a notícia.
-    - Gravação no banco de dados: forma um registro de notícia no banco de dados.
+    - Gravação da notícia no banco de dados: forma um registro de notícia para a tabela `articles` no banco de dados.
+    - Gravação das URLs externas de notícias no banco de dados: identifica as URLs da nova notícia e forma um registro de URL externas de notícias para a tabela `article_outbound_links` no banco de dados.
+    - Alteração das URLs externas de notícias no banco de dados: realiza uma busca pela `url_original` da notícia na tabela `article_outbound_links` para alterar pela nova URL interna.
 - A IA não toca no corpo da notícia: o tratamento de URLs e a sanitização são determinísticos (sem IA). A única etapa que usa IA é a nomeação de palavras-chave.
 - Os modelos de SLM e LLM utilizados na etapa de palavras-chave devem estar na stack em `CLAUDE.md`.
 - Em termos de código, o método completo precisa ser independente para poder ser chamado fora da CRON caso necessário.
@@ -388,6 +394,15 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 - Depois de tratada, a notícia é finalmente salva no banco de dados e pode passar então para o julgamento.
 - Cada registro criado é mantido para a etapa de julgamento.
+
+### Gravação das URLs externas de notícias no banco de dados
+
+- Esta etapa é responsável por gravar cada URL presente nas tags `<a>` da notícia recém salva no banco de dados para criar registros na tabela `article_outbound_links`.
+
+### Alteração das URLs externas de notícias no banco de dados
+
+- Esta etapa é responsável por buscar pela `url_original` da notícia recém salva no campo `href` da tabela `article_outbound_links`.
+- Ao encontrar um ou mais registros, o campo `href` dele(s) deve(m) ser atualizado(s) de forma que utilizem a URL interna (`{CLIENT_URL}/articles/{id}`) ao invés da externa.
 
 ## Julgando se uma notícia pertence ao feed do usuário
 

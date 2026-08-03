@@ -48,6 +48,7 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - `id` deve ser do tipo UUID v7 e devem ser imutáveis.
 - As tabelas devem ter pelo menos os campos `id`, `status`, `created_at`, `modified_at` e `removed_at` do tipo timestamp.
     - A exceção imediata dessa regra são as tabelas de relacionamento (junction tables) que devem ter pelo menos o campo `id`.
+    - A tabela `article_outbound_links` é uma exceção imediata dessa regra, pois ela não possui os campos `status` e `removed_at`.
 - As tabelas de relacionamento (junction tables) devem conter registros de `id` existentes nas tabelas relacionadas, por exemplo, se a tabela contém um `user_id`, todos os registros devem ter um `user_id` válido.
 - O campo `status` deve ser utilizado conforme regras em `PROJECT.md` para indicar o estado de um registro no banco de dados.
 - Ao alterar um registro, o campo `modified_at` deve ser atualizado com o timestamp atual.
