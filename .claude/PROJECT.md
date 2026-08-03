@@ -71,7 +71,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
    2.1. Caso a notícia exista, altera-se aquela URL do conteúdo da notícia para apontar para a do client.
    2.2. Caso contrário nada acontece.
 3. Uma chamada para a inteligência artificial faz a notícia receber palavras-chave correspondente ao seu conteúdo.
-4. A notícia é salva no banco de dados.
+4. Uma série de pequenas operações são realizadas no nível de banco de dados (gravação da notícia, alterações em URLs externas já existentes, entre outros).
 5. A notícia segue para a etapa de julgamento.
 
 ## Autenticação
@@ -322,9 +322,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - Tratamento de URLs: busca URLs na notícia para tentar descobrir se ela está conectando à outra(s) notícia(s) existente(s) no nosso banco de dados.
     - Sanatização do conteúdo: utiliza a biblioteca `bluemonday` para filtrar e sanatizar trechos indesejados da notícia.
     - Nomeação de palavras-chave: elenca palavras-chave para a notícia.
-    - Gravação da notícia no banco de dados: forma um registro de notícia para a tabela `articles` no banco de dados.
-    - Gravação das URLs externas de notícias no banco de dados: identifica as URLs da nova notícia e forma um registro de URL externas de notícias para a tabela `article_outbound_links` no banco de dados.
-    - Alteração das URLs externas de notícias no banco de dados: realiza uma busca pela `url_original` da notícia na tabela `article_outbound_links` para alterar pela nova URL interna.
+    - Operações no banco de dados: realiza várias pequenas tarefas relacionadas aos registros no banco de dados.
 - A IA não toca no corpo da notícia: o tratamento de URLs e a sanitização são determinísticos (sem IA). A única etapa que usa IA é a nomeação de palavras-chave.
 - Os modelos de SLM e LLM utilizados na etapa de palavras-chave devem estar na stack em `CLAUDE.md`.
 - Em termos de código, o método completo precisa ser independente para poder ser chamado fora da CRON caso necessário.
@@ -357,6 +355,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - O tratamento de URLs identifica a notícia `001` e substitui o atributo `href` da tag `<a>` encontrada pela nossa própria URL apontando para esta notícia.
 - Mais detalhes desse fluxo na sessão "Fluxo de tratamento".
 - A resposta desta etapa deve devolver a nova versão do conteúdo da notícia com tratamento realizado.
+- Atenção: note que as URLs tratadas nesta etapa serão alteradas nas etapa "operações no banco de dados".
 
 ### Sanitização do conteúdo
 
@@ -390,19 +389,34 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - A IA recebe o texto puro do conteúdo sem HTML para economizar tokens. O conteúdo gravado continua sendo o HTML sanitizado.
 - O prompt pede uma mistura de termos específicos + genéricos (ver regra de palavras-chave em "Notícias").
 
-### Gravação da notícia no banco de dados
+### Operações no banco de dados
 
-- Depois de tratada, a notícia é finalmente salva no banco de dados e pode passar então para o julgamento.
+- Esta etapa realiza pequenas operações no banco de dados. Para melhor organização, está separada em quatro passos menores:
+    - Gravação da notícia.
+    - Associação das URLs da notícia.
+    - Reorganização das referências.
+    - Alteração de URLs de outras notícias.
+- Ao final desta etapa, o julgamento está pronto para ser realizado.
+
+#### Gravação da notícia
+
+- Neste passo a notícia é salva no banco de dados.
 - Cada registro criado é mantido para a etapa de julgamento.
 
-### Gravação das URLs externas de notícias no banco de dados
+#### Associação das URLs da notícia
 
-- Esta etapa é responsável por gravar cada URL presente nas tags `<a>` da notícia recém salva no banco de dados para criar registros na tabela `article_outbound_links`.
+- Neste passo o conteúdo da notícia recém salva é analisado em busca de cada URL presente no atributo `href` das tags `<a>`.
+    - Para cada uma encontrada, um registro é criado em `article_outbound_links`, preenchendo o campo `href` com a URL e o `article_id` com o id da notícia.
+- Agora que temos os valores de `id` de cada registro em `article_outbound_links`, são eles quem substituem a URL presente no atributo `href` das tags `<a>` da notícia.
 
-### Alteração das URLs externas de notícias no banco de dados
+#### Reorganização das referências
 
-- Esta etapa é responsável por buscar pela `url_original` da notícia recém salva no campo `href` da tabela `article_outbound_links`.
-- Ao encontrar um ou mais registros, o campo `href` dele(s) deve(m) ser atualizado(s) de forma que utilizem a URL interna (`{CLIENT_URL}/articles/{id}`) ao invés da externa.
+- Neste passo, a notícia recém salva é alterada, trocando o `href` das tags `<a>` de seu conteúdo pelo `id` de `article_outbound_links`.
+
+#### Alteração de URLs de outras notícias
+
+- Neste passo a `url_original` da notícia recém salva é buscada dentro no campo da tabela `article_outbound_links`.
+    - Para cada um encontrado, o registro é alterado com a nova URL interna (`{CLIENT_URL}/articles/{id}`) ao invés da externa original.
 
 ## Julgando se uma notícia pertence ao feed do usuário
 
