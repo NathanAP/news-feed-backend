@@ -180,6 +180,8 @@ Decisões tomadas durante a execução:
 ## Versão 0.45.0.0
 
 - [ ] Criar a tabela de URLs externas de notícias
+    - Lembrete: nada do trecho "URLs externas de notícias" do PROJECT.md existe ainda
+    - Lembrete: boa parte do trecho de operações no banco de dados do tratamento de notícias existe ainda
 - [ ] Alterações nas notícias para condizer com as novas regras
     - Lembrete: é necessário um método para fazer a "troca" pela URL da tabela nova quando for responder por uma notícia
     - Lembrete: testes serão afetados
