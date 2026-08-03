@@ -179,6 +179,18 @@ Decisões tomadas durante a execução:
 
 ## Versão 0.45.0.0
 
+- [ ] Criar a tabela de URLs externas de notícias
+- [ ] Alterações nas notícias para condizer com as novas regras
+    - Lembrete: é necessário um método para fazer a "troca" pela URL da tabela nova quando for responder por uma notícia
+    - Lembrete: testes serão afetados
+    - Lembrete: endpoints serão afetados
+- [ ]
+- [ ] Alterar o fluxo de tratamento de notícias
+    - Lembrete: provavelmente isso vai afetar o que está na pasta cmd/seed
+
+## Versão 0.46.0.0
+
+- [ ] Atualização de dependências / bibliotecas
 - [ ] Revisão
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:

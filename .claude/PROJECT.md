@@ -285,11 +285,11 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - `article_id`: a notícia à qual essa tabela esta se referindo.
     - `href`: a URL da notícia, seja ela interna ou externa, com índice.
 - Essa tabela não possui os campos `status` e `removed_at` e seus registros não podem ser excluídos diretamente por endpoints. Dito isso:
-    - Se uma notícia sofrer soft remove, nada acontece ao(s) registro(s) de `article_id` desta tabela.
-    - Se uma notícia sofrer hard remove, o(s) registro(s) que possuam seu `article_id` nesta tabela também são excluídos (efeito cascata).
-    - Qualquer um dos processos vai resultar em um problema: os conteúdos vão ficar com `article_outbound_link_id` fantasma.
-        - Para evitar isso, antes da exclusão de um registro desta tabela, é necessário olhar por outros registros que apontam para a URL interna da notícia (`{CLIENT_URL}/articles/{id}`) e voltar a apontar para o campo `url_original` da notícia sendo excluída.
-        - Por exemplo: notícia `K` possui a URL interna da notícia `L` nesta tabela. Ao excluir a notícia `K`, a notícia `L` agora precisa apontar novamente para o que era a `url_original` da notícia `K`, assim o atributo `href` não fica órfão.
+- Se uma notícia sofrer soft remove, nada acontece ao(s) registro(s) de `article_id` desta tabela.
+- Se uma notícia sofrer hard remove, o(s) registro(s) que possuam seu `article_id` nesta tabela também são excluídos (efeito cascata).
+- Qualquer um dos processos vai resultar em um problema: os conteúdos vão ficar com `article_outbound_link_id` fantasma.
+    - Para evitar isso, antes da exclusão de um registro desta tabela, é necessário olhar por outros registros que apontam para a URL interna da notícia (`{CLIENT_URL}/articles/{id}`) e voltar a apontar para o campo `url_original` da notícia sendo excluída.
+    - Por exemplo: notícia `K` possui a URL interna da notícia `L` nesta tabela. Ao excluir a notícia `L`, a notícia `K` agora precisa apontar novamente para o que era a `url_original` da notícia `L`, assim o atributo `href` não fica órfão.
 - É necessária uma funcionalidade centralizada para todas as vezes que uma notícia servir de resposta em um endpoint, trocando de `<a href="{article_outbound_link.id}">` para `<a href="{article_outbound_link.href}">`.
 
 ## Descobrindo uma notícia
