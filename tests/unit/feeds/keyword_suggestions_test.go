@@ -53,6 +53,9 @@ func (m *mockKeywordArticleCtrl) SuggestKeywords(ctx context.Context, q db.Queri
 func (m *mockKeywordArticleCtrl) Update(context.Context, db.Querier, string, string, string, string, []string, *string) (db.Article, error) {
 	return db.Article{}, nil
 }
+func (m *mockKeywordArticleCtrl) UpdateContent(context.Context, db.Querier, string, string) error {
+	return nil
+}
 func (m *mockKeywordArticleCtrl) SoftDelete(context.Context, db.Querier, string) error { return nil }
 
 func buildKeywordSuggestionsApp(ctrl *mockKeywordArticleCtrl, windowDays int) *fiber.App {

@@ -25,6 +25,14 @@ type Article struct {
 	RemovedAt        utctime.NullTime `json:"removed_at"`
 }
 
+type ArticleOutboundLink struct {
+	ID         string           `json:"id"`
+	ArticleID  string           `json:"article_id"`
+	Href       string           `json:"href"`
+	CreatedAt  utctime.Time     `json:"created_at"`
+	ModifiedAt utctime.NullTime `json:"modified_at"`
+}
+
 type ArticlesFeed struct {
 	ID         string           `json:"id"`
 	ArticleID  string           `json:"article_id"`

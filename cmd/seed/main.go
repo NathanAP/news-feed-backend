@@ -20,17 +20,18 @@ import (
 // seedCtx bundles everything the seed commands need: the transaction runner, the parsed examples and
 // the controllers (reused from the app so the seed follows the exact same write rules).
 type seedCtx struct {
-	ctx         context.Context
-	runTx       controllers.TransactionRunner
-	ex          examples
-	userCtrl    *controllers.UserController
-	prefCtrl    *controllers.UserPreferencesController
-	refreshCtrl *controllers.RefreshTokenController
-	sourceCtrl  *controllers.SourceController
-	articleCtrl *controllers.ArticleController
-	feedCtrl    *controllers.FeedController
-	afCtrl      *controllers.ArticleFeedController
-	authCtrl    *controllers.AuthController
+	ctx          context.Context
+	runTx        controllers.TransactionRunner
+	ex           examples
+	userCtrl     *controllers.UserController
+	prefCtrl     *controllers.UserPreferencesController
+	refreshCtrl  *controllers.RefreshTokenController
+	sourceCtrl   *controllers.SourceController
+	articleCtrl  *controllers.ArticleController
+	outboundCtrl *controllers.ArticleOutboundLinkController
+	feedCtrl     *controllers.FeedController
+	afCtrl       *controllers.ArticleFeedController
+	authCtrl     *controllers.AuthController
 }
 
 // commands maps subcommand name → handler. `full` runs them all in dependency order.
@@ -102,17 +103,18 @@ func buildSeedContext(database *sql.DB, ex examples) *seedCtx {
 	)
 
 	return &seedCtx{
-		ctx:         context.Background(),
-		runTx:       runTx,
-		ex:          ex,
-		userCtrl:    userCtrl,
-		prefCtrl:    prefCtrl,
-		refreshCtrl: refreshCtrl,
-		sourceCtrl:  controllers.NewSourceController(),
-		articleCtrl: controllers.NewArticleController(),
-		feedCtrl:    controllers.NewFeedController(),
-		afCtrl:      controllers.NewArticleFeedController(),
-		authCtrl:    authCtrl,
+		ctx:          context.Background(),
+		runTx:        runTx,
+		ex:           ex,
+		userCtrl:     userCtrl,
+		prefCtrl:     prefCtrl,
+		refreshCtrl:  refreshCtrl,
+		sourceCtrl:   controllers.NewSourceController(),
+		articleCtrl:  controllers.NewArticleController(),
+		outboundCtrl: controllers.NewArticleOutboundLinkController(),
+		feedCtrl:     controllers.NewFeedController(),
+		afCtrl:       controllers.NewArticleFeedController(),
+		authCtrl:     authCtrl,
 	}
 }
 

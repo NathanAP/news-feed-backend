@@ -79,6 +79,25 @@ inglês** (canônico, pra matching entre fontes de qualquer idioma no julgamento
 é o idioma detectado pelo `lingua-go` no tratamento (null quando a detecção falha); na criação/edição
 manual é obrigatório no payload. Usado pela tradução para saber a origem.
 
+> **0.45 — formato do `content`:** desde a 0.45 o corpo gravado **não guarda URLs** nas âncoras: cada
+> `<a href>` carrega o **id** de uma linha em `article_outbound_links`. A URL real é resolvida a cada
+> leitura (swap). Notícias gravadas antes da 0.45 mantêm URLs reais e passam intactas (o swap só troca
+> href que casa com um id de outbound). Ver `article_outbound_links` abaixo.
+
+### article_outbound_links (0.45 — ponteiros de link do corpo)
+
+`id`, `article_id` (FK articles), `href`, `created_at`, `modified_at`. **Exceção de convenção:** sem
+`status`/`removed_at`. Índices em `article_id` (swap de leitura em batch) e `href` (retarget/limpeza por
+match exato). Serve para corrigir links entre notícias de forma **retroativa**: o corpo de uma notícia é
+imutável, então quando a notícia B chega representando uma URL que A já linkava, só se altera a linha
+desta tabela (não o corpo de A). Uma linha por **href distinto** do corpo. `href` guarda a URL real:
+link **interno** como o token literal `{CLIENT_URL}/articles/{id}` (desacopla de mudança de domínio; o
+swap expande na leitura), **externo** literal. **Invariante:** o id e o token não são URLs válidas, então
+nunca podem passar pelo bluemonday (o corpo em forma-id só existe pós-sanitize; o swap roda antes de
+qualquer re-sanitização). Cascade hard-delete por `article_id` (dormente — notícias só sofrem
+soft-remove). Serviço `services/outboundlinks` (`Assign` grava, `Resolve` troca de volta). Populada na
+etapa "operações no banco de dados" do tratamento (`discovery/processor.go`, numa transação só).
+
 ### feeds (por usuário)
 
 `id`, `status`, `name`, `keywords` (**JSONB**, 5–20), `user_id` (FK users), timestamps.

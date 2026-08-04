@@ -29,6 +29,11 @@ import (
 // body's `keywords_mode` (local | groq | gemini) so backends can be benchmarked from Bruno without
 // restarting. It does NOT persist anything, but reads the DB (url treatment) and calls the keyword AI
 // for real (consumes quota). Open for now (admin-future).
+//
+// It stops before the 0.45 "database operations" block (outbound-link assignment / retargeting), which
+// is inherently a write step and cannot run in a dry-run: the returned content therefore carries real
+// URLs, not the id form the stored body would have. That block is exercised by the discovery
+// integration tests instead.
 func TreatArticle(keyworders map[string]ai.Keyworder, defaultMode string, detector langdetect.Detector, articleCtrl controllers.ArticleControllerInterface, runTx controllers.TransactionRunner, clientURL string, urlVerbose bool) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		logger.RouteStart(c.Path())

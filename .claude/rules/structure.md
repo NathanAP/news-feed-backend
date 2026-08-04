@@ -35,6 +35,7 @@ O banco não aparece nesta árvore: desde a 0.37 é PostgreSQL (cliente-servidor
 │   ├── judgement              (camada 2 do julgamento: pontua uma notícia contra feeds candidatos)
 │   ├── langdetect             (detecção do idioma original via lingua-go, offline/determinístico)
 │   ├── oauthstate             (assina/valida o `state` do login OAuth: CSRF + carrega o redirect_uri)
+│   ├── outboundlinks          (bridge corpo↔tabela article_outbound_links: Assign grava ids no corpo na descoberta, Resolve troca de volta na leitura; token {CLIENT_URL})
 │   ├── pagination             (paginação global genérica: ParseParams + Paginate[T])
 │   ├── prompts                (prompts de IA em .yaml, embutidos via go:embed)
 │   ├── rss                    (descoberta de URLs de RSS a partir de uma URL principal)

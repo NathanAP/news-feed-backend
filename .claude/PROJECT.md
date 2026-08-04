@@ -291,6 +291,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Qualquer um dos processos de exclusão (soft ou hard remove) vai resultar em um problema comum: alguns conteúdos vão ficar com `article_outbound_link_id` fantasma.
     - Para evitar isso, antes do processo é necessário olhar por outros registros que apontam para a URL interna da notícia (`{CLIENT_URL}/articles/{id}`) e voltar a apontar para o campo `url_original` da notícia sendo excluída.
     - Por exemplo: notícia `K` possui a URL interna da notícia `L` nesta tabela. Ao excluir a notícia `L`, a notícia `K` agora precisa apontar novamente para o que era a `url_original` da notícia `L`, assim o atributo `href` não fica órfão.
+    - Note que se em algum momento haver um `restore` de registros em estado de soft remove, teremos que fazer novamente o processo inverso, persistindo a URL interna ao invés da externa.
 - É necessária uma funcionalidade centralizada para todas as vezes que uma notícia servir de resposta em um endpoint, trocando de `<a href="{article_outbound_link.id}">` para `<a href="{article_outbound_link.href}">`.
 
 ## Descobrindo uma notícia

@@ -41,6 +41,7 @@ func setupApp(t *testing.T) (*fiber.App, db.Querier) {
 	runTx := controllers.NewTransactionRunner(database)
 
 	articleCtrl := controllers.NewArticleController()
+	outboundCtrl := controllers.NewArticleOutboundLinkController()
 	afCtrl := controllers.NewArticleFeedController()
 	refreshTokenCtrl := controllers.NewRefreshTokenController(30 * 24 * time.Hour)
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
@@ -48,7 +49,7 @@ func setupApp(t *testing.T) (*fiber.App, db.Querier) {
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	a := app.Group("/v1/articles")
 	a.Put("/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(articleCtrl, afCtrl, runTx))...)
-	a.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, runTx))...)
+	a.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, outboundCtrl, runTx, ""))...)
 
 	return app, queries
 }

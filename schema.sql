@@ -137,3 +137,21 @@ CREATE TABLE system (
     modified_at TIMESTAMPTZ,
     PRIMARY KEY (id)
 );
+
+-- Outbound links carried by an article's body (0.45). Each <a href> in a treated body carries the id
+-- of one of these rows instead of a URL; the row's href holds the real target (internal link stored as
+-- the literal token `{CLIENT_URL}/articles/{id}`, external stored literally). Serving an article swaps
+-- the id back to href. Decouples the link target from the immutable body so a later article can be
+-- retro-linked by UPDATEing the row, never the body. No status/removed_at (conventions.md exception);
+-- cascade is hard-delete by article_id. See migrations/20260804120000_article_outbound_links.sql.
+CREATE TABLE article_outbound_links (
+    id TEXT NOT NULL,
+    article_id TEXT NOT NULL REFERENCES articles(id),
+    href TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    modified_at TIMESTAMPTZ,
+    PRIMARY KEY (id)
+);
+
+CREATE INDEX idx_article_outbound_links_article_id ON article_outbound_links(article_id);
+CREATE INDEX idx_article_outbound_links_href ON article_outbound_links(href);

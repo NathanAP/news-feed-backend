@@ -6,12 +6,15 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/google/uuid"
+
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/services/ai"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	"github.com/nathanap/news-feed-backend/services/embedtreatment"
 	"github.com/nathanap/news-feed-backend/services/judgement"
 	"github.com/nathanap/news-feed-backend/services/langdetect"
+	"github.com/nathanap/news-feed-backend/services/outboundlinks"
 	"github.com/nathanap/news-feed-backend/services/sanitize"
 	"github.com/nathanap/news-feed-backend/services/urltreatment"
 	db "github.com/nathanap/news-feed-backend/sqlc"
@@ -21,7 +24,8 @@ import (
 // url_original, detects the original language, rewrites in-content links that point to articles we
 // already have (url treatment), sanitizes the raw RSS body to the safe-HTML whitelist (bluemonday,
 // deterministic — the AI never touches the body), names keywords over the sanitized content,
-// persists the result, and finally judges the article against the user feeds — writing an
+// persists the result (rewriting in-body anchors to article_outbound_links ids and retro-linking older
+// articles, see persist), and finally judges the article against the user feeds — writing an
 // articles_feeds association for every feed that clears the threshold. AI calls happen outside any
 // transaction. A failure on one article (AI error, persistence error) is logged and skipped — since
 // nothing is persisted for it, the article is simply rediscovered and retried on the next run.
@@ -36,13 +40,14 @@ import (
 // single-node case of the future distributed queue + workers model (see ROADMAP), so the per-article
 // pipeline stays behind processOne and does not know who dispatches it.
 type TreatmentProcessor struct {
-	runTx       controllers.TransactionRunner
-	articleCtrl controllers.ArticleControllerInterface
-	feedCtrl    controllers.FeedControllerInterface
-	afCtrl      controllers.ArticleFeedControllerInterface
-	detector    langdetect.Detector
-	keyworder   ai.Keyworder
-	evaluator   *judgement.Evaluator
+	runTx        controllers.TransactionRunner
+	articleCtrl  controllers.ArticleControllerInterface
+	outboundCtrl controllers.ArticleOutboundLinkControllerInterface
+	feedCtrl     controllers.FeedControllerInterface
+	afCtrl       controllers.ArticleFeedControllerInterface
+	detector     langdetect.Detector
+	keyworder    ai.Keyworder
+	evaluator    *judgement.Evaluator
 	// clientURL is the base URL of the web client (e.g. https://app.example.com); internal article
 	// links become clientURL + "/articles/" + id. Empty disables url treatment (links are only sanitized).
 	clientURL   string
@@ -57,6 +62,7 @@ type TreatmentProcessor struct {
 func NewTreatmentProcessor(
 	runTx controllers.TransactionRunner,
 	articleCtrl controllers.ArticleControllerInterface,
+	outboundCtrl controllers.ArticleOutboundLinkControllerInterface,
 	feedCtrl controllers.FeedControllerInterface,
 	afCtrl controllers.ArticleFeedControllerInterface,
 	detector langdetect.Detector,
@@ -71,6 +77,7 @@ func NewTreatmentProcessor(
 	return &TreatmentProcessor{
 		runTx:        runTx,
 		articleCtrl:  articleCtrl,
+		outboundCtrl: outboundCtrl,
 		feedCtrl:     feedCtrl,
 		afCtrl:       afCtrl,
 		detector:     detector,
@@ -295,14 +302,57 @@ func (p *TreatmentProcessor) detectLanguage(title, content string) *string {
 	return &code
 }
 
+// persist runs the 0.45 "database operations" block for one treated article, all in a single
+// transaction so a mid-way crash never leaves a body referencing outbound rows that don't exist:
+//  1. Gravação: store the article (body still holds real URLs).
+//  2. Associação + Reorganização: assign an outbound-link id to every distinct <a href>, persist the
+//     links, and write the id-form body back. Best-effort — a parse failure keeps the real-URL body
+//     and no rows (Resolve leaves non-id hrefs alone), so the rewrite is lost but the article is not.
+//  3. Alteração: retro-link older articles that had pointed at this article's external URL, by
+//     retargeting their outbound rows to this article's internal (token-form) URL.
+//
+// A real DB write error at any step rolls the whole thing back (the article is then rediscovered and
+// retried next run). Judgement runs afterwards, outside this transaction.
 func (p *TreatmentProcessor) persist(ctx context.Context, article DiscoveredArticle, content string, keywords []string, languageOriginal *string) (db.Article, error) {
 	var saved db.Article
 	err := p.runTx(ctx, func(q db.Querier) error {
 		var e error
 		saved, e = p.articleCtrl.Create(ctx, q, article.Title, content, article.URLOriginal, article.SourceID, keywords, languageOriginal)
-		return e
+		if e != nil {
+			return e
+		}
+
+		rewritten, links, aerr := outboundlinks.Assign(saved.Content, p.clientURL, newOutboundID)
+		if aerr != nil {
+			// Losing the rewrite must not drop the article: keep the real-URL body and no rows.
+			p.log(fmt.Sprintf("    outbound assign failed for %s: %v (keeping real-URL body)", saved.ID, aerr), logger.ColorRed)
+		} else if len(links) > 0 {
+			for _, l := range links {
+				if _, e := p.outboundCtrl.Create(ctx, q, l.ID, saved.ID, l.Href); e != nil {
+					return e
+				}
+			}
+			if e := p.articleCtrl.UpdateContent(ctx, q, saved.ID, rewritten); e != nil {
+				return e
+			}
+			saved.Content = rewritten
+		}
+
+		// Retroactive linking: any older article whose outbound row points at this article's external
+		// URL now opens it internally. No-op when nothing matches; the token defers CLIENT_URL to read.
+		return p.outboundCtrl.Retarget(ctx, q, saved.UrlOriginal, outboundlinks.InternalHref(saved.ID))
 	})
 	return saved, err
+}
+
+// newOutboundID generates a UUIDv7 for an outbound link (same id written into the body anchor and the
+// row). Matches the outboundlinks.Assign newID contract.
+func newOutboundID() (string, error) {
+	id, err := uuid.NewV7()
+	if err != nil {
+		return "", err
+	}
+	return id.String(), nil
 }
 
 func (p *TreatmentProcessor) log(message string, color logger.Color) {

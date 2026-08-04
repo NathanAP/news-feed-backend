@@ -23,7 +23,7 @@ import (
 func translateApp(ctrl controllers.ArticleControllerInterface, translator ai.Translator) *fiber.App {
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
-	app.Get("/v1/articles/:id/translate", append(authMiddleware, articleendpoints.TranslateArticle(ctrl, translator, fakeTxRunner))...)
+	app.Get("/v1/articles/:id/translate", append(authMiddleware, articleendpoints.TranslateArticle(ctrl, &mockOutboundCtrl{}, translator, fakeTxRunner, ""))...)
 	return app
 }
 

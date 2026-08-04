@@ -22,6 +22,9 @@ normais (não injetar de formas inseguras além do render de HTML).
       tratar essas URLs como navegação interna (rota do próprio client) e, ao abrir, disparar a marcação
       de leitura — ver §4.
     - **Externos**: qualquer outro `http(s)`/`mailto`. O client decide como abrir (ex.: `target="_blank"`).
+    - **Contrato inalterado na 0.45**: internamente o servidor passou a guardar um ponteiro no lugar da
+      URL e a resolvê-lo a cada resposta, mas o `content` que chega ao client **sempre** traz o `href`
+      já com a URL real (interna `{CLIENT_URL}/articles/{id}` ou externa). O client nunca vê ids internos.
 - **Imagens** `<img src>` (com `alt`/`width`/`height`), esquemas `http`/`https`. São **externas** (do
   site da fonte) — trate lazy-loading e imagem quebrada. ⚠️ Privacidade: carregam de terceiros (podem
   ser pixels de tracking); decida se quer proxiar/bloquear no client.

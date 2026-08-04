@@ -154,6 +154,16 @@ func (c *ArticleController) Update(ctx context.Context, q db.Querier, id, title,
 	return article, nil
 }
 
+// UpdateContent overwrites only the article body, for the 0.45 treatment DB step: right after the
+// article is stored, its anchors are rewritten to outbound-link ids and the body is written back. It
+// runs inside the same transaction as the insert. Unlike Update it touches nothing else.
+func (c *ArticleController) UpdateContent(ctx context.Context, q db.Querier, id, content string) error {
+	if err := q.UpdateArticleContent(ctx, db.UpdateArticleContentParams{ID: id, Content: content}); err != nil {
+		return fmt.Errorf("failed to update article content: %w", err)
+	}
+	return nil
+}
+
 func (c *ArticleController) SoftDelete(ctx context.Context, q db.Querier, id string) error {
 	if err := q.SoftDeleteArticle(ctx, id); err != nil {
 		return fmt.Errorf("failed to delete article: %w", err)

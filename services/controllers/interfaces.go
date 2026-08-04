@@ -65,7 +65,18 @@ type ArticleControllerInterface interface {
 	ListAll(ctx context.Context, q db.Querier) ([]db.Article, error)
 	SuggestKeywords(ctx context.Context, q db.Querier, selected []string, since time.Time, limit int32) ([]schemas.KeywordSuggestion, string, error)
 	Update(ctx context.Context, q db.Querier, id, title, content, urlOriginal string, keywords []string, languageOriginal *string) (db.Article, error)
+	UpdateContent(ctx context.Context, q db.Querier, id, content string) error
 	SoftDelete(ctx context.Context, q db.Querier, id string) error
+}
+
+// ArticleOutboundLinkControllerInterface is the intermediary for the article_outbound_links table
+// (0.45): it composes into the treatment persistence transaction (Create/Retarget) and the read-time
+// swap (ListByArticleIDs). See services/outboundlinks for the body rewrite that produces the hrefs.
+type ArticleOutboundLinkControllerInterface interface {
+	Create(ctx context.Context, q db.Querier, id, articleID, href string) (db.ArticleOutboundLink, error)
+	ListByArticleIDs(ctx context.Context, q db.Querier, articleIDs []string) ([]db.ArticleOutboundLink, error)
+	Retarget(ctx context.Context, q db.Querier, oldHref, newHref string) error
+	DeleteByArticleID(ctx context.Context, q db.Querier, articleID string) error
 }
 
 type FeedControllerInterface interface {

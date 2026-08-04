@@ -40,11 +40,18 @@ type Querier interface {
 	CountUnreadArticlesByFeedForUser(ctx context.Context, userID string) ([]CountUnreadArticlesByFeedForUserRow, error)
 	CreateArticle(ctx context.Context, arg CreateArticleParams) (Article, error)
 	CreateArticleFeed(ctx context.Context, arg CreateArticleFeedParams) (ArticlesFeed, error)
+	// One row per distinct href found in a freshly persisted article body (see the outboundlinks service).
+	// href is the real target: an internal link as the literal token `{CLIENT_URL}/articles/{id}`, an
+	// external link literally. The body stores this row's id in the anchor, never the URL.
+	CreateArticleOutboundLink(ctx context.Context, arg CreateArticleOutboundLinkParams) (ArticleOutboundLink, error)
 	CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, error)
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error)
 	CreateSource(ctx context.Context, arg CreateSourceParams) (Source, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserPreferences(ctx context.Context, arg CreateUserPreferencesParams) (UserPreference, error)
+	// Hard-delete cascade for an article hard-remove. Dormant today (articles are only soft-removed) but
+	// kept ready in code, per the project's cascade philosophy.
+	DeleteArticleOutboundLinksByArticleID(ctx context.Context, articleID string) error
 	ExtendRefreshToken(ctx context.Context, arg ExtendRefreshTokenParams) error
 	FindArticleByID(ctx context.Context, id string) (Article, error)
 	FindArticleByURLOriginal(ctx context.Context, urlOriginal string) (Article, error)
@@ -101,6 +108,9 @@ type Querier interface {
 	// the batch callers a page_size big enough to "fit everything" would be a bug waiting for the
 	// source count to grow past it. HTTP clients must use ListSources, which is always paginated.
 	ListAllSources(ctx context.Context) ([]Source, error)
+	// Every outbound link of the given articles, in one batch, for the read-time swap. The listing/read
+	// endpoints pass the ids of the whole page here (never one query per article — no N+1).
+	ListArticleOutboundLinksByArticleIDs(ctx context.Context, articleIds []string) ([]ArticleOutboundLink, error)
 	// Lists the active articles for GET /v1/articles, filtered and paginated in SQL.
 	// The url filter is optional: a NULL param means "no filter" (sqlc.narg), so one query serves both
 	// the filtered and the unfiltered case. strpos(lower(a), lower(b)) > 0 is a literal case-insensitive
@@ -138,6 +148,13 @@ type Querier interface {
 	// Idempotent: already-read records are not touched. Both related rows must be active:
 	// the article and the feed.
 	MarkArticleAsReadForUser(ctx context.Context, arg MarkArticleAsReadForUserParams) error
+	// Repoints every row currently pointing at old_href to new_href. Two callers, both matching by exact
+	// href (idx_article_outbound_links_href):
+	//   * retroactive linking: when article B is persisted, old_href = B.url_original, new_href =
+	//     `{CLIENT_URL}/articles/{B.id}` — older articles that linked B's external URL now open internally.
+	//   * pre-remove cleanup: before an article L is removed, old_href = `{CLIENT_URL}/articles/{L.id}`,
+	//     new_href = L.url_original — links pointing at the vanishing internal page fall back to the source.
+	RetargetArticleOutboundLinksByHref(ctx context.Context, arg RetargetArticleOutboundLinksByHrefParams) error
 	RevokeAllRefreshTokensByUserID(ctx context.Context, userID string) error
 	RevokeRefreshToken(ctx context.Context, id string) error
 	// SetUserAdmin is deliberately separate from CreateUser instead of an `admin` parameter on it: the
@@ -176,6 +193,10 @@ type Querier interface {
 	// selected is a JSON array of lowercase keywords. Same count/order semantics as SuggestPopularKeywords.
 	SuggestRelatedKeywords(ctx context.Context, arg SuggestRelatedKeywordsParams) ([]SuggestRelatedKeywordsRow, error)
 	UpdateArticle(ctx context.Context, arg UpdateArticleParams) (Article, error)
+	// Overwrites only the body, for the 0.45 treatment DB step: right after an article is stored, its
+	// anchors are rewritten to outbound-link ids and the body is written back. Keeps title/keywords/etc.
+	// untouched (unlike UpdateArticle). Runs inside the same transaction as the insert.
+	UpdateArticleContent(ctx context.Context, arg UpdateArticleContentParams) error
 	UpdateFeedByIDAndUser(ctx context.Context, arg UpdateFeedByIDAndUserParams) (Feed, error)
 	UpdateSource(ctx context.Context, arg UpdateSourceParams) (Source, error)
 	UpdateSystemAppStatus(ctx context.Context, appStatus bool) (System, error)

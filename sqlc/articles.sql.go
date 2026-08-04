@@ -398,3 +398,22 @@ func (q *Queries) UpdateArticle(ctx context.Context, arg UpdateArticleParams) (A
 	)
 	return i, err
 }
+
+const updateArticleContent = `-- name: UpdateArticleContent :exec
+UPDATE articles
+SET content = $1, modified_at = CURRENT_TIMESTAMP
+WHERE id = $2 AND status = TRUE AND removed_at IS NULL
+`
+
+type UpdateArticleContentParams struct {
+	Content string `json:"content"`
+	ID      string `json:"id"`
+}
+
+// Overwrites only the body, for the 0.45 treatment DB step: right after an article is stored, its
+// anchors are rewritten to outbound-link ids and the body is written back. Keeps title/keywords/etc.
+// untouched (unlike UpdateArticle). Runs inside the same transaction as the insert.
+func (q *Queries) UpdateArticleContent(ctx context.Context, arg UpdateArticleContentParams) error {
+	_, err := q.db.ExecContext(ctx, updateArticleContent, arg.Content, arg.ID)
+	return err
+}

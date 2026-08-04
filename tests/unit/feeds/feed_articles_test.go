@@ -50,11 +50,27 @@ func (m *mockAFCtrl) MarkAsRead(_ context.Context, _ db.Querier, _, _ string) (b
 
 var _ controllers.ArticleFeedControllerInterface = (*mockAFCtrl)(nil)
 
+// mockOutboundCtrl is a no-op: no outbound links, so the read-time swap leaves bodies unchanged.
+type mockOutboundCtrl struct{}
+
+func (m *mockOutboundCtrl) Create(_ context.Context, _ db.Querier, _, _, _ string) (db.ArticleOutboundLink, error) {
+	return db.ArticleOutboundLink{}, nil
+}
+func (m *mockOutboundCtrl) ListByArticleIDs(_ context.Context, _ db.Querier, _ []string) ([]db.ArticleOutboundLink, error) {
+	return []db.ArticleOutboundLink{}, nil
+}
+func (m *mockOutboundCtrl) Retarget(_ context.Context, _ db.Querier, _, _ string) error { return nil }
+func (m *mockOutboundCtrl) DeleteByArticleID(_ context.Context, _ db.Querier, _ string) error {
+	return nil
+}
+
+var _ controllers.ArticleOutboundLinkControllerInterface = (*mockOutboundCtrl)(nil)
+
 func buildFeedArticlesApp(feedCtrl controllers.FeedControllerInterface, afCtrl controllers.ArticleFeedControllerInterface) *fiber.App {
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
 	f := app.Group("/v1/feeds")
-	f.Get("/:id/articles", append(authMiddleware, feedendpoints.FeedArticles(feedCtrl, afCtrl, fakeTxRunner))...)
+	f.Get("/:id/articles", append(authMiddleware, feedendpoints.FeedArticles(feedCtrl, afCtrl, &mockOutboundCtrl{}, fakeTxRunner, ""))...)
 	return app
 }
 

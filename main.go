@@ -114,6 +114,7 @@ func main() {
 	authCtrl := controllers.NewAuthController(oauth2Config, userCtrl, refreshTokenCtrl, prefCtrl, runTx, jwtSecret, accessTokenExpiry)
 	sourceCtrl := controllers.NewSourceController()
 	articleCtrl := controllers.NewArticleController()
+	outboundCtrl := controllers.NewArticleOutboundLinkController()
 	afCtrl := controllers.NewArticleFeedController()
 	feedCtrl := controllers.NewFeedController()
 	systemCtrl := controllers.NewSystemController()
@@ -122,6 +123,8 @@ func main() {
 	// articles we already have (to CLIENT_URL/articles/{id}), then the bluemonday whitelist in
 	// services/sanitize cleans the raw RSS HTML. Both are wired directly where used (discovery
 	// pipeline and dry-run endpoint). Without CLIENT_URL, url treatment is skipped (links only sanitized).
+	// clientURL also feeds the read-time outbound-link swap (0.45): stored internal hrefs hold the
+	// {CLIENT_URL} token, expanded back to this value when an article is served.
 	clientURL := strings.TrimRight(os.Getenv("CLIENT_URL"), "/")
 	if clientURL == "" {
 		log.Println("CLIENT_URL not set; url treatment (internal article links) will be skipped")
@@ -245,10 +248,10 @@ func main() {
 	// creates articles.
 	articles := api.Group("/articles")
 	articles.Post("/create", adminRoute(authMiddleware, requireAdmin, articleendpoints.CreateArticle(articleCtrl, runTx))...)
-	articles.Get("/:id/translate", append(authMiddleware, articleendpoints.TranslateArticle(articleCtrl, translator, runTx))...)
+	articles.Get("/:id/translate", append(authMiddleware, articleendpoints.TranslateArticle(articleCtrl, outboundCtrl, translator, runTx, clientURL))...)
 	articles.Put("/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(articleCtrl, afCtrl, runTx))...)
-	articles.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, runTx))...)
-	articles.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, runTx))...)
+	articles.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, outboundCtrl, runTx, clientURL))...)
+	articles.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, outboundCtrl, runTx, clientURL))...)
 	articles.Put("/:id", adminRoute(authMiddleware, requireAdmin, articleendpoints.UpdateArticle(articleCtrl, runTx))...)
 	articles.Delete("/:id", adminRoute(authMiddleware, requireAdmin, articleendpoints.DeleteArticle(articleCtrl, runTx))...)
 
@@ -271,7 +274,7 @@ func main() {
 	// article pool, so it takes articleCtrl rather than feedCtrl.
 	keywordSuggestionsWindowDays := parseSuggestionWindowDays(os.Getenv("KEYWORD_SUGGESTIONS_WINDOW_DAYS"))
 	feeds.Get("/keyword-suggestions", append(authMiddleware, feedendpoints.SuggestKeywords(articleCtrl, runTx, keywordSuggestionsWindowDays))...)
-	feeds.Get("/:id/articles", append(authMiddleware, feedendpoints.FeedArticles(feedCtrl, afCtrl, runTx))...)
+	feeds.Get("/:id/articles", append(authMiddleware, feedendpoints.FeedArticles(feedCtrl, afCtrl, outboundCtrl, runTx, clientURL))...)
 	feeds.Get("/:id", append(authMiddleware, feedendpoints.GetFeed(feedCtrl, runTx))...)
 	feeds.Get("", append(authMiddleware, feedendpoints.ListFeeds(feedCtrl, runTx))...)
 	feeds.Put("/:id", append(authMiddleware, feedendpoints.UpdateFeed(feedCtrl, runTx))...)
@@ -281,7 +284,7 @@ func main() {
 		cronVerbose := os.Getenv("RSS_FEED_CRON_VERBOSE_MODE") == "true"
 		discoveryConcurrency := parseConcurrency(os.Getenv("DISCOVERY_CONCURRENCY"))
 		discoveryMaxArticles := parseMaxArticles(os.Getenv("DISCOVERY_MAX_ARTICLES"))
-		processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, detector, defaultKeyworder, evaluator, clientURL, urlTreatmentVerbose, discoveryConcurrency, inactiveDays, cronVerbose)
+		processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, outboundCtrl, feedCtrl, afCtrl, detector, defaultKeyworder, evaluator, clientURL, urlTreatmentVerbose, discoveryConcurrency, inactiveDays, cronVerbose)
 		runner := cron.NewDiscoveryRunner(runTx, sourceCtrl, systemCtrl, processor, discoveryHTTPClient, discoveryConcurrency, discoveryMaxArticles, cronVerbose)
 		scheduler, err := cron.NewScheduler(os.Getenv("RSS_FEED_CRON_SCHEDULE"), runner)
 		if err != nil {

@@ -10,6 +10,7 @@ import (
 	"github.com/nathanap/news-feed-backend/middlewares"
 	"github.com/nathanap/news-feed-backend/schemas"
 	"github.com/nathanap/news-feed-backend/services/controllers"
+	"github.com/nathanap/news-feed-backend/services/outboundlinks"
 	"github.com/nathanap/news-feed-backend/services/pagination"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
@@ -23,7 +24,7 @@ import (
 // with the pagination. with_sources=true also populates each article's source (conventions.md: any
 // value other than "true" is ignored, never an error). The response follows the standard paginated
 // envelope ({ docs, pagination }).
-func FeedArticles(feedCtrl controllers.FeedControllerInterface, afCtrl controllers.ArticleFeedControllerInterface, runTx controllers.TransactionRunner) fiber.Handler {
+func FeedArticles(feedCtrl controllers.FeedControllerInterface, afCtrl controllers.ArticleFeedControllerInterface, outboundCtrl controllers.ArticleOutboundLinkControllerInterface, runTx controllers.TransactionRunner, clientURL string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
@@ -58,6 +59,7 @@ func FeedArticles(feedCtrl controllers.FeedControllerInterface, afCtrl controlle
 
 		var rows []db.ListArticlesByFeedForUserRow
 		var total int64
+		var links []db.ArticleOutboundLink
 		err = runTx(c.Context(), func(q db.Querier) error {
 			// Ownership check first so we can tell "not your feed / missing" (404) apart from an
 			// owned-but-empty feed (200). Both would otherwise produce zero rows below.
@@ -66,6 +68,11 @@ func FeedArticles(feedCtrl controllers.FeedControllerInterface, afCtrl controlle
 			}
 			var e error
 			rows, total, e = afCtrl.ListArticlesByFeedForUser(c.Context(), q, id, claims.UserID, filter)
+			if e != nil {
+				return e
+			}
+			// Batch fetch the page's outbound links for the read-time swap (no N+1).
+			links, e = outboundCtrl.ListByArticleIDs(c.Context(), q, feedArticleIDs(rows))
 			return e
 		})
 		if err != nil {
@@ -75,17 +82,28 @@ func FeedArticles(feedCtrl controllers.FeedControllerInterface, afCtrl controlle
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to retrieve feed articles"})
 		}
 
+		byID := controllers.OutboundLinksByID(links)
 		docs := make([]schemas.ArticleResponse, 0, len(rows))
 		for _, row := range rows {
 			response, err := rowToArticleResponse(row, withSources)
 			if err != nil {
 				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to build article response"})
 			}
+			response.Content = outboundlinks.Resolve(response.Content, byID, clientURL)
 			docs = append(docs, response)
 		}
 
 		return c.JSON(pagination.BuildResponse(docs, total, filter.Page))
 	}
+}
+
+// feedArticleIDs collects the article ids of a page of feed rows, for the batch outbound-link lookup.
+func feedArticleIDs(rows []db.ListArticlesByFeedForUserRow) []string {
+	ids := make([]string, len(rows))
+	for i, r := range rows {
+		ids[i] = r.ID
+	}
+	return ids
 }
 
 // parseIsRead reads the optional is_read filter. Empty means "no filter" (nil); "true"/"false" set

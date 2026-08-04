@@ -48,6 +48,12 @@ func decodePage(t *testing.T, resp *http.Response) []map[string]any {
 // comes back alongside the Querier because a few tests need to set up state the API deliberately
 // cannot produce — see forceCreatedAt.
 func setupIntegrationApp(t *testing.T) (*fiber.App, db.Querier, *sql.DB) {
+	return setupIntegrationAppClient(t, "")
+}
+
+// setupIntegrationAppClient is setupIntegrationApp with a configurable client URL, so the read-time
+// outbound-link swap (which expands the {CLIENT_URL} token) can be exercised end to end.
+func setupIntegrationAppClient(t *testing.T, clientURL string) (*fiber.App, db.Querier, *sql.DB) {
 	t.Helper()
 
 	database := testutils.SetupTestDB(t)
@@ -55,6 +61,7 @@ func setupIntegrationApp(t *testing.T) (*fiber.App, db.Querier, *sql.DB) {
 	runTx := controllers.NewTransactionRunner(database)
 
 	articleCtrl := controllers.NewArticleController()
+	outboundCtrl := controllers.NewArticleOutboundLinkController()
 	afCtrl := controllers.NewArticleFeedController()
 	refreshTokenCtrl := controllers.NewRefreshTokenController(30 * 24 * time.Hour)
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
@@ -63,8 +70,8 @@ func setupIntegrationApp(t *testing.T) (*fiber.App, db.Querier, *sql.DB) {
 	a := app.Group("/v1/articles")
 	a.Post("/create", append(authMiddleware, articleendpoints.CreateArticle(articleCtrl, runTx))...)
 	a.Put("/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(articleCtrl, afCtrl, runTx))...)
-	a.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, runTx))...)
-	a.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, runTx))...)
+	a.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, outboundCtrl, runTx, clientURL))...)
+	a.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, outboundCtrl, runTx, clientURL))...)
 	a.Put("/:id", append(authMiddleware, articleendpoints.UpdateArticle(articleCtrl, runTx))...)
 	a.Delete("/:id", append(authMiddleware, articleendpoints.DeleteArticle(articleCtrl, runTx))...)
 
@@ -123,6 +130,45 @@ func createArticle(t *testing.T, app *fiber.App, token, urlOriginal, sourceID st
 	var created map[string]any
 	require.NoError(t, readJSON(resp, &created))
 	return created["id"].(string)
+}
+
+// TestIntegration_GetArticle_ResolvesOutboundLinks proves the read path swaps outbound-link ids in the
+// stored body back to real URLs, expanding the {CLIENT_URL} token to the configured client URL.
+func TestIntegration_GetArticle_ResolvesOutboundLinks(t *testing.T) {
+	requireNotProduction(t)
+
+	app, queries, _ := setupIntegrationAppClient(t, "https://client.app")
+	token := seedUser(t, queries)
+	sourceID := seedSource(t, queries)
+
+	const articleID = "01900000-0000-7000-8000-0000000000a1"
+	_, err := queries.CreateArticle(t.Context(), db.CreateArticleParams{
+		ID:          articleID,
+		Title:       "Body with links",
+		Content:     `<p><a href="oid-int">internal</a> and <a href="oid-ext">external</a></p>`,
+		UrlOriginal: "https://src.com/body",
+		Keywords:    json.RawMessage(`["a","b","c","d","e"]`),
+		SourceID:    sourceID,
+	})
+	require.NoError(t, err)
+	// Outbound rows: an internal link stored as the token, an external one stored literally.
+	_, err = queries.CreateArticleOutboundLink(t.Context(), db.CreateArticleOutboundLinkParams{ID: "oid-int", ArticleID: articleID, Href: "{CLIENT_URL}/articles/target-123"})
+	require.NoError(t, err)
+	_, err = queries.CreateArticleOutboundLink(t.Context(), db.CreateArticleOutboundLinkParams{ID: "oid-ext", ArticleID: articleID, Href: "https://ext.com/z"})
+	require.NoError(t, err)
+
+	req, _ := http.NewRequest(http.MethodGet, "/v1/articles/"+articleID, nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var got map[string]any
+	require.NoError(t, readJSON(resp, &got))
+	content := got["content"].(string)
+	assert.Contains(t, content, `href="https://client.app/articles/target-123"`, "internal token expanded to the client URL")
+	assert.Contains(t, content, `href="https://ext.com/z"`, "external link restored literally")
+	assert.NotContains(t, content, `href="oid-`, "no outbound id leaks to the client")
 }
 
 // ── Create ───────────────────────────────────────────────────────────────────

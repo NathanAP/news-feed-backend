@@ -61,6 +61,7 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 		runTx, []byte(jwtmock.TestJWTSecret), time.Hour,
 	)
 	articleCtrl := controllers.NewArticleController()
+	outboundCtrl := controllers.NewArticleOutboundLinkController()
 	afCtrl := controllers.NewArticleFeedController()
 	sourceCtrl := controllers.NewSourceController()
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
@@ -81,8 +82,8 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 	a := app.Group("/v1/articles")
 	a.Post("/create", adminChain(authMiddleware, requireAdmin, articleendpoints.CreateArticle(articleCtrl, runTx))...)
 	a.Put("/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(articleCtrl, afCtrl, runTx))...)
-	a.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, runTx))...)
-	a.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, runTx))...)
+	a.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, outboundCtrl, runTx, ""))...)
+	a.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, outboundCtrl, runTx, ""))...)
 	a.Put("/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.UpdateArticle(articleCtrl, runTx))...)
 	a.Delete("/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.DeleteArticle(articleCtrl, runTx))...)
 

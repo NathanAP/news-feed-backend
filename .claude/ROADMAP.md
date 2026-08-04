@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.44.0.0
+0.45.0.0
 
 ## Versão 0.37.3.0
 
@@ -179,15 +179,20 @@ Decisões tomadas durante a execução:
 
 ## Versão 0.45.0.0
 
-- [ ] Criar a tabela de URLs externas de notícias
-    - Lembrete: nada do trecho "URLs externas de notícias" do PROJECT.md existe ainda
-    - Lembrete: boa parte do trecho de operações no banco de dados do tratamento de notícias existe ainda
-- [ ] Alterações nas notícias para condizer com as novas regras
-    - Lembrete: é necessário um método para fazer a "troca" pela URL da tabela nova quando for responder por uma notícia
-    - Lembrete: testes serão afetados
-    - Lembrete: endpoints serão afetados
-- [ ] Alterar o fluxo de tratamento de notícias para integrar os novos passos de banco de dados
-    - Lembrete: provavelmente isso vai afetar o que está na pasta cmd/seed
+- [x] Criar a tabela de URLs externas de notícias
+    - Tabela `article_outbound_links` (id, article_id FK, href indexado; sem status/removed_at). Cascade
+      hard-delete por article_id (dormente hoje, pronta no código). Migração sem backfill.
+- [x] Alterações nas notícias para condizer com as novas regras
+    - Serviço `services/outboundlinks`: `Assign` (grava ids no corpo na descoberta) + `Resolve` (troca de
+      volta na leitura). Links internos guardados como token `{CLIENT_URL}/articles/{id}`, externos literais.
+    - Swap centralizado nos endpoints de leitura (`GET /articles/{id}`, `GET /articles`,
+      `GET /feeds/{id}/articles`, `/translate`) — batch, sem N+1. Invariante: id/token nunca passam pelo
+      bluemonday (Assign pós-sanitize, Resolve pré-qualquer-re-sanitize).
+- [x] Alterar o fluxo de tratamento de notícias para integrar os novos passos de banco de dados
+    - `persist` do processor virou uma transação: gravação → associação+reorganização → alteração
+      (retarget retroativo). Seed (`cmd/seed/dev_articles.go`) espelha o novo formato.
+    - Decisão aceita: custo de leitura maior (parse/rewrite por notícia) em troca da retroatividade; sem
+      cache até o Redis. Detalhes no version file `20260804120000_0.45.0.0.md`.
 
 ## Versão 0.46.0.0
 

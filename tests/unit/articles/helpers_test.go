@@ -70,6 +70,7 @@ type mockArticleCtrl struct {
 	listAllFn           func(ctx context.Context, q db.Querier) ([]db.Article, error)
 	suggestKeywordsFn   func(ctx context.Context, q db.Querier, selected []string, since time.Time, limit int32) ([]schemas.KeywordSuggestion, string, error)
 	updateFn            func(ctx context.Context, q db.Querier, id, title, content, urlOriginal string, keywords []string, languageOriginal *string) (db.Article, error)
+	updateContentFn     func(ctx context.Context, q db.Querier, id, content string) error
 	softDeleteFn        func(ctx context.Context, q db.Querier, id string) error
 }
 
@@ -116,6 +117,12 @@ func (m *mockArticleCtrl) Update(ctx context.Context, q db.Querier, id, title, c
 	}
 	return fixtures.NewTestArticle(), nil
 }
+func (m *mockArticleCtrl) UpdateContent(ctx context.Context, q db.Querier, id, content string) error {
+	if m.updateContentFn != nil {
+		return m.updateContentFn(ctx, q, id, content)
+	}
+	return nil
+}
 func (m *mockArticleCtrl) SoftDelete(ctx context.Context, q db.Querier, id string) error {
 	if m.softDeleteFn != nil {
 		return m.softDeleteFn(ctx, q, id)
@@ -124,6 +131,28 @@ func (m *mockArticleCtrl) SoftDelete(ctx context.Context, q db.Querier, id strin
 }
 
 var _ controllers.ArticleControllerInterface = (*mockArticleCtrl)(nil)
+
+// mockOutboundCtrl is a no-op by default: ListByArticleIDs returns no links, so the read-time swap
+// leaves article bodies unchanged (matching the pre-0.45 behaviour the handler tests assert on).
+type mockOutboundCtrl struct {
+	listByArticleIDsFn func(ctx context.Context, q db.Querier, articleIDs []string) ([]db.ArticleOutboundLink, error)
+}
+
+func (m *mockOutboundCtrl) Create(_ context.Context, _ db.Querier, _, _, _ string) (db.ArticleOutboundLink, error) {
+	return db.ArticleOutboundLink{}, nil
+}
+func (m *mockOutboundCtrl) ListByArticleIDs(ctx context.Context, q db.Querier, articleIDs []string) ([]db.ArticleOutboundLink, error) {
+	if m.listByArticleIDsFn != nil {
+		return m.listByArticleIDsFn(ctx, q, articleIDs)
+	}
+	return []db.ArticleOutboundLink{}, nil
+}
+func (m *mockOutboundCtrl) Retarget(_ context.Context, _ db.Querier, _, _ string) error { return nil }
+func (m *mockOutboundCtrl) DeleteByArticleID(_ context.Context, _ db.Querier, _ string) error {
+	return nil
+}
+
+var _ controllers.ArticleOutboundLinkControllerInterface = (*mockOutboundCtrl)(nil)
 
 // mockArticleFeedCtrl is a no-op by default — returns empty records (nil is_read state).
 type mockArticleFeedCtrl struct {
@@ -182,11 +211,12 @@ func buildAppAs(ctrl controllers.ArticleControllerInterface, afCtrl controllers.
 
 	// Mirrors main.go: reading articles is open to every authenticated user, writing them is the
 	// administrator escape hatch.
+	outboundCtrl := &mockOutboundCtrl{}
 	a := app.Group("/v1/articles")
 	a.Post("/create", adminChain(authMiddleware, requireAdmin, articleendpoints.CreateArticle(ctrl, fakeTxRunner))...)
 	a.Put("/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(ctrl, afCtrl, fakeTxRunner))...)
-	a.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(ctrl, afCtrl, fakeTxRunner))...)
-	a.Get("", append(authMiddleware, articleendpoints.ListArticles(ctrl, fakeTxRunner))...)
+	a.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(ctrl, afCtrl, outboundCtrl, fakeTxRunner, ""))...)
+	a.Get("", append(authMiddleware, articleendpoints.ListArticles(ctrl, outboundCtrl, fakeTxRunner, ""))...)
 	a.Put("/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.UpdateArticle(ctrl, fakeTxRunner))...)
 	a.Delete("/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.DeleteArticle(ctrl, fakeTxRunner))...)
 

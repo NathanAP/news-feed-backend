@@ -47,17 +47,18 @@ func newTestSeedCtx(t *testing.T, ex examples) *seedCtx {
 	authCtrl := controllers.NewAuthController(nil, userCtrl, refreshCtrl, prefCtrl, runTx, []byte("test-secret"), time.Hour)
 
 	return &seedCtx{
-		ctx:         context.Background(),
-		runTx:       runTx,
-		ex:          ex,
-		userCtrl:    userCtrl,
-		prefCtrl:    prefCtrl,
-		refreshCtrl: refreshCtrl,
-		sourceCtrl:  controllers.NewSourceController(),
-		articleCtrl: controllers.NewArticleController(),
-		feedCtrl:    controllers.NewFeedController(),
-		afCtrl:      controllers.NewArticleFeedController(),
-		authCtrl:    authCtrl,
+		ctx:          context.Background(),
+		runTx:        runTx,
+		ex:           ex,
+		userCtrl:     userCtrl,
+		prefCtrl:     prefCtrl,
+		refreshCtrl:  refreshCtrl,
+		sourceCtrl:   controllers.NewSourceController(),
+		articleCtrl:  controllers.NewArticleController(),
+		outboundCtrl: controllers.NewArticleOutboundLinkController(),
+		feedCtrl:     controllers.NewFeedController(),
+		afCtrl:       controllers.NewArticleFeedController(),
+		authCtrl:     authCtrl,
 	}
 }
 
@@ -147,6 +148,41 @@ func TestRunDevArticles_RequiresSources(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, 4, count)
+}
+
+// TestRunDevArticles_CreatesOutboundLinks proves the seed stores article bodies in the 0.45 format:
+// anchors become outbound-link ids and the URLs land in article_outbound_links.
+func TestRunDevArticles_CreatesOutboundLinks(t *testing.T) {
+	requireNotProduction(t)
+
+	ex := testExamples()
+	ex.Articles = []exampleArticle{
+		{Title: "With Link", Content: `<p>see <a href="https://ext.com/z">this</a></p>`, LanguageOriginal: "en"},
+	}
+	sc := newTestSeedCtx(t, ex)
+
+	_, err := runDevSources(sc)
+	require.NoError(t, err)
+	_, err = runDevArticles(sc)
+	require.NoError(t, err)
+
+	err = sc.runTx(sc.ctx, func(q db.Querier) error {
+		articles, err := sc.articleCtrl.ListAll(sc.ctx, q)
+		if err != nil {
+			return err
+		}
+		require.Len(t, articles, 1)
+		assert.NotContains(t, articles[0].Content, "https://ext.com/z", "stored body carries the outbound id, not the URL")
+
+		links, err := sc.outboundCtrl.ListByArticleIDs(sc.ctx, q, []string{articles[0].ID})
+		if err != nil {
+			return err
+		}
+		require.Len(t, links, 1)
+		assert.Equal(t, "https://ext.com/z", links[0].Href, "external link stored literally")
+		return nil
+	})
+	require.NoError(t, err)
 }
 
 func TestRunDevFeeds_RequiresUserAndIsIdempotent(t *testing.T) {

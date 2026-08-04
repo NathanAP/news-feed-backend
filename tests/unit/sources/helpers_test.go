@@ -143,6 +143,9 @@ func (m *mockArticleCtrl) SuggestKeywords(_ context.Context, _ db.Querier, _ []s
 func (m *mockArticleCtrl) Update(_ context.Context, _ db.Querier, _, _, _, _ string, _ []string, _ *string) (db.Article, error) {
 	return db.Article{}, nil
 }
+func (m *mockArticleCtrl) UpdateContent(_ context.Context, _ db.Querier, _, _ string) error {
+	return nil
+}
 func (m *mockArticleCtrl) SoftDelete(_ context.Context, _ db.Querier, _ string) error {
 	return nil
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	"github.com/nathanap/news-feed-backend/services/discovery"
 	"github.com/nathanap/news-feed-backend/services/judgement"
+	"github.com/nathanap/news-feed-backend/services/outboundlinks"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 	"github.com/nathanap/news-feed-backend/tests/fixtures"
 	"github.com/nathanap/news-feed-backend/tests/mocks/external"
@@ -50,12 +51,13 @@ func setupWithConcurrency(t *testing.T, aiClient ai.Client, concurrency int) (co
 	require.NoError(t, err)
 
 	articleCtrl := controllers.NewArticleController()
+	outboundCtrl := controllers.NewArticleOutboundLinkController()
 	feedCtrl := controllers.NewFeedController()
 	afCtrl := controllers.NewArticleFeedController()
 	evaluator := judgement.NewEvaluator(aiClient, 70, 0.30, 2)
 	detector := &servicemocks.MockLanguageDetector{}
 	// clientURL empty: url treatment is skipped for these tests (they assert on other behavior).
-	processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, feedCtrl, afCtrl, detector, aiClient, evaluator, "", false, concurrency, -1, false)
+	processor := discovery.NewTreatmentProcessor(runTx, articleCtrl, outboundCtrl, feedCtrl, afCtrl, detector, aiClient, evaluator, "", false, concurrency, -1, false)
 	return runTx, queries, processor
 }
 
@@ -121,7 +123,7 @@ func TestIntegration_Processor_NullLanguageOnDetectionFailure(t *testing.T) {
 	aiClient := &external.MockAIClient{}
 	evaluator := judgement.NewEvaluator(aiClient, 70, 0.30, 2)
 	processor := discovery.NewTreatmentProcessor(
-		runTx, controllers.NewArticleController(), controllers.NewFeedController(),
+		runTx, controllers.NewArticleController(), controllers.NewArticleOutboundLinkController(), controllers.NewFeedController(),
 		controllers.NewArticleFeedController(), failingDetector, aiClient, evaluator, "", false, 1, -1, false,
 	)
 
@@ -153,7 +155,7 @@ func TestIntegration_Processor_RewritesInternalLinks(t *testing.T) {
 	aiClient := &external.MockAIClient{}
 	evaluator := judgement.NewEvaluator(aiClient, 70, 0.30, 2)
 	processor := discovery.NewTreatmentProcessor(
-		runTx, controllers.NewArticleController(), controllers.NewFeedController(),
+		runTx, controllers.NewArticleController(), controllers.NewArticleOutboundLinkController(), controllers.NewFeedController(),
 		controllers.NewArticleFeedController(), &servicemocks.MockLanguageDetector{}, aiClient, evaluator,
 		"https://client.app", false, 1, -1, false,
 	)
@@ -168,15 +170,91 @@ func TestIntegration_Processor_RewritesInternalLinks(t *testing.T) {
 
 	articles, err := queries.ListAllArticles(t.Context())
 	require.NoError(t, err)
-	var content string
+	var linkingID, content string
 	for _, a := range articles {
 		if a.UrlOriginal == "https://src.com/linking" {
-			content = a.Content
+			linkingID, content = a.ID, a.Content
 		}
 	}
 	require.NotEmpty(t, content, "the linking article must have been persisted")
-	assert.Contains(t, content, `href="https://client.app/articles/`+existingID+`"`, "internal link must be rewritten to the client URL")
-	assert.Contains(t, content, `href="https://ext.com/z"`, "external link must be left untouched")
+
+	// 0.45: the stored body no longer carries URLs — every anchor holds an outbound-link id.
+	assert.NotContains(t, content, `href="https://`, "stored body must not carry raw URLs (only outbound ids)")
+
+	// The outbound rows hold the real targets: the internal link as the {CLIENT_URL} token, the
+	// external one literally.
+	links, err := queries.ListArticleOutboundLinksByArticleIDs(t.Context(), []string{linkingID})
+	require.NoError(t, err)
+	hrefs := make([]string, len(links))
+	for i, l := range links {
+		hrefs[i] = l.Href
+	}
+	assert.ElementsMatch(t, []string{"{CLIENT_URL}/articles/" + existingID, "https://ext.com/z"}, hrefs,
+		"internal link stored as token, external stored literally")
+
+	// The read-time swap round-trips: ids back to real hrefs, {CLIENT_URL} expanded to the client URL.
+	resolved := outboundlinks.Resolve(content, controllers.OutboundLinksByID(links), "https://client.app")
+	assert.Contains(t, resolved, `href="https://client.app/articles/`+existingID+`"`, "internal link resolves to the client URL")
+	assert.Contains(t, resolved, `href="https://ext.com/z"`, "external link resolves back unchanged")
+}
+
+// TestIntegration_Processor_RetroactivelyLinksLaterArticle proves the 0.45 "Alteração de URLs de
+// outras notícias" step: an older article linking an external URL is retro-linked when a later article
+// arrives as that URL. The older article's body is never touched — only its outbound row is retargeted.
+func TestIntegration_Processor_RetroactivelyLinksLaterArticle(t *testing.T) {
+	requireNotProduction(t)
+
+	database := testutils.SetupTestDB(t)
+	queries := db.New(database)
+	runTx := controllers.NewTransactionRunner(database)
+	_, err := queries.CreateSource(t.Context(), db.CreateSourceParams{ID: sourceID, Name: "Test Source", Url: "https://src.com", UrlRss: "https://src.com/rss"})
+	require.NoError(t, err)
+
+	aiClient := &external.MockAIClient{}
+	evaluator := judgement.NewEvaluator(aiClient, 70, 0.30, 2)
+	processor := discovery.NewTreatmentProcessor(
+		runTx, controllers.NewArticleController(), controllers.NewArticleOutboundLinkController(), controllers.NewFeedController(),
+		controllers.NewArticleFeedController(), &servicemocks.MockLanguageDetector{}, aiClient, evaluator,
+		"https://client.app", false, 1, -1, false,
+	)
+
+	// Article A links a URL that is not ours yet — stored as an external outbound href.
+	articleA := discovery.DiscoveredArticle{
+		Title:       "Early News",
+		Content:     `<p><a href="https://src.com/future">a story to come</a></p>`,
+		URLOriginal: "https://src.com/a",
+		SourceID:    sourceID,
+	}
+	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{articleA}))
+
+	// Article B arrives AS that URL. Its arrival must retarget A's row to B's internal link.
+	articleB := discovery.DiscoveredArticle{
+		Title:       "The Future Story",
+		Content:     `<p>here it is</p>`,
+		URLOriginal: "https://src.com/future",
+		SourceID:    sourceID,
+	}
+	require.NoError(t, processor.Process(t.Context(), []discovery.DiscoveredArticle{articleB}))
+
+	articles, err := queries.ListAllArticles(t.Context())
+	require.NoError(t, err)
+	var aID, bID string
+	for _, a := range articles {
+		switch a.UrlOriginal {
+		case "https://src.com/a":
+			aID = a.ID
+		case "https://src.com/future":
+			bID = a.ID
+		}
+	}
+	require.NotEmpty(t, aID)
+	require.NotEmpty(t, bID)
+
+	links, err := queries.ListArticleOutboundLinksByArticleIDs(t.Context(), []string{aID})
+	require.NoError(t, err)
+	require.Len(t, links, 1, "A has one outbound link")
+	assert.Equal(t, "{CLIENT_URL}/articles/"+bID, links[0].Href,
+		"A's external link was retargeted to B's internal (token) URL when B arrived")
 }
 
 func TestIntegration_Processor_SkipsExistingURL(t *testing.T) {
@@ -383,7 +461,7 @@ func TestIntegration_Processor_SkipsInactiveUserFeed(t *testing.T) {
 
 	// inactiveDays = 15: the pipeline must drop feeds of users not seen within 15 days.
 	processor := discovery.NewTreatmentProcessor(
-		runTx, controllers.NewArticleController(), controllers.NewFeedController(),
+		runTx, controllers.NewArticleController(), controllers.NewArticleOutboundLinkController(), controllers.NewFeedController(),
 		controllers.NewArticleFeedController(), &servicemocks.MockLanguageDetector{}, noAI,
 		judgement.NewEvaluator(noAI, 70, 0.30, 2), "", false, 1, 15, false,
 	)

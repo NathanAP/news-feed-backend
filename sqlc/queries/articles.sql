@@ -93,6 +93,14 @@ SET title = $1, content = $2, url_original = $3, keywords = $4, language_origina
 WHERE id = $6 AND status = TRUE AND removed_at IS NULL
 RETURNING *;
 
+-- name: UpdateArticleContent :exec
+-- Overwrites only the body, for the 0.45 treatment DB step: right after an article is stored, its
+-- anchors are rewritten to outbound-link ids and the body is written back. Keeps title/keywords/etc.
+-- untouched (unlike UpdateArticle). Runs inside the same transaction as the insert.
+UPDATE articles
+SET content = $1, modified_at = CURRENT_TIMESTAMP
+WHERE id = $2 AND status = TRUE AND removed_at IS NULL;
+
 -- name: SoftDeleteArticle :exec
 UPDATE articles
 SET status = FALSE, removed_at = CURRENT_TIMESTAMP, modified_at = CURRENT_TIMESTAMP
