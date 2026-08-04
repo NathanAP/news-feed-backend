@@ -276,6 +276,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 ## URLs externas de notícias
 
+- Este planejamento completo é referente ao que teremos na versão 0.45.
 - A tabela de URLs externas de notícias (`article_outbound_links`) serve para corrigir o link entre notícias de forma retroativa.
 - Ao detectar uma URL em uma notícia em uma tag `<a href="{url}">`, um novo registro deve ser criado nessa tabela e a tag passa a receber o `id` criado, resultando em `<a href="{article_outbound_link_id}">`.
 - A existência dessa tabela se motiva ao fato de que a URL presente no conteúdo de uma notícia já existente nunca será alterada. Fazer uma varredura cada vez que uma notícia chega é muito pesada, cara e difícil de ser processada.
@@ -288,7 +289,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 - Se uma notícia sofrer soft remove, nada acontece ao(s) registro(s) de `article_id` desta tabela.
 - Se uma notícia sofrer hard remove, o(s) registro(s) que possuam seu `article_id` nesta tabela também são excluídos (efeito cascata).
 - Qualquer um dos processos de exclusão (soft ou hard remove) vai resultar em um problema comum: alguns conteúdos vão ficar com `article_outbound_link_id` fantasma.
-    - Para evitar isso, antes da exclusão de um registro desta tabela, é necessário olhar por outros registros que apontam para a URL interna da notícia (`{CLIENT_URL}/articles/{id}`) e voltar a apontar para o campo `url_original` da notícia sendo excluída.
+    - Para evitar isso, antes do processo é necessário olhar por outros registros que apontam para a URL interna da notícia (`{CLIENT_URL}/articles/{id}`) e voltar a apontar para o campo `url_original` da notícia sendo excluída.
     - Por exemplo: notícia `K` possui a URL interna da notícia `L` nesta tabela. Ao excluir a notícia `L`, a notícia `K` agora precisa apontar novamente para o que era a `url_original` da notícia `L`, assim o atributo `href` não fica órfão.
 - É necessária uma funcionalidade centralizada para todas as vezes que uma notícia servir de resposta em um endpoint, trocando de `<a href="{article_outbound_link.id}">` para `<a href="{article_outbound_link.href}">`.
 
@@ -394,6 +395,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
 
 ### Operações no banco de dados
 
+- Este planejamento completo é referente ao que teremos na versão 0.45.
 - Esta etapa realiza pequenas operações no banco de dados. Para melhor organização, está separada em quatro passos menores:
     - Gravação da notícia.
     - Associação das URLs da notícia.
