@@ -72,7 +72,8 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
 - `services/langdetect/` — detecção do idioma original da notícia via `lingua-go` (offline,
   determinístico, **não é IA**), restrito aos idiomas suportados. Roda no tratamento e grava em
   `articles.language_original` (null quando não confiável). Capacidade `ai.Translator` (LLM apenas,
-  `TRANSLATION_*`) faz a **tradução personalizada** on-demand (`GET /articles/:id/translate/:language`),
+  `TRANSLATION_*`) faz a **tradução personalizada** on-demand (`GET /articles/:id/translate` — **sem
+  idioma na URL** desde a 0.33.1; o alvo vem da preferência `language_to_translate` do usuário),
   read-only, respeitando `ai_personality`. Enum de idiomas único em `schemas/enums/language.go`.
 - `services/pagination/` — paginação global (`ParseParams` → `Params.Limit/Offset` →
   `BuildResponse(docs, total, params)`). Toda rota de lista (`GET /v1/{model}`) responde
@@ -86,7 +87,14 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
   `/health`, o toggle e todo o grupo `/auth` — e exceto requisições de administrador); `cors.go`
   (`CORS_ALLOWED_ORIGINS` + `CORS_ALLOWED_HEADERS`, ambos de env; origens vazias = fail-closed;
   headers vazios = default `Authorization,Content-Type`).
-- `tests/` — `unit/`, `integration/api/`, `end-to-end/api/`, `fixtures/`, `mocks/`, `utils/`.
+- `services/safehttp/` — cliente HTTP para as rotas que buscam **URL fornecida por quem chama** (hoje
+  só `GET /sources/rss-discovery`). O dialer recusa destinos não públicos (loopback, link-local
+  incluindo `169.254.169.254`, RFC1918, CGNAT), e o `Transport.Proxy` é **nil de propósito**: com proxy
+  o transport discaria o proxy e o destino real nunca passaria pelo dialer. Não confundir com o
+  `discoveryHTTPClient`, usado onde a URL veio de uma source que o administrador cadastrou.
+- `tests/` — `unit/`, `integration/api/`, `end-to-end/api/`, `integration/queryplans/` (afirma sobre o
+  `EXPLAIN`, não sobre o resultado: garante que os índices GIN de keywords são de fato **escolhidos**
+  pelo planner), `fixtures/`, `mocks/`, `utils/`.
 
 ## Domínios já implementados
 

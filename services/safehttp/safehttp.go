@@ -39,7 +39,18 @@ func NewRestrictedClient(timeout time.Duration) *http.Client {
 	dialer := &net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}
 
 	transport := &http.Transport{
-		Proxy:                 http.ProxyFromEnvironment,
+		// Proxy is deliberately nil, NOT http.ProxyFromEnvironment (0.48.1).
+		//
+		// With a proxy configured, the transport dials the PROXY and the real target travels inside
+		// the request line — so the dialer below would vet the proxy's address (public, allowed) and
+		// never see the destination. Measured: with HTTP_PROXY set, a request to http://10.0.0.1/
+		// stopped returning ErrBlockedDestination and went to the proxy instead. That is the whole
+		// control silently disabled by an environment variable.
+		//
+		// This client only fetches public feed URLs, so losing proxy support costs nothing. Any client
+		// that DOES need a proxy cannot use a dialer-based destination allow-list; it would have to
+		// vet the target URL before the request and re-vet on every redirect.
+		Proxy:                 nil,
 		DialContext:           restrictedDialContext(dialer),
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,
@@ -100,22 +111,25 @@ func restrictedDialContext(dialer *net.Dialer) func(context.Context, string, str
 //
 // Exported so a test can assert the verdict per range without dialing anything.
 func IsPublicAddr(ip net.IP) bool {
-	if ip == nil {
+	// Shaped as an allow-list, not a block-list (0.48.1). The first version enumerated the bad ranges
+	// and let everything else through, which meant anything it had not thought of was allowed —
+	// 255.255.255.255 and 240.0.0.0/4 slipped past exactly that way. Requiring global unicast first
+	// inverts the default: unknown is refused. IsGlobalUnicast already excludes loopback, link-local
+	// (including the 169.254.169.254 metadata address), multicast, unspecified and broadcast.
+	if ip == nil || !ip.IsGlobalUnicast() {
 		return false
 	}
-	if ip.IsLoopback() || ip.IsPrivate() || ip.IsUnspecified() ||
-		ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() ||
-		ip.IsInterfaceLocalMulticast() || ip.IsMulticast() {
+	// Global unicast but still not public: RFC1918 and fc00::/7.
+	if ip.IsPrivate() {
 		return false
 	}
-	// 100.64.0.0/10 (RFC 6598, carrier-grade NAT) is not covered by IsPrivate but is not public
-	// either; it is reachable inside some hosting networks.
 	if v4 := ip.To4(); v4 != nil {
-		if v4[0] == 100 && v4[1] >= 64 && v4[1] <= 127 {
+		switch {
+		case v4[0] == 0: // 0.0.0.0/8, "this network"
 			return false
-		}
-		// 0.0.0.0/8 ("this network") — never a legitimate destination.
-		if v4[0] == 0 {
+		case v4[0] == 100 && v4[1] >= 64 && v4[1] <= 127: // RFC 6598 CGNAT, not covered by IsPrivate
+			return false
+		case v4[0] >= 240: // 240.0.0.0/4 reserved (Class E)
 			return false
 		}
 	}

@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.48.0.0
+0.48.1.1
 
 ## Versão 0.37.3.0
 
@@ -312,6 +312,36 @@ Decisões tomadas durante a execução:
       global não pode ser declarada de dentro de um arquivo; afirmação cara de descobrir errada deve
       virar teste; e ao corrigir divergência, verificar qual lado está errado — senão a auditoria vira
       máquina de cimentar bug como intenção.
+
+## Versão 0.48.1.0
+
+- [x] Revisão da revisão (escopo: 0.46.0.0 → 0.48.0.0 desta sessão)
+    - **Grave**: o controle de SSRF do `services/safehttp` (0.46.6) era contornável por `HTTP_PROXY`.
+      Com proxy configurado o transport disca o **proxy**, não o alvo, então o dialer validava o proxy
+      e nunca via o destino. Comprovado e corrigido com `Proxy: nil` explícito.
+        - Nota metodológica: a primeira tentativa de prova usou `t.Setenv` e mostrou os dois casos
+          bloqueados — falso, porque o `ProxyFromEnvironment` faz cache na primeira chamada. O teste
+          provou o cache, não a proteção. O teste de regressão é estrutural por causa disso.
+    - `IsPublicAddr` tinha postura de block-list (tudo em que não pensou era liberado: broadcast e
+      `240.0.0.0/4` passavam). Reescrita como allow-list a partir de `IsGlobalUnicast`.
+    - `PROJECT_VERSION` derivou de novo, na versão seguinte à correção da 0.47 — evidência de que a
+      proposta de `-ldflags -X` é conserto, não melhoria.
+    - Sem achado: as 117 registrações de rota dos testes auditadas por forma (lacuna do meu processo na
+      0.47, que auditou só o `main.go`); a troca `*fiber.Ctx` não corrompeu comentários; nenhum dos 12
+      `Bind().Body()` depende de corpo vazio dar sucesso; versionamento sem buraco na sequência.
+- [x] Auditoria da pasta `.claude/memory/` (0.48.1.1, tier docs — nenhuma linha de código)
+    - Mesma auditoria da 0.48.0.0, aplicada ao "comece aqui" do projeto — que é **compartilhado com
+      outros Claudes** (o do client), então divergência ali é copiada para outro projeto.
+    - Seis correções. A pior: o `overview.md` documentava a tradução como
+      `GET /articles/:id/translate/:language`, sem idioma na URL desde a **0.33.1** — os outros dois
+      documentos estavam certos, só o de orientação ficou para trás.
+    - A mais importante: o `database.md` afirmava que índice GIN "só é alcançado por um dos seus
+      operadores" e parava aí — insuficiente desde a 0.46.4, e era essa meia-verdade que sustentava a
+      crença de que o `?|` bastava.
+    - Também: índice `idx_articles_keywords` ausente do schema; `rss-discovery` sem marcação de admin;
+      lista de rotas admin incompleta; `DELETE /articles` sem a cascata de outbound links.
+    - Conferidos e corretos: `api-integration.md` (documenta o contrato inalterado na 0.45),
+      `auth.md`, `cmd.md`.
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 

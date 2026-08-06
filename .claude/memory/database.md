@@ -81,7 +81,10 @@ usado no fluxo de refresh.
 
 `id`, `status`, `title`, `content` (HTML básico, sanitizado por bluemonday), `url_original`, `keywords` (**JSONB**),
 `source_id` (**NOT NULL**, FK sources, **imutável**), `language_original` (**nullable**, código do enum
-de idiomas), timestamps. Índice único parcial em `url_original`. Keywords: 5–20 itens, geradas **em
+de idiomas), timestamps. Índice único parcial em `url_original` e índice **GIN** em `keywords`
+(`idx_articles_keywords`, 0.39) — espelha o de `feeds.keywords` e serve a estratégia `related` da
+sugestão de keywords; valem para ele as duas condições do box em `feeds` abaixo (operador **e**
+operando estimável). Keywords: 5–20 itens, geradas **em
 inglês** (canônico, pra matching entre fontes de qualquer idioma no julgamento). `language_original`
 é o idioma detectado pelo `lingua-go` no tratamento (null quando a detecção falha); na criação/edição
 manual é obrigatório no payload. Usado pela tradução para saber a origem.
@@ -119,6 +122,19 @@ e o GIN evita varrer a tabela inteira. Não existia no SQLite, onde `keywords` e
 > muda o resultado), mas é o que deixa o planner descartar não-candidatos antes da parte cara.
 > Removê-lo faz o índice parar de ser usado **em silêncio** e a camada 1 volta a varrer tudo — foi
 > exatamente o bug corrigido na **0.37.3.0** (medido em 60k feeds: 428ms → 22ms).
+
+> **O operador certo é necessário, mas não é suficiente (0.46.4).** O lado direito do `?|` também
+> precisa ser **estimável pelo planner**. Escrito como `?| ARRAY(SELECT jsonb_array_elements_text($1::jsonb))`
+> o operando vira um `InitPlan`, opaco no momento do plano: o planner não consegue estimar a
+> seletividade, cai num chute padrão e **precifica o índice acima do seq scan**. O índice fica
+> alcançável e mesmo assim não é escolhido. Por isso as duas queries de keywords recebem `text[]`
+> direto (`?| $1::text[]`), e não um array JSON.
+>
+> Isso é pior que um índice morto: a escolha passa a depender do **tamanho da tabela** e vira sozinha
+> conforme os dados crescem, nos dois sentidos, sem ninguém mexer no código. E é invisível a teste de
+> resultado — as linhas voltam certas de qualquer jeito. Por isso existe
+> `tests/integration/queryplans/`, que afirma sobre o `EXPLAIN`: o índice aparece no plano e a tabela
+> não é varrida sequencialmente.
 
 > Atenção ao ler/gravar `keywords`: JSONB guarda a **estrutura**, não o texto. O PG re-renderiza na
 > leitura (notadamente com espaço após a vírgula), então comparar os bytes crus do que foi gravado

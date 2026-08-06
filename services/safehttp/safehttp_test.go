@@ -27,6 +27,15 @@ func TestIsPublicAddr_RefusesNonPublicRanges(t *testing.T) {
 		"100.127.255.255", // CGNAT, upper bound
 		"224.0.0.1",       // multicast
 		"0.1.2.3",         // "this network"
+		// Added in 0.48.1: these passed the original block-list because it enumerated bad ranges
+		// instead of requiring a good one.
+		"255.255.255.255", // limited broadcast
+		"240.0.0.1",       // 240.0.0.0/4, reserved (Class E)
+		// IPv4-mapped IPv6 must get the same verdict as the bare v4 form, or the check is one
+		// notation away from useless.
+		"::ffff:127.0.0.1",
+		"::ffff:169.254.169.254",
+		"::ffff:10.0.0.1",
 	} {
 		ip := net.ParseIP(raw)
 		require.NotNil(t, ip, "could not parse %s", raw)
@@ -85,6 +94,18 @@ func TestRestrictedClient_RefusesRedirectToLoopback(t *testing.T) {
 	_, err := NewRestrictedClient(5 * time.Second).Get(redirector.URL)
 	require.Error(t, err)
 	assert.True(t, errors.Is(err, ErrBlockedDestination), "got %v", err)
+}
+
+// Regression (0.48.1): the transport must not consult the environment for a proxy. With one set, the
+// transport dials the proxy and the real destination never reaches the dialer, so the allow-list is
+// bypassed by an environment variable. Asserted structurally because http.ProxyFromEnvironment caches
+// its config on first use, which makes a behavioural test in-process unreliable — the first version of
+// this check passed for that reason alone, not because the client was safe.
+func TestRestrictedClient_IgnoresEnvironmentProxy(t *testing.T) {
+	transport, ok := NewRestrictedClient(time.Second).Transport.(*http.Transport)
+	require.True(t, ok, "the client must keep its own *http.Transport")
+	assert.Nil(t, transport.Proxy,
+		"a proxy would route around the dialer's destination check, disabling the allow-list")
 }
 
 func TestRestrictedClient_RefusesLiteralMetadataAddress(t *testing.T) {

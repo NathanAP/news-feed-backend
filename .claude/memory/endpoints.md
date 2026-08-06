@@ -40,8 +40,9 @@ Todo **erro** responde `{ error: string }` com o status apropriado. Datas em UTC
 ## Autorização de administrador (0.40)
 
 - Rotas exclusivas: `POST|PUT|DELETE /articles`, `POST|PUT|DELETE /sources` +
-  `GET /sources/:id/article-discovery`, `DELETE /auth/invalidate`, `DELETE /auth/invalidate-all`,
-  `PUT /system/app-status`. Leitura de artigos e sources continua aberta a qualquer autenticado.
+  `GET /sources/:id/article-discovery` e `GET /sources/rss-discovery` (esta virou admin na 0.46.6),
+  `DELETE /auth/invalidate`, `DELETE /auth/invalidate-all`, `PUT /system/app-status`. Leitura de
+  artigos e sources continua aberta a qualquer autenticado.
 - Sem token → 401; usuário comum → **403**; falha ao ler a flag → **500** (nunca 403). O guard roda
   antes da validação de body, então body inválido de usuário comum ainda dá 403.
 - A flag vem **do banco** (`users.admin`), não do claim — o claim é dica de client.
@@ -89,7 +90,7 @@ Todo **erro** responde `{ error: string }` com o status apropriado. Datas em UTC
 ## Sources (`/v1/sources`) — auth; escrita exige admin (403 para usuário comum)
 
 - `POST /sources/create` — **admin**. `{ name (≤120), url, url_rss }` → 201 **SourceResponse** / 400 / 403 / 409 (url duplicada entre ativas) / 500.
-- `GET /sources/rss-discovery?url=` — descobre feeds RSS da URL → 200 `{ feeds: [string] }` (lista pode ser vazia) / 400.
+- `GET /sources/rss-discovery?url=` — **admin** (desde a 0.46.6; antes era aberta a qualquer autenticado, por conveniência do Bruno). Descobre feeds RSS da URL → 200 `{ feeds: [string] }` (lista pode ser vazia) / 400 / 403. É a única rota que busca uma URL **fornecida por quem chama**, então usa um cliente HTTP restrito (`services/safehttp`): timeout de 30s por requisição, orçamento total de 45s, e o dialer recusa destinos não públicos (loopback, `169.254.169.254`, RFC1918, CGNAT). URL apontando para a rede interna falha na conexão e sai como lista vazia.
 - `GET /sources/:id/article-discovery` — **dry-run** da descoberta de notícias de 1 source (espelha a CRON: parsing RSS + dedup por `url_original`). Não grava nada. Query opcional `last_article_discovery_at` (RFC3339 UTC) adiciona limite inferior por data. → 200 `{ articles: [{ title, content, url_original, published_at?, source_id }] }` (pode ser vazia) / 400 (data inválida) / 403 / 404 (source inexistente). **Admin**.
 - `GET /sources/:id` → 200 **SourceResponse** / 404.
 - `GET /sources?url=&name=` — filtros por substring (case-insensitive) na url e/ou no nome; os dois se
@@ -115,7 +116,7 @@ leitura são de qualquer autenticado. As rotas de **dry-run de IA** (`treatment`
   `null` (não está em feed do usuário) | `false` (em ≥1 feed, ao menos um não lido) | `true` (todos lidos).
 - `GET /articles?url=` — filtro por substring em url_original → 200 **envelope paginado de ArticleResponse** (ver "Paginação").
 - `PUT /articles/:id` — **admin**. `{ title, content, url_original, keywords, language_original }` (sem `source_id`, imutável) → 200 **ArticleResponse** / 400 / 403 / 404 / 409.
-- `DELETE /articles/:id` — **admin**. Soft delete → 204 (sem body) / 403 / 404.
+- `DELETE /articles/:id` — **admin**. Soft delete → 204 (sem body) / 403 / 404. Cascata (0.46.1): antes do soft delete, todo `article_outbound_links` apontando para `{CLIENT_URL}/articles/{id}` é repontado para a `url_original` da notícia — sem isso, notícias antigas ficariam com link para uma página que responde 404. Roda na mesma transação, então uma falha desfaz o conjunto.
 
 ### Dry-run de IA — **exclusivas de `ENVIRONMENT=development`** (nunca para clientes)
 
