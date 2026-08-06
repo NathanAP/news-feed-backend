@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.48.2.0
+0.48.3.0
 
 ## Versão 0.37.3.0
 
@@ -356,6 +356,16 @@ Decisões tomadas durante a execução:
       de rotas admin sem menção à exigência.
     - **Agents**: `test_manager` ganhou a regra da invocação única e a seção sobre testes de plano de
       query (incluindo "verifique que o teste falha com o código antigo").
+- [x] Achados da revisão externa `code-review ultra` (0.48.3.0)
+    - **A cascata de source não repontava os outbound links.** Existem dois caminhos de soft-delete de
+      artigo (`SoftDeleteArticle` e `SoftDeleteArticlesBySourceID`); a 0.46.1 cobriu o primeiro e eu
+      tratei a simetria como completude, sem perguntar "onde mais um artigo é removido?". Corrigido no
+      controller com uma query set-based (sem N+1), antes da cascata e na mesma transação. Regressão
+      comprovada.
+    - `PROJECT_VERSION` derivou pela **quarta** vez — a proposta de `-ldflags -X` segue em aberto e,
+      enquanto não existir, o achado reaparece.
+    - A revisão externa **não** achou nada nas duas transformações mecânicas em massa (125 rotas, 47
+      assinaturas), que era a minha maior preocupação declarada.
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 

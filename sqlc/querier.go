@@ -176,6 +176,18 @@ type Querier interface {
 	//   * pre-remove cleanup: before an article L is removed, old_href = `{CLIENT_URL}/articles/{L.id}`,
 	//     new_href = L.url_original — links pointing at the vanishing internal page fall back to the source.
 	RetargetArticleOutboundLinksByHref(ctx context.Context, arg RetargetArticleOutboundLinksByHrefParams) error
+	// Cascade counterpart of RetargetArticleOutboundLinksByHref, for the source soft-delete (0.48.3).
+	// Soft-deleting a source cascades to its articles, and a cascaded article is still a removed article:
+	// every outbound link pointing at its internal page has to fall back to the source URL, or older
+	// articles keep anchors to a page that answers 404. The single-article delete path had this since
+	// 0.46.1; the cascade path did not, which is the gap this closes.
+	//
+	// Set-based on purpose: one statement instead of one Retarget per article. A source can own a lot of
+	// articles, and an N+1 inside the deletion transaction is the wrong shape.
+	//
+	// internal_href_prefix is `{CLIENT_URL}/articles/` supplied by Go (outboundlinks.InternalHrefPrefix),
+	// so the token format stays owned by the outboundlinks package instead of being duplicated in SQL.
+	RetargetArticleOutboundLinksBySourceID(ctx context.Context, arg RetargetArticleOutboundLinksBySourceIDParams) error
 	RevokeAllRefreshTokensByUserID(ctx context.Context, userID string) error
 	RevokeRefreshToken(ctx context.Context, id string) error
 	// SetUserAdmin is deliberately separate from CreateUser instead of an `admin` parameter on it: the

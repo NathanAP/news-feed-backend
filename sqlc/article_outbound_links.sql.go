@@ -114,3 +114,33 @@ func (q *Queries) RetargetArticleOutboundLinksByHref(ctx context.Context, arg Re
 	_, err := q.db.ExecContext(ctx, retargetArticleOutboundLinksByHref, arg.NewHref, arg.OldHref)
 	return err
 }
+
+const retargetArticleOutboundLinksBySourceID = `-- name: RetargetArticleOutboundLinksBySourceID :exec
+UPDATE article_outbound_links l
+SET href = a.url_original, modified_at = CURRENT_TIMESTAMP
+FROM articles a
+WHERE a.source_id = $1
+  AND a.removed_at IS NULL
+  AND l.href = $2::text || a.id
+`
+
+type RetargetArticleOutboundLinksBySourceIDParams struct {
+	SourceID           string `json:"source_id"`
+	InternalHrefPrefix string `json:"internal_href_prefix"`
+}
+
+// Cascade counterpart of RetargetArticleOutboundLinksByHref, for the source soft-delete (0.48.3).
+// Soft-deleting a source cascades to its articles, and a cascaded article is still a removed article:
+// every outbound link pointing at its internal page has to fall back to the source URL, or older
+// articles keep anchors to a page that answers 404. The single-article delete path had this since
+// 0.46.1; the cascade path did not, which is the gap this closes.
+//
+// Set-based on purpose: one statement instead of one Retarget per article. A source can own a lot of
+// articles, and an N+1 inside the deletion transaction is the wrong shape.
+//
+// internal_href_prefix is `{CLIENT_URL}/articles/` supplied by Go (outboundlinks.InternalHrefPrefix),
+// so the token format stays owned by the outboundlinks package instead of being duplicated in SQL.
+func (q *Queries) RetargetArticleOutboundLinksBySourceID(ctx context.Context, arg RetargetArticleOutboundLinksBySourceIDParams) error {
+	_, err := q.db.ExecContext(ctx, retargetArticleOutboundLinksBySourceID, arg.SourceID, arg.InternalHrefPrefix)
+	return err
+}

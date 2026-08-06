@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/nathanap/news-feed-backend/services/outboundlinks"
 
 	"github.com/google/uuid"
 	db "github.com/nathanap/news-feed-backend/sqlc"
@@ -121,6 +122,21 @@ func (c *SourceController) Update(ctx context.Context, q db.Querier, id, name, u
 func (c *SourceController) SoftDelete(ctx context.Context, q db.Querier, id string) error {
 	if err := q.SoftDeleteSource(ctx, id); err != nil {
 		return fmt.Errorf("failed to delete source: %w", err)
+	}
+
+	// Pre-remove cleanup for the cascade, BEFORE the articles go away (0.48.3). A cascaded article is
+	// still a removed article, so every outbound link pointing at its internal page must fall back to
+	// the source URL — otherwise older articles keep anchors to a page that answers 404, since reads
+	// exclude removed articles. `DELETE /v1/articles/{id}` got this in 0.46.1; the cascade did not,
+	// and fixing only the symmetric path is what left the gap.
+	//
+	// Lives here rather than in the endpoint so both ways of removing an article go through the same
+	// obligation, per the convention that mandatory dependency flows belong in the controller.
+	if err := q.RetargetArticleOutboundLinksBySourceID(ctx, db.RetargetArticleOutboundLinksBySourceIDParams{
+		SourceID:           id,
+		InternalHrefPrefix: outboundlinks.InternalHrefPrefix(),
+	}); err != nil {
+		return fmt.Errorf("failed to retarget outbound links of source articles: %w", err)
 	}
 
 	if err := q.SoftDeleteArticlesBySourceID(ctx, id); err != nil {

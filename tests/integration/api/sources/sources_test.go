@@ -2,6 +2,8 @@ package sources_test
 
 import (
 	"encoding/json"
+	"github.com/google/uuid"
+	"github.com/nathanap/news-feed-backend/services/outboundlinks"
 	"net/http"
 	"os"
 	"strings"
@@ -463,6 +465,74 @@ func TestIntegration_DeleteSource_Success(t *testing.T) {
 	getResp, err := app.Test(getReq)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusNotFound, getResp.StatusCode)
+}
+
+func TestIntegration_DeleteSource_RetargetsOutboundLinksOfCascadedArticles(t *testing.T) {
+	requireNotProduction(t)
+
+	// Regression (0.48.3), found by an external review. 0.46.1 made `DELETE /v1/articles/{id}` repoint
+	// inbound outbound-links before the soft delete — but a source delete cascades to its articles
+	// through SoftDeleteArticlesBySourceID, which never touched article_outbound_links. A cascaded
+	// article is still a removed article, so a link pointing at its internal page resolved to a URL
+	// that answers 404. Fixing only the symmetric path is what left the gap.
+	app, queries := setupIntegrationApp(t, http.DefaultClient)
+	_, token := seedUser(t, queries)
+
+	createBody := `{"name":"Cascade News","url":"https://cascade.com","url_rss":"https://cascade.com/rss.xml"}`
+	createReq, _ := http.NewRequest(http.MethodPost, "/v1/sources/create", strings.NewReader(createBody))
+	createReq.Header.Set("Content-Type", "application/json")
+	createReq.Header.Set("Authorization", "Bearer "+token)
+	createResp, err := app.Test(createReq)
+	require.NoError(t, err)
+	var created map[string]any
+	require.NoError(t, readJSON(createResp, &created))
+	sourceID := created["id"].(string)
+
+	// An article of that source, and an older article elsewhere linking to it internally.
+	const doomedURL = "https://cascade.com/story"
+	doomedID := uuid.NewString()
+	_, err = queries.CreateArticle(t.Context(), db.CreateArticleParams{
+		ID: doomedID, Title: "doomed", Content: "c", UrlOriginal: doomedURL,
+		Keywords: json.RawMessage(`["a","b","c","d","e"]`), SourceID: sourceID,
+	})
+	require.NoError(t, err)
+
+	linkerID := uuid.NewString()
+	_, err = queries.CreateArticle(t.Context(), db.CreateArticleParams{
+		ID: linkerID, Title: "linker", Content: "c", UrlOriginal: "https://cascade.com/linker",
+		Keywords: json.RawMessage(`["a","b","c","d","e"]`), SourceID: sourceID,
+	})
+	require.NoError(t, err)
+
+	linkID := uuid.NewString()
+	_, err = queries.CreateArticleOutboundLink(t.Context(), db.CreateArticleOutboundLinkParams{
+		ID: linkID, ArticleID: linkerID, Href: outboundlinks.InternalHref(doomedID),
+	})
+	require.NoError(t, err)
+
+	// External link on the same article: the retarget matches by exact href, so it must not move.
+	externalLinkID := uuid.NewString()
+	_, err = queries.CreateArticleOutboundLink(t.Context(), db.CreateArticleOutboundLinkParams{
+		ID: externalLinkID, ArticleID: linkerID, Href: "https://external.com/keep",
+	})
+	require.NoError(t, err)
+
+	delReq, _ := http.NewRequest(http.MethodDelete, "/v1/sources/"+sourceID, nil)
+	delReq.Header.Set("Authorization", "Bearer "+token)
+	resp, err := app.Test(delReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode)
+
+	links, err := queries.ListArticleOutboundLinksByArticleIDs(t.Context(), []string{linkerID})
+	require.NoError(t, err)
+	byID := make(map[string]string, len(links))
+	for _, l := range links {
+		byID[l.ID] = l.Href
+	}
+	assert.Equal(t, doomedURL, byID[linkID],
+		"a link to a CASCADED article must fall back to its source URL, not keep pointing at a 404")
+	assert.NotContains(t, byID[linkID], "{CLIENT_URL}")
+	assert.Equal(t, "https://external.com/keep", byID[externalLinkID], "external link untouched")
 }
 
 func TestIntegration_DeleteSource_NotFound(t *testing.T) {

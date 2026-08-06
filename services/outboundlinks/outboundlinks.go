@@ -35,7 +35,14 @@ const clientURLToken = "{CLIENT_URL}"
 // `{CLIENT_URL}/articles/{id}`. The retroactive-retarget step uses it so the value it writes matches
 // exactly what Assign stores for an internal link (and what Resolve knows how to expand).
 func InternalHref(articleID string) string {
-	return clientURLToken + "/articles/" + articleID
+	return InternalHrefPrefix() + articleID
+}
+
+// InternalHrefPrefix is everything an internal href carries before the article id. It exists so the
+// source-cascade retarget (0.48.3) can match those hrefs set-based in SQL — `prefix || a.id` — without
+// the token format being duplicated in a query. Changing the format here keeps both paths in step.
+func InternalHrefPrefix() string {
+	return clientURLToken + "/articles/"
 }
 
 // Link is one anchor target extracted from a body during Assign: the outbound-link id assigned to it
