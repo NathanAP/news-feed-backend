@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.48.1.1
+0.48.2.0
 
 ## Versão 0.37.3.0
 
@@ -342,6 +342,20 @@ Decisões tomadas durante a execução:
       lista de rotas admin incompleta; `DELETE /articles` sem a cascata de outbound links.
     - Conferidos e corretos: `api-integration.md` (documenta o contrato inalterado na 0.45),
       `auth.md`, `cmd.md`.
+- [x] Revisão dos testes, do `PROJECT.md`, do Bruno e dos agents (0.48.2.0)
+    - **Testes**: `ListArticleOutboundLinksByArticleIDs` é query de lote e os 4 testes diretos passavam
+      **um único id** — a forma em que uma query de lote não pode ser testada, e exatamente por isso o
+      `sqlc.slice` da 0.46.0 passou em todos. Teste novo manda três ids e um subconjunto. Uma suspeita
+      minha se revelou falsa (a camada 1 **é** testada com 3 keywords) e foi corrigida antes de virar
+      "conserto" de algo íntegro.
+    - **`PROJECT.md`**: uma correção em 764 linhas (faltava `rss-discovery` na lista de rotas admin).
+      Achado mais interessante: as linhas 288–295 descreviam o retarget pré-remoção **desde sempre** —
+      ali o documento estava certo e o código é que não tinha alcançado. Nem toda divergência é
+      documento apodrecendo; às vezes é implementação incompleta.
+    - **Bruno**: 6 correções, sendo uma factual (`content` era descrito como markdown, é HTML) e cinco
+      de rotas admin sem menção à exigência.
+    - **Agents**: `test_manager` ganhou a regra da invocação única e a seção sobre testes de plano de
+      query (incluindo "verifique que o teste falha com o código antigo").
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 

@@ -44,7 +44,7 @@ body:json {
 docs {
   Campos obrigatórios:
   - title: título da notícia
-  - content: conteúdo em markdown
+  - content: conteúdo em **HTML** (não markdown) — passa pela whitelist do bluemonday na leitura
   - url_original: URL da notícia original (http ou https, único entre os ativos)
   - keywords: lista de 5 a 20 palavras-chave (nenhuma vazia)
   - source_id: id de uma fonte de notícias existente e ativa

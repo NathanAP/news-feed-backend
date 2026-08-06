@@ -51,6 +51,7 @@ Este agente é responsável por criar rotinas de testes para o projeto, garantin
 ├─────── users/
 ├───────── me_test.go
 ├───────── ...
+├─────── queryplans/          (afirma sobre o EXPLAIN, não sobre o resultado — ver abaixo)
 ├───── fixtures/
 ├─────── users.go
 ├─────── ...
@@ -72,6 +73,13 @@ Este agente é responsável por criar rotinas de testes para o projeto, garantin
 
 ## Como rodar
 
+> **A suíte completa tem que rodar numa invocação só** (`task ta` = `go test ./tests/... -v`). Não a
+> quebre em chamadas encadeadas por camada. O Postgres descartável é compartilhado por nome entre os
+> pacotes de uma execução, e o reaper do testcontainers o destrói quando a invocação que o criou
+> termina — a fase seguinte se anexa a um container já sentenciado e morre no meio com
+> `failed to receive message: unexpected EOF`, que parece teste quebrado e não é. Foi o bug da 0.46.2.
+> Rodar `task ti` e depois `task te2e` à mão reabre a mesma janela.
+
 ```bash
 # Todos
 go test ./...
@@ -92,3 +100,18 @@ Sempre faça mock de dependências externas como:
 - LLMs: simule os resultados de respostas de uma LLM, principalmente sobre diversos resultados.
 - RSS feeds: simule resultados que feeds poderiam resultar, principalmente para diversas vertentes de notícias.
 - Banco de dados: simule dados ao invés de ir buscar no banco de dados, principalmente para testar falhas de rotas ou formulários.
+
+## Testes que afirmam sobre o plano, não sobre o resultado
+
+Existe uma classe de defeito que **teste de resultado não pega**: plano de query, escolha de índice e
+ordem de middleware. As linhas voltam certas de qualquer jeito, então a suíte fica verde enquanto o
+comportamento degrada — silenciosamente e, no caso do planner, de forma dependente do volume de dados.
+
+`tests/integration/queryplans/` é o padrão para isso: semeia linhas suficientes, roda `ANALYZE` e
+afirma sobre a saída do `EXPLAIN`. As asserções são **deliberadamente grosseiras** (o índice aparece
+no plano; a tabela não é varrida sequencialmente), para não quebrarem num upgrade de Postgres sem
+motivo.
+
+Ao escrever um teste desse tipo, **verifique que ele falha com o código antigo**. Teste de plano que
+passa em qualquer situação é decoração. Vale para qualquer teste de regressão, mas aqui é essencial,
+porque nada no resultado denuncia a falha.

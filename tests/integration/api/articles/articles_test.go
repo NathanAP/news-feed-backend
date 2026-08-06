@@ -416,6 +416,57 @@ func TestIntegration_DeleteArticle_RetargetsInboundOutboundLinks(t *testing.T) {
 	assert.NotContains(t, links[0].Href, "{CLIENT_URL}")
 }
 
+func TestIntegration_ListOutboundLinksByArticleIDs_IsActuallyABatch(t *testing.T) {
+	requireNotProduction(t)
+
+	// Regression guard (0.48.1.1). Every direct test of this query passed a single id, which is the
+	// one shape a batch query cannot afford to be tested in: the 0.46.0 attempt to swap the `ANY(...)`
+	// for `sqlc.slice` compiled, passed vet, and passed all of them — it only broke with two. That was
+	// caught by the GET /v1/articles tests, which happen to pass a whole page. "Happen to" is not
+	// coverage, so the plural case gets an explicit test here.
+	const clientURL = "https://client.app"
+	app, queries, _ := setupIntegrationAppClient(t, clientURL)
+	token := seedUser(t, queries)
+	sourceID := seedSource(t, queries)
+
+	first := createArticle(t, app, token, "https://e.com/batch-1", sourceID)
+	second := createArticle(t, app, token, "https://e.com/batch-2", sourceID)
+	third := createArticle(t, app, token, "https://e.com/batch-3", sourceID)
+
+	hrefByArticle := map[string]string{
+		first:  "https://external.com/one",
+		second: "https://external.com/two",
+		third:  "https://external.com/three",
+	}
+	for articleID, href := range hrefByArticle {
+		linkID, err := uuid.NewV7()
+		require.NoError(t, err)
+		_, err = queries.CreateArticleOutboundLink(t.Context(), db.CreateArticleOutboundLinkParams{
+			ID: linkID.String(), ArticleID: articleID, Href: href,
+		})
+		require.NoError(t, err)
+	}
+
+	// Three ids in one call: the shape the read-time swap actually uses for a page.
+	links, err := queries.ListArticleOutboundLinksByArticleIDs(t.Context(), []string{first, second, third})
+	require.NoError(t, err)
+	require.Len(t, links, 3, "one call must return every requested article's links")
+
+	got := make(map[string]string, len(links))
+	for _, l := range links {
+		got[l.ArticleID] = l.Href
+	}
+	assert.Equal(t, hrefByArticle, got, "each link must come back attached to its own article")
+
+	// A subset must return only that subset — proves the ids are filtering, not being ignored.
+	subset, err := queries.ListArticleOutboundLinksByArticleIDs(t.Context(), []string{first, third})
+	require.NoError(t, err)
+	require.Len(t, subset, 2)
+	for _, l := range subset {
+		assert.NotEqual(t, second, l.ArticleID, "an id that was not asked for must not come back")
+	}
+}
+
 func TestIntegration_DeleteArticle_LeavesUnrelatedOutboundLinksAlone(t *testing.T) {
 	requireNotProduction(t)
 

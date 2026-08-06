@@ -534,6 +534,7 @@ As regras do fluxo principal estão detalhadas por toda parte neste arquivo.
     - `POST base_url/v1/sources/create`.
     - `PUT base_url/v1/sources/{id}`.
     - `GET base_url/v1/sources/{id}/article-discovery`
+    - `GET base_url/v1/sources/rss-discovery` (passou a ser exclusiva na 0.46.6; antes era aberta a qualquer usuário autenticado, por conveniência do Bruno, não por decisão de produto — descoberta não é ação de usuário final).
     - `DELETE base_url/v1/sources/{id}`.
     - `PUT base_url/v1/system/app-status`.
 - Os códigos de resposta desses endpoints seguem o padrão:

@@ -28,4 +28,6 @@ body:json {
 
 docs {
   Todos os campos (name, url, url_rss) são obrigatórios. Retorna 409 em caso de conflito de URL.
+
+  **Exige token de administrador** (desde a 0.40): usuário comum recebe 403, antes mesmo da validação do corpo.
 }

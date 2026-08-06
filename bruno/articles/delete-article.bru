@@ -19,6 +19,12 @@ params:path {
 }
 
 docs {
-  Soft delete: o registro permanece no banco com status = 0.
+  Soft delete: o registro permanece no banco com status = false e removed_at preenchido.
   Retorna 204 em caso de sucesso e 404 se a notícia não existir.
+
+  Cascata (0.46.1): antes do soft delete, todo link em article_outbound_links que aponta para a
+  URL interna desta notícia é repontado para a url_original dela — assim notícias antigas que a
+  linkavam não ficam com href para uma página que responde 404.
+
+  **Exige token de administrador** (desde a 0.40): usuário comum recebe 403, antes mesmo da validação do corpo.
 }

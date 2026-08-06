@@ -19,6 +19,8 @@ params:path {
 }
 
 docs {
-  Soft delete: o registro permanece no banco com status = 0.
-  Retorna 204 em caso de sucesso.
+  Soft delete: o registro permanece no banco com status = false e removed_at preenchido.
+  Retorna 204 em caso de sucesso. Cascata: as notícias da fonte também sofrem soft-remove.
+
+  **Exige token de administrador** (desde a 0.40): usuário comum recebe 403, antes mesmo da validação do corpo.
 }

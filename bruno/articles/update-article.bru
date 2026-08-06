@@ -32,4 +32,6 @@ docs {
   Todos os campos são obrigatórios (mesmas regras do create), incluindo language_original
   ("pt" | "en" | "es" | "fr" | "de" | "it"). O source_id continua imutável (não faz parte do body).
   Retorna 409 em conflito de url_original e 404 se a notícia não existir.
+
+  **Exige token de administrador** (desde a 0.40): usuário comum recebe 403, antes mesmo da validação do corpo.
 }
