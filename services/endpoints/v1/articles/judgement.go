@@ -21,7 +21,11 @@ import (
 // whether it cleared the threshold. The judgement backend is chosen by the configured default mode,
 // or overridden per call via the body's `judgement_mode` (local | groq | gemini). It stops at the
 // penultimate step: it does NOT write any articles_feeds association. It does call the AI for real
-// (consumes quota) and reads real feeds. Open for now (admin-future).
+// (consumes quota) and reads real feeds.
+//
+// Reachable by any authenticated user, but the real guard is that main.go registers this route ONLY
+// when ENVIRONMENT=development, so it does not exist at all in staging or production. Making it
+// administrator-only would be belt-and-braces, not the thing keeping it safe.
 func JudgeArticle(feedCtrl controllers.FeedControllerInterface, judgers map[string]ai.Judger, defaultMode string, threshold int, autoAssociateRatio float64, minMatches int, inactiveDays int, runTx controllers.TransactionRunner) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		logger.RouteStart(c.Path())

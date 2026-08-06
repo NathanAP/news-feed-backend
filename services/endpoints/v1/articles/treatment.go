@@ -28,7 +28,11 @@ import (
 // keyword-naming backend is chosen by the configured default mode, or overridden per call via the
 // body's `keywords_mode` (local | groq | gemini) so backends can be benchmarked from Bruno without
 // restarting. It does NOT persist anything, but reads the DB (url treatment) and calls the keyword AI
-// for real (consumes quota). Open for now (admin-future).
+// for real (consumes quota).
+//
+// Reachable by any authenticated user, but the real guard is that main.go registers this route ONLY
+// when ENVIRONMENT=development, so it does not exist at all in staging or production. Making it
+// administrator-only would be belt-and-braces, not the thing keeping it safe.
 //
 // It stops before the 0.45 "database operations" block (outbound-link assignment / retargeting), which
 // is inherently a write step and cannot run in a dry-run: the returned content therefore carries real

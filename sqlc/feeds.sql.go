@@ -133,11 +133,15 @@ type FindCandidateFeedsByKeywordsRow struct {
 // The parameter is the article's keywords as a text[] (see the planner note below).
 //
 // The `?|` predicate ("does f.keywords contain ANY of these keys") is what makes idx_feeds_keywords
-// (GIN) usable: an index is matched by OPERATOR, and expanding a column through
+// (GIN) REACHABLE: an index is matched by OPERATOR, and expanding a column through
 // jsonb_array_elements_text in a LATERAL is a function call on every row, which no index can serve.
 // Without it the planner reads every active feed of every user and expands its keywords just to
-// throw almost all of them away (measured on 60k feeds: 428ms/10.2k buffers versus 22ms/836 with it,
-// where it becomes a Bitmap Index Scan on idx_feeds_keywords).
+// throw almost all of them away (0.37.3 measured 428ms/10.2k buffers versus 22ms/836 with it, on 60k
+// feeds).
+//
+// Reachable is not the same as CHOSEN, and reading the paragraph above as a guarantee is what hid a
+// bug for seven versions - see the note on the text[] parameter further down, which is the other half
+// of the condition.
 //
 // It is logically redundant with the join below (a feed with zero shared keywords produces no row
 // either way), so it cannot change the result set - it only lets the planner discard non-candidates

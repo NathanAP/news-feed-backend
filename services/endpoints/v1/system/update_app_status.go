@@ -9,9 +9,9 @@ import (
 	db "github.com/nathanap/news-feed-backend/sqlc"
 )
 
-// UpdateAppStatus toggles the global maintenance switch (app_status). It is open for now
-// (admin-future) and is intentionally exempt from the app_status guard, so the application can
-// always be brought back online through the API instead of editing the database directly.
+// UpdateAppStatus toggles the global maintenance switch (app_status). Administrator-only since 0.40,
+// and intentionally exempt from the app_status guard, so the application can always be brought back
+// online through the API instead of editing the database directly.
 func UpdateAppStatus(ctrl controllers.SystemControllerInterface, runTx controllers.TransactionRunner) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		logger.RouteStart(c.Path())

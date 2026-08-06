@@ -16,6 +16,26 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Prefira manter fluxo de regras obrigatórias dentro dos arquivos de `controllers` presente em `raiz/services/controllers`, assim os mesmos fluxos sempre serão seguidos corretamente e nunca teremos problemas de dependências.
     - Por exemplo: ao criar um usuário a regra obrigatória é criar também uma preferência de usuário em seguida, assim como quando o usuário sofrer soft-remove, o registro das suas preferências també sofre soft-remove. Todo esse código de dependêcia lógica deve estar no arquivo `raiz/services/controllers/users.go`.
 
+# Convenções de comentários
+
+O projeto comenta muito, e isso é uma força dele, pois assim dá para revisar código alheio rápido (as decisões estão escritas). A regra aqui não existe para comentar menos, existe porque um tipo específico de comentário apodrece em silêncio, e, quando acontece é pior que a ausência, já que o leitor confia nele.
+
+Uma das versões (0.46) encontrou quatro casos: um índice "verificado por EXPLAIN" que o planner nunca escolhia, uma query documentando dois callers quando havia um, um "toda chamada externa tem timeout" com uma rota sem timeout, e um compose mandando usar um arquivo inexistente. Em todos esses casos, o comentário descrevia a intenção correta e nunca foi confrontado com o comportamento.
+
+Classifique antes de escrever:
+
+- Explicação de decisão ("por quê"): à vontade, sem restrição. É o que envelhece bem, porque descreve um raciocínio, não um estado. Exemplo: "duas queries em vez de `COUNT(*) OVER()` porque numa página fora do range não há linha pra carregar o total".
+- Afirmação sobre comportamento ("o quê"): é a arriscada, especialmente quando fala de outro arquivo, conta chamadores, ou reporta uma medição. Só escreva se:
+    - a afirmação vier acompanhada da versão em que foi verificada (Exemplo: "administrator-only desde a 0.40", "0.37.3 mediu 428ms → 22ms em 60k feeds"); ou
+    - existir um teste que a sustente (nesse caso, prefira apontar para o teste em vez de repetir o número).
+- Marcador temporal ("por enquanto", "hoje", "ainda não", "dormente"): apodrece por construção, porque codifica um instante. Use só quando o estado atual for relevante para quem lê, e sempre com a versão junto.
+
+Regras adicionais:
+
+- Nunca declare uma garantia que o comentário não pode verificar. Por exemplo: "Toda chamada externa tem timeout" é uma afirmação sobre o projeto inteiro feita de dentro de um arquivo; ela não tem como se manter. Prefira afirmar sobre o escopo local ("este cliente tem timeout de 30s").
+- Afirmação que custa caro para descobrir errada deve virar teste. É a lição do `tests/integration/queryplans/`: plano de query, escolha de índice e ordem de middleware são invisíveis a teste de resultado, então a única documentação que não mente é executável.
+- Ao corrigir um comentário divergente, verifique qual dos dois lados está errado. Se o código é que está errado, isso é bug e sobe patch — não conserte o comentário para descrever o defeito.
+
 # Versionamento
 
 - Utilize a pasta `.claude/versions` para especificar o que foi feito em cada versão por você.

@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.47.0.0
+0.48.0.0
 
 ## Versão 0.37.3.0
 
@@ -293,6 +293,25 @@ Decisões tomadas durante a execução:
       `PROJECT_VERSION` em quatro arquivos — a sincronização manual é o motivo de ter derivado; e adotar
       `group.Use(...)` no lugar dos helpers de cadeia, que é o idioma do v3 (redesenho de wiring, não
       cabia dentro da migração).
+
+## Versão 0.48.0.0
+
+- [x] Auditoria de coerência dos comentários
+    - Ataca o padrão que a 0.46 mais encontrou: documentação afirmando garantia que o código não dava
+      (4 casos). Sem mudança de comportamento.
+    - Método: classificar por risco em vez de varrer 1.142 comentários. Explicação de decisão ("por
+      quê") envelhece bem e não foi tocada; afirmação sobre comportamento (~166) e marcador temporal
+      (17) foram verificados **contra o código**, não pelo texto.
+    - A maioria se sustentou (o `gemini` é mesmo o único importador do SDK; o `rss-discovery` é mesmo a
+      única rota que busca URL do chamador; `SetAdmin` só é chamado pelo seed). Corrigidos três:
+      `update_app_status` dizia "open for now" sendo admin desde a 0.40; os dry-runs de IA omitiam que
+      só existem em development, que é o que de fato protege; e a query da camada 1 afirmava garantia
+      de índice no primeiro parágrafo com a ressalva 12 linhas abaixo.
+    - **Parte durável**: seção "Convenções de comentários" no `conventions.md`. Afirmação sobre
+      comportamento exige a versão em que foi verificada ou um teste que a sustente; garantia de escopo
+      global não pode ser declarada de dentro de um arquivo; afirmação cara de descobrir errada deve
+      virar teste; e ao corrigir divergência, verificar qual lado está errado — senão a auditoria vira
+      máquina de cimentar bug como intenção.
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 
