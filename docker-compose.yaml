@@ -9,7 +9,7 @@
 #                needs no flags). Adds Postgres, pgAdmin, and `build: .`.
 #   * staging  — docker-compose.staging.yaml, applied EXPLICITLY (`task staging-up`). Adds a container
 #                Postgres.
-#   * prod     — docker-compose.prod.yaml, applied EXPLICITLY (`task prod-up`). No Postgres container by
+#   * prod     — docker-compose.production.yaml, applied EXPLICITLY (`task prod-up`). No Postgres container by
 #                default (RDS); a commented block is there if you want a container instead.
 # An explicit `-f` disables the automatic dev override, so staging/production never pick up pgAdmin or
 # the local build.

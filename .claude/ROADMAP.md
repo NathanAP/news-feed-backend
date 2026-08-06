@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.46.4.0
+0.46.7.0
 
 ## Versão 0.37.3.0
 
@@ -208,7 +208,7 @@ Decisões tomadas durante a execução:
       postgresql no sqlc v1.31.1 (perde o marcador `/*SLICE:*/` e gera placeholder `?` de MySQL).
       Compila, passa no vet e passa em qualquer teste com **um** id — só quebra com dois. Detalhes e
       proibição explícita de repetir a tentativa no comentário da query e no version file.
-- [ ] Revisão (em andamento, por levas)
+- [x] Revisão (concluída em 6 levas: 0.46.1.0 a 0.46.7.0)
     - **0.46.1.0 — leva 1 (0.45, outboundlinks)**: `toStored` casava domínio sósia (`HasPrefix` sem
       fronteira de URL: `https://algo.com.br/x` virava token interno — dormente até o `CLIENT_URL`
       mudar); e o "pre-remove cleanup" que o comentário da 0.45 prometia nunca tinha sido ligado,
@@ -230,6 +230,28 @@ Decisões tomadas durante a execução:
       operando estimável. Corrigido para `text[]` nas duas queries (sugestão de keywords e camada 1 do
       julgamento). Teste novo `tests/integration/queryplans/` afirma sobre o `EXPLAIN`, porque essa
       falha é invisível a teste de resultado e já ocorreu duas vezes.
+    - **0.46.5.0 — leva 5 (0.40 + 0.43)**: a superfície de autorização passou limpa (banco e não token,
+      falha de banco vira 500 e não 403, `adminRoute` sem aliasing de slice, dry-runs de IA só existem
+      em development). O achado veio de um vizinho: `GET /v1/sources/rss-discovery` recebia um
+      `&http.Client{}` **sem timeout** para buscar uma URL do usuário, e o `rss.Discover` faz ~15
+      saídas externas por chamada (13 delas concorrentes). Corrigido com timeout por requisição (30s,
+      o mesmo do irmão) e orçamento total de 45s no handler.
+        - **Em aberto, aguardando decisão**: (1) bloquear destinos privados nessa rota (SSRF —
+          loopback, link-local, RFC1918); (2) se ela deve virar admin-only, já que o irmão
+          `article-discovery` é, ou permanecer `[AUTH]` por causa da futura rota de sugestão de fontes.
+    - **0.46.6.0 — as duas decisões acima, tomadas**: (1) pacote novo `services/safehttp`, cujo dialer
+      recusa destinos não públicos. O controle fica no **dialer** e não na validação da URL, porque um
+      hostname pode resolver para IP privado e um redirect escapa de qualquer checagem feita antes da
+      primeira requisição; o IP aprovado é discado direto, para não reabrir janela de DNS rebinding.
+      (2) `rss-discovery` virou administrator-only, como o irmão — estava aberta por conveniência do
+      Bruno, não por intenção de produto. Coberto por 403 em e2e.
+    - **0.46.7.0 — leva 6 (0.41/0.42), última do escopo**: o container rodava como **root** (sem
+      diretiva `USER` no Dockerfile). Nada ali precisa de root — a app escuta porta não privilegiada e
+      não escreve em disco. Corrigido com `appuser` uid 10001, verificado na imagem real. Também: dois
+      comentários de compose mandavam usar `docker-compose.prod.yaml`, arquivo que não existe.
+      Confirmados como corretos: deploy realmente inerte, portas todas em loopback, pgAdmin ausente
+      fora de dev por construção, segredos só como `CHANGE_ME`, e o CI não cai na armadilha do
+      `gofmt -l` (que retorna 0 mesmo com arquivo desformatado).
     - Escopo: 0.38 → 0.45 (a última revisão foi a 0.37.3, em 17/07 — ~8.800 linhas em 146 arquivos
       desde então). Ordem por risco: 0.45 (outboundlinks, está no caminho de leitura de toda notícia)
       → 0.38 (filtros/paginação em SQL, sincronia entre query de dados e query de `Count`) → 0.39

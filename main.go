@@ -37,6 +37,7 @@ import (
 	userendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/users"
 	"github.com/nathanap/news-feed-backend/services/judgement"
 	"github.com/nathanap/news-feed-backend/services/langdetect"
+	"github.com/nathanap/news-feed-backend/services/safehttp"
 )
 
 //go:embed migrations/*.sql
@@ -231,12 +232,24 @@ func main() {
 	}
 
 	discoveryHTTPClient := &http.Client{Timeout: 30 * time.Second}
+	// Separate client for RSS discovery: same timeout, but its dialer refuses non-public addresses.
+	// discoveryHTTPClient fetches a source URL an administrator curated and stored; this one fetches
+	// whatever the caller typed, which is the difference that warrants the restriction.
+	rssDiscoveryHTTPClient := safehttp.NewRestrictedClient(30 * time.Second)
 
 	// Sources are public to read (PROJECT.md: every user sees the same predefined set) and
 	// administrator-only to change, which is why the guard is per route rather than on the group.
 	sources := api.Group("/sources")
 	sources.Post("/create", adminRoute(authMiddleware, requireAdmin, sourceendpoints.CreateSource(sourceCtrl, runTx))...)
-	sources.Get("/rss-discovery", append(authMiddleware, sourceendpoints.RSSDiscovery(&http.Client{}))...)
+	// The only route that fetches a URL the CALLER supplies, which earns it two guards the others do
+	// not need (0.46.5):
+	//   - a restricted client: timeout (it had none, and rss.Discover fans one call out to ~15
+	//     requests, 13 of them concurrent) plus a dialer that refuses private destinations, so it
+	//     cannot be aimed at loopback, the metadata endpoint or the VPC.
+	//   - administrator-only, like its article-discovery sibling. It was open to any authenticated
+	//     user for Bruno's convenience, not by product intent; discovery is not an end-user action.
+	//     When the roadmap's "suggest a source" route arrives, that is where user access belongs.
+	sources.Get("/rss-discovery", adminRoute(authMiddleware, requireAdmin, sourceendpoints.RSSDiscovery(rssDiscoveryHTTPClient))...)
 	sources.Get("/:id/article-discovery", adminRoute(authMiddleware, requireAdmin, sourceendpoints.SourceArticleDiscovery(sourceCtrl, articleCtrl, runTx, discoveryHTTPClient))...)
 	sources.Get("/:id", append(authMiddleware, sourceendpoints.GetSource(sourceCtrl, runTx))...)
 	sources.Get("", append(authMiddleware, sourceendpoints.ListSources(sourceCtrl, runTx))...)

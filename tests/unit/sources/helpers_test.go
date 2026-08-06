@@ -177,7 +177,7 @@ func buildAppAs(ctrl controllers.SourceControllerInterface, articleCtrl controll
 	// Mirrors main.go: reading sources is open to every authenticated user, changing them is not.
 	s := app.Group("/v1/sources")
 	s.Post("/create", adminChain(authMiddleware, requireAdmin, sourceendpoints.CreateSource(ctrl, fakeTxRunner))...)
-	s.Get("/rss-discovery", append(authMiddleware, sourceendpoints.RSSDiscovery(httpClient))...)
+	s.Get("/rss-discovery", adminChain(authMiddleware, requireAdmin, sourceendpoints.RSSDiscovery(httpClient))...)
 	s.Get("/:id/article-discovery", adminChain(authMiddleware, requireAdmin, sourceendpoints.SourceArticleDiscovery(ctrl, articleCtrl, fakeTxRunner, httpClient))...)
 	s.Get("/:id", append(authMiddleware, sourceendpoints.GetSource(ctrl, fakeTxRunner))...)
 	s.Get("", append(authMiddleware, sourceendpoints.ListSources(ctrl, fakeTxRunner))...)

@@ -76,7 +76,7 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth, httpClient *http.
 	// Mirrors main.go: reading sources is open to any authenticated user, writing them is not.
 	s := app.Group("/v1/sources")
 	s.Post("/create", adminChain(authMiddleware, requireAdmin, sourceendpoints.CreateSource(sourceCtrl, runTx))...)
-	s.Get("/rss-discovery", append(authMiddleware, sourceendpoints.RSSDiscovery(httpClient))...)
+	s.Get("/rss-discovery", adminChain(authMiddleware, requireAdmin, sourceendpoints.RSSDiscovery(httpClient))...)
 	s.Get("/:id/article-discovery", adminChain(authMiddleware, requireAdmin, sourceendpoints.SourceArticleDiscovery(sourceCtrl, articleCtrl, runTx, httpClient))...)
 	s.Get("/:id", append(authMiddleware, sourceendpoints.GetSource(sourceCtrl, runTx))...)
 	s.Get("", append(authMiddleware, sourceendpoints.ListSources(sourceCtrl, runTx))...)
@@ -379,6 +379,10 @@ func TestE2E_Sources_RegularUserReadsButCannotWrite(t *testing.T) {
 		{"update", http.MethodPut, "/v1/sources/" + id, `{"name":"N","url":"https://n.com","url_rss":"https://n.com/rss"}`},
 		{"delete", http.MethodDelete, "/v1/sources/" + id, ""},
 		{"article-discovery", http.MethodGet, "/v1/sources/" + id + "/article-discovery", ""},
+		// Administrator-only since 0.46.5. It had been open to any authenticated user for Bruno's
+		// convenience, but discovery is not an end-user action and this is the one route that fetches
+		// a URL the caller supplies.
+		{"rss-discovery", http.MethodGet, "/v1/sources/rss-discovery?url=https://x.com", ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			req, err := http.NewRequest(tc.method, tc.path, strings.NewReader(tc.body))

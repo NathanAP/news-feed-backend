@@ -4,7 +4,7 @@
 #
 # Staging deliberately runs a CONTAINER Postgres: its data is disposable and this keeps staging cheap
 # and self-contained. Production is where a managed database (RDS) earns its cost — see
-# docker-compose.prod.yaml.
+# docker-compose.production.yaml.
 services:
     api:
         # No build: staging runs the exact image CI built and pushed. API_IMAGE comes from .env.staging

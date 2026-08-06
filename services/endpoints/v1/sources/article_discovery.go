@@ -18,7 +18,7 @@ import (
 // exact same steps the CRON would (fetch the feed, deduplicate by url_original) and returns what
 // *would* go forward to treatment — without persisting anything or advancing the watermark. The
 // optional `last_article_discovery_at` query adds a date lower bound so the caller can test without
-// waiting for a genuinely new article. Open for now (admin-future).
+// waiting for a genuinely new article. Administrator-only since 0.40.
 func SourceArticleDiscovery(sourceCtrl controllers.SourceControllerInterface, articleCtrl controllers.ArticleControllerInterface, runTx controllers.TransactionRunner, httpClient *http.Client) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		logger.RouteStart(c.Path())

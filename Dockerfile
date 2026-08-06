@@ -17,6 +17,12 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o api .
 
 FROM alpine:3.21
 
+# Unprivileged runtime user (0.46.7). Nothing here needs root: the app binds API_PORT (3000 by
+# default, well above the privileged range), writes nothing to disk — all state lives in Postgres via
+# DATABASE_URL — and the binary arrives at build time. Running as root would only widen what a
+# compromise of the app, or of one of its dependencies, could reach.
+RUN adduser --disabled-password --gecos "" --uid 10001 --home /app appuser
+
 WORKDIR /app
 
 # CA certificates for outbound HTTPS (Gemini/Groq/RSS). Copied from the builder (the golang image
@@ -25,8 +31,13 @@ WORKDIR /app
 # lives in Postgres, reached via DATABASE_URL.
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
-COPY --from=builder /app/api .
+COPY --from=builder --chown=appuser:appuser /app/api .
 
+USER appuser
+
+# Documentation only — EXPOSE publishes nothing and cannot read API_PORT at runtime. The port the app
+# actually binds comes from API_PORT; the compose files publish it and the healthcheck reads the same
+# variable, so changing it there is enough. This line just records the default.
 EXPOSE 3000
 
 CMD ["./api"]
