@@ -3,11 +3,12 @@ package articles_test
 import (
 	"context"
 	"encoding/json"
+	testutils "github.com/nathanap/news-feed-backend/tests/utils"
 	"net/http"
 	"strings"
 	"testing"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -68,10 +69,10 @@ func (m *mockJudgeFeedCtrl) SoftDelete(_ context.Context, _ db.Querier, _, _ str
 var _ controllers.FeedControllerInterface = (*mockJudgeFeedCtrl)(nil)
 
 func judgementApp(feedCtrl controllers.FeedControllerInterface, judger ai.Judger) *fiber.App {
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
 	judgers := map[string]ai.Judger{"local": judger, "groq": judger, "gemini": judger}
-	app.Post("/v1/articles/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, "local", 70, 0.30, 2, -1, fakeTxRunner))...)
+	testutils.AddRoute(app, fiber.MethodPost, "/v1/articles/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, "local", 70, 0.30, 2, -1, fakeTxRunner)))
 	return app
 }
 

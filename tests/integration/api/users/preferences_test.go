@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -40,10 +40,10 @@ func setupPreferencesIntegrationApp(t *testing.T) (*fiber.App, db.Querier, *cont
 
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
 
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	users := app.Group("/v1/users")
-	users.Get("/me/preferences", append(authMiddleware, userendpoints.GetPreferences())...)
-	users.Put("/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(prefCtrl, authCtrl, runTx, 3600))...)
+	testutils.AddRoute(users, fiber.MethodGet, "/me/preferences", append(authMiddleware, userendpoints.GetPreferences()))
+	testutils.AddRoute(users, fiber.MethodPut, "/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(prefCtrl, authCtrl, runTx, 3600)))
 
 	return app, queries, prefCtrl, authCtrl
 }

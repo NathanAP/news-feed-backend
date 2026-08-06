@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nathanap/news-feed-backend/middlewares"
@@ -14,9 +14,9 @@ import (
 // minimal app with a single route, so the tests exercise exactly what main.go wires in production.
 func buildApp(t *testing.T) *fiber.App {
 	t.Helper()
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	app.Use(middlewares.NewCORSMiddleware())
-	app.Get("/ping", func(c *fiber.Ctx) error {
+	app.Get("/ping", func(c fiber.Ctx) error {
 		return c.SendString("pong")
 	})
 	return app

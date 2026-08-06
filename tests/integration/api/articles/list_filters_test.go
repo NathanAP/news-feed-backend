@@ -3,6 +3,7 @@ package articles_test
 import (
 	"database/sql"
 	"fmt"
+	"github.com/gofiber/fiber/v3"
 	"net/http"
 	"testing"
 
@@ -17,7 +18,7 @@ import (
 // actually come back. The unit tests next door only prove the handler forwards the right filter.
 
 func listArticlesReq(t *testing.T, app interface {
-	Test(*http.Request, ...int) (*http.Response, error)
+	Test(*http.Request, ...fiber.TestConfig) (*http.Response, error)
 }, token, query string) *http.Response {
 	t.Helper()
 	req, _ := http.NewRequest(http.MethodGet, "/v1/articles"+query, nil)

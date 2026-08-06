@@ -2,6 +2,7 @@ package sources_test
 
 import (
 	"context"
+	"github.com/gofiber/fiber/v3"
 	"net/http"
 	"testing"
 
@@ -20,7 +21,7 @@ import (
 // against a real Postgres in tests/integration/api/sources.
 
 func listSources(t *testing.T, app interface {
-	Test(*http.Request, ...int) (*http.Response, error)
+	Test(*http.Request, ...fiber.TestConfig) (*http.Response, error)
 }, query string, withAuth bool) *http.Response {
 	t.Helper()
 	req, err := http.NewRequest(http.MethodGet, "/v1/sources"+query, nil)

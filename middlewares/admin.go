@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	db "github.com/nathanap/news-feed-backend/sqlc"
@@ -72,7 +72,7 @@ func (r *AdminResolver) IsAdmin(ctx context.Context, userID string) (bool, error
 // It is deliberately best-effort and fail-closed: a missing header, a bad token, a dead session or a
 // database error all resolve to "not an administrator". The whole application is already unavailable
 // when this runs, so refusing to guess is the only safe answer.
-func (r *AdminResolver) IsRequestFromAdmin(c *fiber.Ctx) bool {
+func (r *AdminResolver) IsRequestFromAdmin(c fiber.Ctx) bool {
 	claims, err := parseAccessToken(c.Get("Authorization"), r.jwtSecret)
 	if err != nil {
 		return false
@@ -97,7 +97,7 @@ func (r *AdminResolver) IsRequestFromAdmin(c *fiber.Ctx) bool {
 // mounted *after* the auth middleware, which is what puts the claims in the context: this middleware
 // answers "may this authenticated user do it?", not "who is this?".
 func NewRequireAdminMiddleware(resolver *AdminResolver) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		claims := GetClaims(c)
 
 		admin, err := resolver.IsAdmin(c.Context(), claims.UserID)

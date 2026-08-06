@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
@@ -68,20 +68,20 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth, httpClient *http.
 		middlewares.NewAdminResolver([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, userCtrl, runTx),
 	)
 
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 
 	auth := app.Group("/v1/auth")
 	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl, []byte(jwtmock.TestJWTSecret)))
 
 	// Mirrors main.go: reading sources is open to any authenticated user, writing them is not.
 	s := app.Group("/v1/sources")
-	s.Post("/create", adminChain(authMiddleware, requireAdmin, sourceendpoints.CreateSource(sourceCtrl, runTx))...)
-	s.Get("/rss-discovery", adminChain(authMiddleware, requireAdmin, sourceendpoints.RSSDiscovery(httpClient))...)
-	s.Get("/:id/article-discovery", adminChain(authMiddleware, requireAdmin, sourceendpoints.SourceArticleDiscovery(sourceCtrl, articleCtrl, runTx, httpClient))...)
-	s.Get("/:id", append(authMiddleware, sourceendpoints.GetSource(sourceCtrl, runTx))...)
-	s.Get("", append(authMiddleware, sourceendpoints.ListSources(sourceCtrl, runTx))...)
-	s.Put("/:id", adminChain(authMiddleware, requireAdmin, sourceendpoints.UpdateSource(sourceCtrl, runTx))...)
-	s.Delete("/:id", adminChain(authMiddleware, requireAdmin, sourceendpoints.DeleteSource(sourceCtrl, runTx))...)
+	testutils.AddRoute(s, fiber.MethodPost, "/create", adminChain(authMiddleware, requireAdmin, sourceendpoints.CreateSource(sourceCtrl, runTx)))
+	testutils.AddRoute(s, fiber.MethodGet, "/rss-discovery", adminChain(authMiddleware, requireAdmin, sourceendpoints.RSSDiscovery(httpClient)))
+	testutils.AddRoute(s, fiber.MethodGet, "/:id/article-discovery", adminChain(authMiddleware, requireAdmin, sourceendpoints.SourceArticleDiscovery(sourceCtrl, articleCtrl, runTx, httpClient)))
+	testutils.AddRoute(s, fiber.MethodGet, "/:id", append(authMiddleware, sourceendpoints.GetSource(sourceCtrl, runTx)))
+	testutils.AddRoute(s, fiber.MethodGet, "", append(authMiddleware, sourceendpoints.ListSources(sourceCtrl, runTx)))
+	testutils.AddRoute(s, fiber.MethodPut, "/:id", adminChain(authMiddleware, requireAdmin, sourceendpoints.UpdateSource(sourceCtrl, runTx)))
+	testutils.AddRoute(s, fiber.MethodDelete, "/:id", adminChain(authMiddleware, requireAdmin, sourceendpoints.DeleteSource(sourceCtrl, runTx)))
 
 	return app, queries
 }

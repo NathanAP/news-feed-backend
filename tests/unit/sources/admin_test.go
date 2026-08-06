@@ -2,11 +2,13 @@ package sources_test
 
 import (
 	"context"
+	testutils "github.com/nathanap/news-feed-backend/tests/utils"
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -54,7 +56,7 @@ func doRequest(t *testing.T, app *fiber.App, c adminRouteCase, header string) *h
 	}
 	// Generous timeout: when the guard lets a request through to the discovery handler, that handler
 	// retries a failing feed with exponential backoff (~1.4s), past the default 1s.
-	resp, err := app.Test(req, 5000)
+	resp, err := app.Test(req, fiber.TestConfig{Timeout: 5000 * time.Millisecond})
 	require.NoError(t, err)
 	return resp
 }
@@ -123,12 +125,12 @@ func TestSourcesAdminRoutes_DatabaseFailureIsNotADenial(t *testing.T) {
 		},
 	}
 
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
 	requireAdmin := middlewares.NewRequireAdminMiddleware(middlewares.NewAdminResolver(
 		[]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, failing, fakeTxRunner,
 	))
-	app.Post("/v1/sources/create", adminChain(authMiddleware, requireAdmin, sourceendpoints.CreateSource(&mockSourceCtrl{}, fakeTxRunner))...)
+	testutils.AddRoute(app, fiber.MethodPost, "/v1/sources/create", adminChain(authMiddleware, requireAdmin, sourceendpoints.CreateSource(&mockSourceCtrl{}, fakeTxRunner)))
 
 	resp := doRequest(t, app, adminOnlySourceRoutes()[0], authHeader(t))
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)

@@ -3,12 +3,13 @@ package system_test
 import (
 	"context"
 	"encoding/json"
+	testutils "github.com/nathanap/news-feed-backend/tests/utils"
 	"net/http"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nathanap/news-feed-backend/middlewares"
@@ -96,7 +97,7 @@ func buildAppAsRegularUser(ctrl controllers.SystemControllerInterface) *fiber.Ap
 // buildAppAs mirrors main.go: the maintenance toggle is administrator-only (0.40) and is registered
 // ahead of the maintenance guard, so it stays reachable while the application is off.
 func buildAppAs(ctrl controllers.SystemControllerInterface, admin bool) *fiber.App {
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
 	requireAdmin := middlewares.NewRequireAdminMiddleware(middlewares.NewAdminResolver(
 		[]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, &jwtmock.MockUserController{Admin: admin}, fakeTxRunner,
@@ -105,7 +106,7 @@ func buildAppAs(ctrl controllers.SystemControllerInterface, admin bool) *fiber.A
 	chain := make([]fiber.Handler, 0, len(authMiddleware)+2)
 	chain = append(chain, authMiddleware...)
 	chain = append(chain, requireAdmin, systemendpoints.UpdateAppStatus(ctrl, fakeTxRunner))
-	app.Put("/v1/system/app-status", chain...)
+	testutils.AddRoute(app, fiber.MethodPut, "/v1/system/app-status", chain)
 
 	return app
 }

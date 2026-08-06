@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -38,8 +38,8 @@ func setupJudgementApp(t *testing.T, judger ai.Judger) (*fiber.App, db.Querier) 
 
 	judgers := map[string]ai.Judger{"local": judger, "groq": judger, "gemini": judger}
 
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
-	app.Post("/v1/articles/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, "local", 70, 0.30, 2, -1, runTx))...)
+	app := fiber.New()
+	testutils.AddRoute(app, fiber.MethodPost, "/v1/articles/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, "local", 70, 0.30, 2, -1, runTx)))
 
 	return app, queries
 }

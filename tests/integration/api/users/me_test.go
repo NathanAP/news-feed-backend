@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -38,9 +38,9 @@ func setupUsersIntegrationApp(t *testing.T) (*fiber.App, db.Querier) {
 	refreshTokenCtrl := controllers.NewRefreshTokenController(30 * 24 * time.Hour)
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
 
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	users := app.Group("/v1/users")
-	users.Get("/me", append(authMiddleware, userendpoints.GetMe())...)
+	testutils.AddRoute(users, fiber.MethodGet, "/me", append(authMiddleware, userendpoints.GetMe()))
 
 	return app, queries
 }

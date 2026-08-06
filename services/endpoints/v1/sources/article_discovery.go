@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/schemas"
@@ -20,7 +20,7 @@ import (
 // optional `last_article_discovery_at` query adds a date lower bound so the caller can test without
 // waiting for a genuinely new article. Administrator-only since 0.40.
 func SourceArticleDiscovery(sourceCtrl controllers.SourceControllerInterface, articleCtrl controllers.ArticleControllerInterface, runTx controllers.TransactionRunner, httpClient *http.Client) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
 
@@ -66,7 +66,7 @@ func SourceArticleDiscovery(sourceCtrl controllers.SourceControllerInterface, ar
 }
 
 // filterNewByURLOriginal drops items whose url_original already exists as an active article.
-func filterNewByURLOriginal(c *fiber.Ctx, articleCtrl controllers.ArticleControllerInterface, runTx controllers.TransactionRunner, items []discovery.DiscoveredArticle) ([]discovery.DiscoveredArticle, error) {
+func filterNewByURLOriginal(c fiber.Ctx, articleCtrl controllers.ArticleControllerInterface, runTx controllers.TransactionRunner, items []discovery.DiscoveredArticle) ([]discovery.DiscoveredArticle, error) {
 	fresh := make([]discovery.DiscoveredArticle, 0, len(items))
 	err := runTx(c.Context(), func(q db.Querier) error {
 		for _, item := range items {

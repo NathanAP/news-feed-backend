@@ -3,11 +3,12 @@ package auth_test
 import (
 	"context"
 	"errors"
+	testutils "github.com/nathanap/news-feed-backend/tests/utils"
 	"net/http"
 	"testing"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nathanap/news-feed-backend/middlewares"
@@ -79,14 +80,14 @@ func TestValidateSession_DatabaseError_500_NotSignedOut(t *testing.T) {
 func TestRecoverMiddleware_PanicBecomes500_AppStaysUp(t *testing.T) {
 	requireNotProduction(t)
 
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	app.Use(recover.New())
 
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), validRefreshTokenCtrl(), fakeTxRunner)
-	app.Get("/v1/boom", append(authMiddleware, func(c *fiber.Ctx) error {
+	testutils.AddRoute(app, fiber.MethodGet, "/v1/boom", append(authMiddleware, func(c fiber.Ctx) error {
 		panic("unexpected failure inside a handler")
-	})...)
-	app.Get("/v1/healthy", func(c *fiber.Ctx) error { return c.SendString("ok") })
+	}))
+	app.Get("/v1/healthy", func(c fiber.Ctx) error { return c.SendString("ok") })
 
 	resp, err := app.Test(buildAuthRequest(t, http.MethodGet, "/v1/boom", nil))
 	require.NoError(t, err)

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -56,21 +56,21 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 		middlewares.NewAdminResolver([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, userCtrl, runTx),
 	)
 
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 
 	auth := app.Group("/v1/auth")
 	auth.Get("/google", authendpoints.GoogleLogin(testOAuth2Config(), []byte(jwtmock.TestJWTSecret), []string{testutils.TestOAuthRedirectURI}))
 	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl, []byte(jwtmock.TestJWTSecret)))
 	auth.Post("/refresh", authendpoints.RefreshToken(authCtrl))
-	auth.Post("/logout", append(authMiddleware, authendpoints.Logout(refreshTokenCtrl, runTx))...)
+	testutils.AddRoute(auth, fiber.MethodPost, "/logout", append(authMiddleware, authendpoints.Logout(refreshTokenCtrl, runTx)))
 	// Administrator-only: these revoke *other people's* sessions.
-	auth.Delete("/invalidate", adminChain(authMiddleware, requireAdmin, authendpoints.Invalidate(refreshTokenCtrl, runTx))...)
-	auth.Delete("/invalidate-all", adminChain(authMiddleware, requireAdmin, authendpoints.InvalidateAll(refreshTokenCtrl, runTx))...)
+	testutils.AddRoute(auth, fiber.MethodDelete, "/invalidate", adminChain(authMiddleware, requireAdmin, authendpoints.Invalidate(refreshTokenCtrl, runTx)))
+	testutils.AddRoute(auth, fiber.MethodDelete, "/invalidate-all", adminChain(authMiddleware, requireAdmin, authendpoints.InvalidateAll(refreshTokenCtrl, runTx)))
 
 	users := app.Group("/v1/users")
-	users.Get("/me", append(authMiddleware, userendpoints.GetMe())...)
-	users.Get("/me/preferences", append(authMiddleware, userendpoints.GetPreferences())...)
-	users.Put("/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(prefCtrl, authCtrl, runTx, 3600))...)
+	testutils.AddRoute(users, fiber.MethodGet, "/me", append(authMiddleware, userendpoints.GetMe()))
+	testutils.AddRoute(users, fiber.MethodGet, "/me/preferences", append(authMiddleware, userendpoints.GetPreferences()))
+	testutils.AddRoute(users, fiber.MethodPut, "/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(prefCtrl, authCtrl, runTx, 3600)))
 
 	return app, queries, authCtrl
 }

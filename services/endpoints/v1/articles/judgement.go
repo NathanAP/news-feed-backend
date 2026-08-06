@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/schemas"
@@ -23,12 +23,12 @@ import (
 // penultimate step: it does NOT write any articles_feeds association. It does call the AI for real
 // (consumes quota) and reads real feeds. Open for now (admin-future).
 func JudgeArticle(feedCtrl controllers.FeedControllerInterface, judgers map[string]ai.Judger, defaultMode string, threshold int, autoAssociateRatio float64, minMatches int, inactiveDays int, runTx controllers.TransactionRunner) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
 
 		var req schemas.JudgeArticleRequest
-		if err := c.BodyParser(&req); err != nil {
+		if err := c.Bind().Body(&req); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
 		}
 		if strings.TrimSpace(req.Article.Title) == "" {

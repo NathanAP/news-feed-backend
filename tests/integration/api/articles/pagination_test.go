@@ -1,6 +1,7 @@
 package articles_test
 
 import (
+	"github.com/gofiber/fiber/v3"
 	"net/http"
 	"testing"
 
@@ -19,7 +20,7 @@ type paginationMeta struct {
 }
 
 func fetchArticlesPage(t *testing.T, app interface {
-	Test(*http.Request, ...int) (*http.Response, error)
+	Test(*http.Request, ...fiber.TestConfig) (*http.Response, error)
 }, token, query string) (int, paginationMeta) {
 	t.Helper()
 	req, _ := http.NewRequest(http.MethodGet, "/v1/articles"+query, nil)

@@ -2,8 +2,10 @@ package sources_test
 
 import (
 	"context"
+	"github.com/gofiber/fiber/v3"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,7 +37,7 @@ func discoveryGet(t *testing.T, ctrl controllers.SourceControllerInterface, resp
 	require.NoError(t, err)
 	req.Header.Set("Authorization", authHeader(t))
 	// Generous timeout: the feed-error path retries with exponential backoff (~1.4s).
-	resp, err := app.Test(req, 5000)
+	resp, err := app.Test(req, fiber.TestConfig{Timeout: 5000 * time.Millisecond})
 	require.NoError(t, err)
 	return resp
 }

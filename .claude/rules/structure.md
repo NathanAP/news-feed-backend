@@ -39,6 +39,9 @@ O banco não aparece nesta árvore: desde a 0.37 é PostgreSQL (cliente-servidor
 │   ├── pagination             (paginação global genérica: ParseParams + Paginate[T])
 │   ├── prompts                (prompts de IA em .yaml, embutidos via go:embed)
 │   ├── rss                    (descoberta de URLs de RSS a partir de uma URL principal)
+│   ├── safehttp               (cliente HTTP cujo dialer recusa destinos não públicos — para as rotas que
+│   │                           buscam URL fornecida por quem chama; controle no dialer e não na URL,
+│   │                           porque hostname pode resolver para IP privado e redirect escapa da checagem)
 │   ├── sanitize               (estágio primário de limpeza do corpo cru do RSS via bluemonday, determinístico)
 │   └── urltreatment           (reescreve links internos do corpo para CLIENT_URL/articles/{id} antes do sanitize; parsing HTML, DB injetado)
 ├── sqlc                       (código gerado pelo sqlc: models, querier, *.sql.go)

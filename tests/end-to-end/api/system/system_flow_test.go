@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -69,11 +69,11 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 	adminResolver := middlewares.NewAdminResolver([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, userCtrl, runTx)
 	requireAdmin := middlewares.NewRequireAdminMiddleware(adminResolver)
 
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	api := app.Group("/v1")
 
 	api.Get("/health", healthendpoints.Check(systemCtrl, runTx))
-	api.Put("/system/app-status", adminChain(authMiddleware, requireAdmin, systemendpoints.UpdateAppStatus(systemCtrl, runTx))...)
+	testutils.AddRoute(api, fiber.MethodPut, "/system/app-status", adminChain(authMiddleware, requireAdmin, systemendpoints.UpdateAppStatus(systemCtrl, runTx)))
 
 	// Exempt from the guard, like in main.go: authentication has to survive a maintenance window or
 	// an administrator whose token expires during one can never get back in.
@@ -84,8 +84,8 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 	api.Use(middlewares.NewAppStatusMiddleware(systemCtrl, runTx, adminResolver))
 
 	s := api.Group("/sources")
-	s.Post("/create", adminChain(authMiddleware, requireAdmin, sourceendpoints.CreateSource(sourceCtrl, runTx))...)
-	s.Get("", append(authMiddleware, sourceendpoints.ListSources(sourceCtrl, runTx))...)
+	testutils.AddRoute(s, fiber.MethodPost, "/create", adminChain(authMiddleware, requireAdmin, sourceendpoints.CreateSource(sourceCtrl, runTx)))
+	testutils.AddRoute(s, fiber.MethodGet, "", append(authMiddleware, sourceendpoints.ListSources(sourceCtrl, runTx)))
 
 	return app, queries
 }

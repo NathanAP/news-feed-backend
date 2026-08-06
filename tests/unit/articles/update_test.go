@@ -2,6 +2,7 @@ package articles_test
 
 import (
 	"context"
+	"github.com/gofiber/fiber/v3"
 	"net/http"
 	"strings"
 	"testing"
@@ -15,7 +16,7 @@ import (
 )
 
 func putArticle(t *testing.T, app interface {
-	Test(*http.Request, ...int) (*http.Response, error)
+	Test(*http.Request, ...fiber.TestConfig) (*http.Response, error)
 }, id, body string, withAuth bool) *http.Response {
 	t.Helper()
 	req, err := http.NewRequest(http.MethodPut, "/v1/articles/"+id, strings.NewReader(body))

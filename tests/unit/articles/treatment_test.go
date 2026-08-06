@@ -2,11 +2,12 @@ package articles_test
 
 import (
 	"context"
+	testutils "github.com/nathanap/news-feed-backend/tests/utils"
 	"net/http"
 	"strings"
 	"testing"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -26,11 +27,11 @@ func treatmentApp(aiClient ai.Client) *fiber.App {
 }
 
 func treatmentAppFull(aiClient ai.Client, articleCtrl controllers.ArticleControllerInterface, clientURL string) *fiber.App {
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
 	// Wire the mock as every keyword mode; body treatment is deterministic (url treatment + sanitize, no AI).
 	keyworders := map[string]ai.Keyworder{"local": aiClient, "groq": aiClient, "gemini": aiClient}
-	app.Post("/v1/articles/treatment", append(authMiddleware, articleendpoints.TreatArticle(keyworders, "local", &jwtmock.MockLanguageDetector{}, articleCtrl, fakeTxRunner, clientURL, false))...)
+	testutils.AddRoute(app, fiber.MethodPost, "/v1/articles/treatment", append(authMiddleware, articleendpoints.TreatArticle(keyworders, "local", &jwtmock.MockLanguageDetector{}, articleCtrl, fakeTxRunner, clientURL, false)))
 	return app
 }
 

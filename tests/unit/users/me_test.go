@@ -3,11 +3,12 @@ package users_test
 import (
 	"context"
 	"encoding/json"
+	testutils "github.com/nathanap/news-feed-backend/tests/utils"
 	"net/http"
 	"os"
 	"testing"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -55,11 +56,11 @@ func (m *mockRefreshTokenCtrl) RevokeAll(ctx context.Context, q db.Querier, user
 var _ controllers.RefreshTokenControllerInterface = (*mockRefreshTokenCtrl)(nil)
 
 func setupUsersApp() *fiber.App {
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
 
 	users := app.Group("/v1/users")
-	users.Get("/me", append(authMiddleware, userendpoints.GetMe())...)
+	testutils.AddRoute(users, fiber.MethodGet, "/me", append(authMiddleware, userendpoints.GetMe()))
 
 	return app
 }
@@ -104,12 +105,12 @@ func (m *mockAuthForPrefs) RegenerateFromClaims(ctx context.Context, q db.Querie
 var _ controllers.AuthControllerInterface = (*mockAuthForPrefs)(nil)
 
 func setupPreferencesApp() *fiber.App {
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
 
 	users := app.Group("/v1/users")
-	users.Get("/me/preferences", append(authMiddleware, userendpoints.GetPreferences())...)
-	users.Put("/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(&mockPrefCtrl{}, &mockAuthForPrefs{}, fakeTxRunner, 3600))...)
+	testutils.AddRoute(users, fiber.MethodGet, "/me/preferences", append(authMiddleware, userendpoints.GetPreferences()))
+	testutils.AddRoute(users, fiber.MethodPut, "/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(&mockPrefCtrl{}, &mockAuthForPrefs{}, fakeTxRunner, 3600)))
 
 	return app
 }

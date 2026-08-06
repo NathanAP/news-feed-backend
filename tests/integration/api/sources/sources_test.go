@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -56,15 +56,15 @@ func setupIntegrationApp(t *testing.T, httpClient *http.Client) (*fiber.App, db.
 	refreshTokenCtrl := controllers.NewRefreshTokenController(30 * 24 * time.Hour)
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
 
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	s := app.Group("/v1/sources")
-	s.Post("/create", append(authMiddleware, sourceendpoints.CreateSource(sourceCtrl, runTx))...)
-	s.Get("/rss-discovery", append(authMiddleware, sourceendpoints.RSSDiscovery(httpClient))...)
-	s.Get("/:id/article-discovery", append(authMiddleware, sourceendpoints.SourceArticleDiscovery(sourceCtrl, articleCtrl, runTx, httpClient))...)
-	s.Get("/:id", append(authMiddleware, sourceendpoints.GetSource(sourceCtrl, runTx))...)
-	s.Get("", append(authMiddleware, sourceendpoints.ListSources(sourceCtrl, runTx))...)
-	s.Put("/:id", append(authMiddleware, sourceendpoints.UpdateSource(sourceCtrl, runTx))...)
-	s.Delete("/:id", append(authMiddleware, sourceendpoints.DeleteSource(sourceCtrl, runTx))...)
+	testutils.AddRoute(s, fiber.MethodPost, "/create", append(authMiddleware, sourceendpoints.CreateSource(sourceCtrl, runTx)))
+	testutils.AddRoute(s, fiber.MethodGet, "/rss-discovery", append(authMiddleware, sourceendpoints.RSSDiscovery(httpClient)))
+	testutils.AddRoute(s, fiber.MethodGet, "/:id/article-discovery", append(authMiddleware, sourceendpoints.SourceArticleDiscovery(sourceCtrl, articleCtrl, runTx, httpClient)))
+	testutils.AddRoute(s, fiber.MethodGet, "/:id", append(authMiddleware, sourceendpoints.GetSource(sourceCtrl, runTx)))
+	testutils.AddRoute(s, fiber.MethodGet, "", append(authMiddleware, sourceendpoints.ListSources(sourceCtrl, runTx)))
+	testutils.AddRoute(s, fiber.MethodPut, "/:id", append(authMiddleware, sourceendpoints.UpdateSource(sourceCtrl, runTx)))
+	testutils.AddRoute(s, fiber.MethodDelete, "/:id", append(authMiddleware, sourceendpoints.DeleteSource(sourceCtrl, runTx)))
 
 	return app, queries
 }

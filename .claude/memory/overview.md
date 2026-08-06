@@ -11,7 +11,7 @@ via IA e julga em quais feeds cada notícia entra. Entrega personalizada por usu
 
 ## Stack
 
-- **Go** + **Fiber** (web) + **PostgreSQL 18** (driver `jackc/pgx/v5` via `database/sql`; SQLite saiu na 0.37)
+- **Go** + **Fiber v3** (web; migrado do v2 na 0.47) + **PostgreSQL 18** (driver `jackc/pgx/v5` via `database/sql`; SQLite saiu na 0.37)
 - **goose** (migrações, embutidas via `embed`) · **sqlc** (queries tipadas, `engine: postgresql`)
 - **JWT** (auth Bearer) · **OAuth2 Google** (login) · **gofeed** (RSS) · **cron** · **lingua-go** (detecção de idioma)
 - **Gemini 2.5 Flash** (IA, futuro) · **testify** + **testcontainers-go** (testes) · **Bruno** (coleção de requisições)

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -69,23 +69,23 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 		middlewares.NewAdminResolver([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, userCtrl, runTx),
 	)
 
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 
 	auth := app.Group("/v1/auth")
 	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl, []byte(jwtmock.TestJWTSecret)))
 
 	s := app.Group("/v1/sources")
-	s.Post("/create", adminChain(authMiddleware, requireAdmin, sourceendpoints.CreateSource(sourceCtrl, runTx))...)
+	testutils.AddRoute(s, fiber.MethodPost, "/create", adminChain(authMiddleware, requireAdmin, sourceendpoints.CreateSource(sourceCtrl, runTx)))
 
 	// Mirrors main.go: reading articles is open to any authenticated user, writing them is the
 	// administrator escape hatch.
 	a := app.Group("/v1/articles")
-	a.Post("/create", adminChain(authMiddleware, requireAdmin, articleendpoints.CreateArticle(articleCtrl, runTx))...)
-	a.Put("/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(articleCtrl, afCtrl, runTx))...)
-	a.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, outboundCtrl, runTx, ""))...)
-	a.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, outboundCtrl, runTx, ""))...)
-	a.Put("/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.UpdateArticle(articleCtrl, runTx))...)
-	a.Delete("/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.DeleteArticle(articleCtrl, outboundCtrl, runTx))...)
+	testutils.AddRoute(a, fiber.MethodPost, "/create", adminChain(authMiddleware, requireAdmin, articleendpoints.CreateArticle(articleCtrl, runTx)))
+	testutils.AddRoute(a, fiber.MethodPut, "/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(articleCtrl, afCtrl, runTx)))
+	testutils.AddRoute(a, fiber.MethodGet, "/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, outboundCtrl, runTx, "")))
+	testutils.AddRoute(a, fiber.MethodGet, "", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, outboundCtrl, runTx, "")))
+	testutils.AddRoute(a, fiber.MethodPut, "/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.UpdateArticle(articleCtrl, runTx)))
+	testutils.AddRoute(a, fiber.MethodDelete, "/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.DeleteArticle(articleCtrl, outboundCtrl, runTx)))
 
 	return app, queries
 }

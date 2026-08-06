@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/nathanap/news-feed-backend/schemas"
@@ -21,12 +21,12 @@ func NewAuthMiddleware(jwtSecret []byte, refreshTokenCtrl controllers.RefreshTok
 	}
 }
 
-func GetClaims(c *fiber.Ctx) *schemas.Claims {
+func GetClaims(c fiber.Ctx) *schemas.Claims {
 	return c.Locals("claims").(*schemas.Claims)
 }
 
 func parseJWT(secret []byte) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		claims, err := parseAccessToken(c.Get("Authorization"), secret)
 		if err != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -83,7 +83,7 @@ func checkSession(ctx context.Context, ctrl controllers.RefreshTokenControllerIn
 }
 
 func validateSession(ctrl controllers.RefreshTokenControllerInterface, runTx controllers.TransactionRunner) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		claims := GetClaims(c)
 
 		if err := checkSession(c.Context(), ctrl, runTx, claims.RefreshTokenID); err != nil {

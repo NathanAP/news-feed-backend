@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -61,18 +61,18 @@ func setupIntegrationApp(t *testing.T) (*fiber.App, db.Querier, *sql.DB) {
 	refreshTokenCtrl := controllers.NewRefreshTokenController(30 * 24 * time.Hour)
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
 
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	f := app.Group("/v1/feeds")
-	f.Post("/create", append(authMiddleware, feedendpoints.CreateFeed(feedCtrl, runTx))...)
-	f.Get("/check-for-new-articles", append(authMiddleware, feedendpoints.CheckForNewArticles(afCtrl, runTx))...)
+	testutils.AddRoute(f, fiber.MethodPost, "/create", append(authMiddleware, feedendpoints.CreateFeed(feedCtrl, runTx)))
+	testutils.AddRoute(f, fiber.MethodGet, "/check-for-new-articles", append(authMiddleware, feedendpoints.CheckForNewArticles(afCtrl, runTx)))
 	// keywordSuggestionsWindowDays -1 disables the recency window, so tests can seed with any
 	// created_at and still have every article count toward "popular".
-	f.Get("/keyword-suggestions", append(authMiddleware, feedendpoints.SuggestKeywords(articleCtrl, runTx, -1))...)
-	f.Get("/:id/articles", append(authMiddleware, feedendpoints.FeedArticles(feedCtrl, afCtrl, outboundCtrl, runTx, ""))...)
-	f.Get("/:id", append(authMiddleware, feedendpoints.GetFeed(feedCtrl, runTx))...)
-	f.Get("", append(authMiddleware, feedendpoints.ListFeeds(feedCtrl, runTx))...)
-	f.Put("/:id", append(authMiddleware, feedendpoints.UpdateFeed(feedCtrl, runTx))...)
-	f.Delete("/:id", append(authMiddleware, feedendpoints.DeleteFeed(feedCtrl, runTx))...)
+	testutils.AddRoute(f, fiber.MethodGet, "/keyword-suggestions", append(authMiddleware, feedendpoints.SuggestKeywords(articleCtrl, runTx, -1)))
+	testutils.AddRoute(f, fiber.MethodGet, "/:id/articles", append(authMiddleware, feedendpoints.FeedArticles(feedCtrl, afCtrl, outboundCtrl, runTx, "")))
+	testutils.AddRoute(f, fiber.MethodGet, "/:id", append(authMiddleware, feedendpoints.GetFeed(feedCtrl, runTx)))
+	testutils.AddRoute(f, fiber.MethodGet, "", append(authMiddleware, feedendpoints.ListFeeds(feedCtrl, runTx)))
+	testutils.AddRoute(f, fiber.MethodPut, "/:id", append(authMiddleware, feedendpoints.UpdateFeed(feedCtrl, runTx)))
+	testutils.AddRoute(f, fiber.MethodDelete, "/:id", append(authMiddleware, feedendpoints.DeleteFeed(feedCtrl, runTx)))
 
 	return app, queries, database
 }

@@ -1,7 +1,7 @@
 package feeds
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/middlewares"
@@ -20,7 +20,7 @@ import (
 // empty object ({}). Everything is scoped to the requesting user and computed in SQL. This is the
 // endpoint a future SSE/WebSocket would replace for push delivery.
 func CheckForNewArticles(afCtrl controllers.ArticleFeedControllerInterface, runTx controllers.TransactionRunner) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
 

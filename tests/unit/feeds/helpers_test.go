@@ -3,11 +3,12 @@ package feeds_test
 import (
 	"context"
 	"encoding/json"
+	testutils "github.com/nathanap/news-feed-backend/tests/utils"
 	"net/http"
 	"os"
 	"testing"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nathanap/news-feed-backend/middlewares"
@@ -117,15 +118,15 @@ func (m *mockFeedCtrl) SoftDelete(ctx context.Context, q db.Querier, id, userID 
 var _ controllers.FeedControllerInterface = (*mockFeedCtrl)(nil)
 
 func buildApp(ctrl controllers.FeedControllerInterface) *fiber.App {
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
 
 	f := app.Group("/v1/feeds")
-	f.Post("/create", append(authMiddleware, feedendpoints.CreateFeed(ctrl, fakeTxRunner))...)
-	f.Get("/:id", append(authMiddleware, feedendpoints.GetFeed(ctrl, fakeTxRunner))...)
-	f.Get("", append(authMiddleware, feedendpoints.ListFeeds(ctrl, fakeTxRunner))...)
-	f.Put("/:id", append(authMiddleware, feedendpoints.UpdateFeed(ctrl, fakeTxRunner))...)
-	f.Delete("/:id", append(authMiddleware, feedendpoints.DeleteFeed(ctrl, fakeTxRunner))...)
+	testutils.AddRoute(f, fiber.MethodPost, "/create", append(authMiddleware, feedendpoints.CreateFeed(ctrl, fakeTxRunner)))
+	testutils.AddRoute(f, fiber.MethodGet, "/:id", append(authMiddleware, feedendpoints.GetFeed(ctrl, fakeTxRunner)))
+	testutils.AddRoute(f, fiber.MethodGet, "", append(authMiddleware, feedendpoints.ListFeeds(ctrl, fakeTxRunner)))
+	testutils.AddRoute(f, fiber.MethodPut, "/:id", append(authMiddleware, feedendpoints.UpdateFeed(ctrl, fakeTxRunner)))
+	testutils.AddRoute(f, fiber.MethodDelete, "/:id", append(authMiddleware, feedendpoints.DeleteFeed(ctrl, fakeTxRunner)))
 
 	return app
 }

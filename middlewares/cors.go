@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/cors"
 )
 
 // defaultAllowedHeaders is what the API needs on its own: the Bearer token and the body's content
@@ -32,22 +32,43 @@ const defaultAllowedHeaders = "Authorization,Content-Type"
 // Fiber's default of falling back to "*" on an empty AllowOrigins, which would silently open the
 // API to every origin. The API still boots and keeps serving same-origin / non-browser clients.
 func NewCORSMiddleware() fiber.Handler {
-	origins := os.Getenv("CORS_ALLOWED_ORIGINS")
-	if origins == "" {
+	// Fiber v3 takes []string where v2 took a comma-separated string and split it internally, so the
+	// splitting moved here. Guarding on the PARSED list rather than on the raw variable also closes a
+	// gap the v2 version had: a value of "," or "  " is non-empty as a string but allows no origin,
+	// and handing that to the middleware is exactly the case that could fall back to "*".
+	origins := splitAndTrim(os.Getenv("CORS_ALLOWED_ORIGINS"))
+	if len(origins) == 0 {
 		log.Println("CORS_ALLOWED_ORIGINS is empty: CORS disabled, no cross-origin browser client will be allowed")
-		return func(c *fiber.Ctx) error { return c.Next() }
+		return func(c fiber.Ctx) error { return c.Next() }
 	}
 
 	// Empty (or unset) falls back rather than allowing nothing: an operator who does not care about
 	// extra headers should not have to know this variable exists to have a working client.
-	headers := strings.TrimSpace(os.Getenv("CORS_ALLOWED_HEADERS"))
-	if headers == "" {
-		headers = defaultAllowedHeaders
+	headers := splitAndTrim(os.Getenv("CORS_ALLOWED_HEADERS"))
+	if len(headers) == 0 {
+		headers = splitAndTrim(defaultAllowedHeaders)
 	}
 
 	return cors.New(cors.Config{
 		AllowOrigins: origins,
-		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
+		AllowMethods: []string{
+			fiber.MethodGet, fiber.MethodPost, fiber.MethodPut,
+			fiber.MethodDelete, fiber.MethodOptions,
+		},
 		AllowHeaders: headers,
 	})
+}
+
+// splitAndTrim turns a comma-separated environment value into the slice the middleware wants,
+// dropping blanks. Blank-dropping is what makes the length check above meaningful: without it,
+// "a,,b" would carry an empty origin into the allow-list.
+func splitAndTrim(raw string) []string {
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if trimmed := strings.TrimSpace(part); trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
 }

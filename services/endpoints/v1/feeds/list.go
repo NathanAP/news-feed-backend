@@ -1,7 +1,7 @@
 package feeds
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/middlewares"
@@ -17,7 +17,7 @@ import (
 // soft-deleted feeds must never appear in a list, so the query hardcodes the active predicate.
 // Filtering and pagination happen in SQL; the response follows the standard paginated envelope.
 func ListFeeds(ctrl controllers.FeedControllerInterface, runTx controllers.TransactionRunner) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
 

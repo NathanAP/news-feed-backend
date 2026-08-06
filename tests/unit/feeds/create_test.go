@@ -2,6 +2,7 @@ package feeds_test
 
 import (
 	"context"
+	"github.com/gofiber/fiber/v3"
 	"net/http"
 	"strings"
 	"testing"
@@ -14,7 +15,7 @@ import (
 )
 
 func postCreate(t *testing.T, app interface {
-	Test(*http.Request, ...int) (*http.Response, error)
+	Test(*http.Request, ...fiber.TestConfig) (*http.Response, error)
 }, body string, withAuth bool) *http.Response {
 	t.Helper()
 	req, err := http.NewRequest(http.MethodPost, "/v1/feeds/create", strings.NewReader(body))

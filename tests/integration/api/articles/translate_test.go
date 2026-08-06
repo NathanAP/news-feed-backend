@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -32,8 +32,8 @@ func setupTranslateApp(t *testing.T, translator ai.Translator) (*fiber.App, db.Q
 	refreshTokenCtrl := controllers.NewRefreshTokenController(30 * 24 * time.Hour)
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
 
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
-	app.Get("/v1/articles/:id/translate", append(authMiddleware, articleendpoints.TranslateArticle(articleCtrl, controllers.NewArticleOutboundLinkController(), translator, runTx, ""))...)
+	app := fiber.New()
+	testutils.AddRoute(app, fiber.MethodGet, "/v1/articles/:id/translate", append(authMiddleware, articleendpoints.TranslateArticle(articleCtrl, controllers.NewArticleOutboundLinkController(), translator, runTx, "")))
 
 	return app, queries
 }

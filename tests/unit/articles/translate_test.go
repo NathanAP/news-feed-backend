@@ -3,10 +3,11 @@ package articles_test
 import (
 	"context"
 	"database/sql"
+	testutils "github.com/nathanap/news-feed-backend/tests/utils"
 	"net/http"
 	"testing"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -21,9 +22,9 @@ import (
 )
 
 func translateApp(ctrl controllers.ArticleControllerInterface, translator ai.Translator) *fiber.App {
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
-	app.Get("/v1/articles/:id/translate", append(authMiddleware, articleendpoints.TranslateArticle(ctrl, &mockOutboundCtrl{}, translator, fakeTxRunner, ""))...)
+	testutils.AddRoute(app, fiber.MethodGet, "/v1/articles/:id/translate", append(authMiddleware, articleendpoints.TranslateArticle(ctrl, &mockOutboundCtrl{}, translator, fakeTxRunner, "")))
 	return app
 }
 

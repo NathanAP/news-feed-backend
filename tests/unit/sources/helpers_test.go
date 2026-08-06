@@ -3,12 +3,13 @@ package sources_test
 import (
 	"context"
 	"encoding/json"
+	testutils "github.com/nathanap/news-feed-backend/tests/utils"
 	"net/http"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nathanap/news-feed-backend/middlewares"
@@ -168,7 +169,7 @@ func buildAppAsRegularUser(ctrl controllers.SourceControllerInterface) *fiber.Ap
 }
 
 func buildAppAs(ctrl controllers.SourceControllerInterface, articleCtrl controllers.ArticleControllerInterface, httpClient *http.Client, admin bool) *fiber.App {
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
 	requireAdmin := middlewares.NewRequireAdminMiddleware(middlewares.NewAdminResolver(
 		[]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, &jwtmock.MockUserController{Admin: admin}, fakeTxRunner,
@@ -176,13 +177,13 @@ func buildAppAs(ctrl controllers.SourceControllerInterface, articleCtrl controll
 
 	// Mirrors main.go: reading sources is open to every authenticated user, changing them is not.
 	s := app.Group("/v1/sources")
-	s.Post("/create", adminChain(authMiddleware, requireAdmin, sourceendpoints.CreateSource(ctrl, fakeTxRunner))...)
-	s.Get("/rss-discovery", adminChain(authMiddleware, requireAdmin, sourceendpoints.RSSDiscovery(httpClient))...)
-	s.Get("/:id/article-discovery", adminChain(authMiddleware, requireAdmin, sourceendpoints.SourceArticleDiscovery(ctrl, articleCtrl, fakeTxRunner, httpClient))...)
-	s.Get("/:id", append(authMiddleware, sourceendpoints.GetSource(ctrl, fakeTxRunner))...)
-	s.Get("", append(authMiddleware, sourceendpoints.ListSources(ctrl, fakeTxRunner))...)
-	s.Put("/:id", adminChain(authMiddleware, requireAdmin, sourceendpoints.UpdateSource(ctrl, fakeTxRunner))...)
-	s.Delete("/:id", adminChain(authMiddleware, requireAdmin, sourceendpoints.DeleteSource(ctrl, fakeTxRunner))...)
+	testutils.AddRoute(s, fiber.MethodPost, "/create", adminChain(authMiddleware, requireAdmin, sourceendpoints.CreateSource(ctrl, fakeTxRunner)))
+	testutils.AddRoute(s, fiber.MethodGet, "/rss-discovery", adminChain(authMiddleware, requireAdmin, sourceendpoints.RSSDiscovery(httpClient)))
+	testutils.AddRoute(s, fiber.MethodGet, "/:id/article-discovery", adminChain(authMiddleware, requireAdmin, sourceendpoints.SourceArticleDiscovery(ctrl, articleCtrl, fakeTxRunner, httpClient)))
+	testutils.AddRoute(s, fiber.MethodGet, "/:id", append(authMiddleware, sourceendpoints.GetSource(ctrl, fakeTxRunner)))
+	testutils.AddRoute(s, fiber.MethodGet, "", append(authMiddleware, sourceendpoints.ListSources(ctrl, fakeTxRunner)))
+	testutils.AddRoute(s, fiber.MethodPut, "/:id", adminChain(authMiddleware, requireAdmin, sourceendpoints.UpdateSource(ctrl, fakeTxRunner)))
+	testutils.AddRoute(s, fiber.MethodDelete, "/:id", adminChain(authMiddleware, requireAdmin, sourceendpoints.DeleteSource(ctrl, fakeTxRunner)))
 
 	return app
 }

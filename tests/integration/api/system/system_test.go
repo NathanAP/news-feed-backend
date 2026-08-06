@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -61,7 +61,7 @@ func setupIntegrationApp(t *testing.T) (*fiber.App, db.Querier) {
 	adminResolver := middlewares.NewAdminResolver([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, userCtrl, runTx)
 	requireAdmin := middlewares.NewRequireAdminMiddleware(adminResolver)
 
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	api := app.Group("/v1")
 
 	api.Get("/health", healthendpoints.Check(systemCtrl, runTx))
@@ -69,7 +69,7 @@ func setupIntegrationApp(t *testing.T) (*fiber.App, db.Querier) {
 	toggleChain := make([]fiber.Handler, 0, len(authMiddleware)+2)
 	toggleChain = append(toggleChain, authMiddleware...)
 	toggleChain = append(toggleChain, requireAdmin, systemendpoints.UpdateAppStatus(systemCtrl, runTx))
-	api.Put("/system/app-status", toggleChain...)
+	testutils.AddRoute(api, fiber.MethodPut, "/system/app-status", toggleChain)
 
 	// Registered ahead of the guard on purpose: without this, an administrator whose access token
 	// expires during maintenance can never refresh it, and therefore can never reach the toggle that
@@ -79,7 +79,7 @@ func setupIntegrationApp(t *testing.T) (*fiber.App, db.Querier) {
 	api.Use(middlewares.NewAppStatusMiddleware(systemCtrl, runTx, adminResolver))
 
 	s := api.Group("/sources")
-	s.Get("", append(authMiddleware, sourceendpoints.ListSources(sourceCtrl, runTx))...)
+	testutils.AddRoute(s, fiber.MethodGet, "", append(authMiddleware, sourceendpoints.ListSources(sourceCtrl, runTx)))
 
 	return app, queries
 }

@@ -3,12 +3,13 @@ package articles_test
 import (
 	"context"
 	"encoding/json"
+	testutils "github.com/nathanap/news-feed-backend/tests/utils"
 	"net/http"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nathanap/news-feed-backend/middlewares"
@@ -203,7 +204,7 @@ func buildAppAsRegularUser(ctrl controllers.ArticleControllerInterface, afCtrl c
 }
 
 func buildAppAs(ctrl controllers.ArticleControllerInterface, afCtrl controllers.ArticleFeedControllerInterface, admin bool) *fiber.App {
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
 	requireAdmin := middlewares.NewRequireAdminMiddleware(middlewares.NewAdminResolver(
 		[]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, &jwtmock.MockUserController{Admin: admin}, fakeTxRunner,
@@ -213,12 +214,12 @@ func buildAppAs(ctrl controllers.ArticleControllerInterface, afCtrl controllers.
 	// administrator escape hatch.
 	outboundCtrl := &mockOutboundCtrl{}
 	a := app.Group("/v1/articles")
-	a.Post("/create", adminChain(authMiddleware, requireAdmin, articleendpoints.CreateArticle(ctrl, fakeTxRunner))...)
-	a.Put("/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(ctrl, afCtrl, fakeTxRunner))...)
-	a.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(ctrl, afCtrl, outboundCtrl, fakeTxRunner, ""))...)
-	a.Get("", append(authMiddleware, articleendpoints.ListArticles(ctrl, outboundCtrl, fakeTxRunner, ""))...)
-	a.Put("/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.UpdateArticle(ctrl, fakeTxRunner))...)
-	a.Delete("/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.DeleteArticle(ctrl, outboundCtrl, fakeTxRunner))...)
+	testutils.AddRoute(a, fiber.MethodPost, "/create", adminChain(authMiddleware, requireAdmin, articleendpoints.CreateArticle(ctrl, fakeTxRunner)))
+	testutils.AddRoute(a, fiber.MethodPut, "/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(ctrl, afCtrl, fakeTxRunner)))
+	testutils.AddRoute(a, fiber.MethodGet, "/:id", append(authMiddleware, articleendpoints.GetArticle(ctrl, afCtrl, outboundCtrl, fakeTxRunner, "")))
+	testutils.AddRoute(a, fiber.MethodGet, "", append(authMiddleware, articleendpoints.ListArticles(ctrl, outboundCtrl, fakeTxRunner, "")))
+	testutils.AddRoute(a, fiber.MethodPut, "/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.UpdateArticle(ctrl, fakeTxRunner)))
+	testutils.AddRoute(a, fiber.MethodDelete, "/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.DeleteArticle(ctrl, outboundCtrl, fakeTxRunner)))
 
 	return app
 }

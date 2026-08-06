@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/recover"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
 	"github.com/pressly/goose/v3"
@@ -204,15 +204,15 @@ func main() {
 	// and the only way back in is editing the database by hand. A regular user can still obtain a
 	// token while the application is down; every route that actually does something answers them 503.
 	api.Get("/health", healthendpoints.Check(systemCtrl, runTx))
-	api.Put("/system/app-status", adminRoute(authMiddleware, requireAdmin, systemendpoints.UpdateAppStatus(systemCtrl, runTx))...)
+	addRoute(api, fiber.MethodPut, "/system/app-status", adminRoute(authMiddleware, requireAdmin, systemendpoints.UpdateAppStatus(systemCtrl, runTx)))
 
 	auth := api.Group("/auth")
 	auth.Get("/google", authendpoints.GoogleLogin(oauth2Config, jwtSecret, oauthRedirectAllowlist))
 	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl, jwtSecret))
 	auth.Post("/refresh", authendpoints.RefreshToken(authCtrl))
-	auth.Post("/logout", append(authMiddleware, authendpoints.Logout(refreshTokenCtrl, runTx))...)
-	auth.Delete("/invalidate", adminRoute(authMiddleware, requireAdmin, authendpoints.Invalidate(refreshTokenCtrl, runTx))...)
-	auth.Delete("/invalidate-all", adminRoute(authMiddleware, requireAdmin, authendpoints.InvalidateAll(refreshTokenCtrl, runTx))...)
+	addRoute(auth, fiber.MethodPost, "/logout", append(authMiddleware, authendpoints.Logout(refreshTokenCtrl, runTx)))
+	addRoute(auth, fiber.MethodDelete, "/invalidate", adminRoute(authMiddleware, requireAdmin, authendpoints.Invalidate(refreshTokenCtrl, runTx)))
+	addRoute(auth, fiber.MethodDelete, "/invalidate-all", adminRoute(authMiddleware, requireAdmin, authendpoints.InvalidateAll(refreshTokenCtrl, runTx)))
 
 	// Global maintenance guard: every route registered below returns 503 while app_status is off,
 	// except for requests coming from an administrator. The routes above are registered earlier and
@@ -220,9 +220,9 @@ func main() {
 	api.Use(middlewares.NewAppStatusMiddleware(systemCtrl, runTx, adminResolver))
 
 	users := api.Group("/users")
-	users.Get("/me", append(authMiddleware, userendpoints.GetMe())...)
-	users.Get("/me/preferences", append(authMiddleware, userendpoints.GetPreferences())...)
-	users.Put("/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(prefCtrl, authCtrl, runTx, int(accessTokenExpiry.Seconds())))...)
+	addRoute(users, fiber.MethodGet, "/me", append(authMiddleware, userendpoints.GetMe()))
+	addRoute(users, fiber.MethodGet, "/me/preferences", append(authMiddleware, userendpoints.GetPreferences()))
+	addRoute(users, fiber.MethodPut, "/me/preferences", append(authMiddleware, userendpoints.UpdatePreferences(prefCtrl, authCtrl, runTx, int(accessTokenExpiry.Seconds()))))
 
 	// Development-only: log in the seeded dev user without Google OAuth. Registered conditionally so
 	// the route literally does not exist outside development (defense in depth beyond any runtime check).
@@ -240,7 +240,7 @@ func main() {
 	// Sources are public to read (PROJECT.md: every user sees the same predefined set) and
 	// administrator-only to change, which is why the guard is per route rather than on the group.
 	sources := api.Group("/sources")
-	sources.Post("/create", adminRoute(authMiddleware, requireAdmin, sourceendpoints.CreateSource(sourceCtrl, runTx))...)
+	addRoute(sources, fiber.MethodPost, "/create", adminRoute(authMiddleware, requireAdmin, sourceendpoints.CreateSource(sourceCtrl, runTx)))
 	// The only route that fetches a URL the CALLER supplies, which earns it two guards the others do
 	// not need (0.46.5):
 	//   - a restricted client: timeout (it had none, and rss.Discover fans one call out to ~15
@@ -249,49 +249,49 @@ func main() {
 	//   - administrator-only, like its article-discovery sibling. It was open to any authenticated
 	//     user for Bruno's convenience, not by product intent; discovery is not an end-user action.
 	//     When the roadmap's "suggest a source" route arrives, that is where user access belongs.
-	sources.Get("/rss-discovery", adminRoute(authMiddleware, requireAdmin, sourceendpoints.RSSDiscovery(rssDiscoveryHTTPClient))...)
-	sources.Get("/:id/article-discovery", adminRoute(authMiddleware, requireAdmin, sourceendpoints.SourceArticleDiscovery(sourceCtrl, articleCtrl, runTx, discoveryHTTPClient))...)
-	sources.Get("/:id", append(authMiddleware, sourceendpoints.GetSource(sourceCtrl, runTx))...)
-	sources.Get("", append(authMiddleware, sourceendpoints.ListSources(sourceCtrl, runTx))...)
-	sources.Put("/:id", adminRoute(authMiddleware, requireAdmin, sourceendpoints.UpdateSource(sourceCtrl, runTx))...)
-	sources.Delete("/:id", adminRoute(authMiddleware, requireAdmin, sourceendpoints.DeleteSource(sourceCtrl, runTx))...)
+	addRoute(sources, fiber.MethodGet, "/rss-discovery", adminRoute(authMiddleware, requireAdmin, sourceendpoints.RSSDiscovery(rssDiscoveryHTTPClient)))
+	addRoute(sources, fiber.MethodGet, "/:id/article-discovery", adminRoute(authMiddleware, requireAdmin, sourceendpoints.SourceArticleDiscovery(sourceCtrl, articleCtrl, runTx, discoveryHTTPClient)))
+	addRoute(sources, fiber.MethodGet, "/:id", append(authMiddleware, sourceendpoints.GetSource(sourceCtrl, runTx)))
+	addRoute(sources, fiber.MethodGet, "", append(authMiddleware, sourceendpoints.ListSources(sourceCtrl, runTx)))
+	addRoute(sources, fiber.MethodPut, "/:id", adminRoute(authMiddleware, requireAdmin, sourceendpoints.UpdateSource(sourceCtrl, runTx)))
+	addRoute(sources, fiber.MethodDelete, "/:id", adminRoute(authMiddleware, requireAdmin, sourceendpoints.DeleteSource(sourceCtrl, runTx)))
 
 	// Articles are readable by every user; writing them is an administrator escape hatch for a news
 	// item that got out of hand (PROJECT.md), not part of the normal flow — the pipeline is what
 	// creates articles.
 	articles := api.Group("/articles")
-	articles.Post("/create", adminRoute(authMiddleware, requireAdmin, articleendpoints.CreateArticle(articleCtrl, runTx))...)
-	articles.Get("/:id/translate", append(authMiddleware, articleendpoints.TranslateArticle(articleCtrl, outboundCtrl, translator, runTx, clientURL))...)
-	articles.Put("/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(articleCtrl, afCtrl, runTx))...)
-	articles.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, outboundCtrl, runTx, clientURL))...)
-	articles.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, outboundCtrl, runTx, clientURL))...)
-	articles.Put("/:id", adminRoute(authMiddleware, requireAdmin, articleendpoints.UpdateArticle(articleCtrl, runTx))...)
-	articles.Delete("/:id", adminRoute(authMiddleware, requireAdmin, articleendpoints.DeleteArticle(articleCtrl, outboundCtrl, runTx))...)
+	addRoute(articles, fiber.MethodPost, "/create", adminRoute(authMiddleware, requireAdmin, articleendpoints.CreateArticle(articleCtrl, runTx)))
+	addRoute(articles, fiber.MethodGet, "/:id/translate", append(authMiddleware, articleendpoints.TranslateArticle(articleCtrl, outboundCtrl, translator, runTx, clientURL)))
+	addRoute(articles, fiber.MethodPut, "/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(articleCtrl, afCtrl, runTx)))
+	addRoute(articles, fiber.MethodGet, "/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, outboundCtrl, runTx, clientURL)))
+	addRoute(articles, fiber.MethodGet, "", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, outboundCtrl, runTx, clientURL)))
+	addRoute(articles, fiber.MethodPut, "/:id", adminRoute(authMiddleware, requireAdmin, articleendpoints.UpdateArticle(articleCtrl, runTx)))
+	addRoute(articles, fiber.MethodDelete, "/:id", adminRoute(authMiddleware, requireAdmin, articleendpoints.DeleteArticle(articleCtrl, outboundCtrl, runTx)))
 
 	// Development-only dry-run tools for the AI pipeline (treatment, judgement). They call the AI
 	// for real (consume quota) and expose internal pipeline behavior, so they must never be reachable
 	// by clients in staging/production. Registered conditionally, like /users/dev-login, so the routes
 	// literally do not exist outside development (defense in depth beyond any runtime check).
 	if os.Getenv("ENVIRONMENT") == "development" {
-		articles.Post("/treatment", append(authMiddleware, articleendpoints.TreatArticle(keyworders, keywordsDefaultMode, detector, articleCtrl, runTx, clientURL, urlTreatmentVerbose))...)
-		articles.Post("/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, judgementDefaultMode, judgementThreshold, judgementAutoAssociateRatio, judgementMinMatches, inactiveDays, runTx))...)
+		addRoute(articles, fiber.MethodPost, "/treatment", append(authMiddleware, articleendpoints.TreatArticle(keyworders, keywordsDefaultMode, detector, articleCtrl, runTx, clientURL, urlTreatmentVerbose)))
+		addRoute(articles, fiber.MethodPost, "/judgement", append(authMiddleware, articleendpoints.JudgeArticle(feedCtrl, judgers, judgementDefaultMode, judgementThreshold, judgementAutoAssociateRatio, judgementMinMatches, inactiveDays, runTx)))
 		log.Println("Development mode: POST /v1/articles/treatment and /v1/articles/judgement enabled")
 	}
 
 	feeds := api.Group("/feeds")
-	feeds.Post("/create", append(authMiddleware, feedendpoints.CreateFeed(feedCtrl, runTx))...)
+	addRoute(feeds, fiber.MethodPost, "/create", append(authMiddleware, feedendpoints.CreateFeed(feedCtrl, runTx)))
 	// Static route registered before "/:id" so "check-for-new-articles" is never swallowed as an id
 	// (Fiber prioritizes static over param, but keeping the order explicit matches sources/rss-discovery).
-	feeds.Get("/check-for-new-articles", append(authMiddleware, feedendpoints.CheckForNewArticles(afCtrl, runTx))...)
+	addRoute(feeds, fiber.MethodGet, "/check-for-new-articles", append(authMiddleware, feedendpoints.CheckForNewArticles(afCtrl, runTx)))
 	// Static route registered before "/:id" so it is never swallowed as an id. Draws from the global
 	// article pool, so it takes articleCtrl rather than feedCtrl.
 	keywordSuggestionsWindowDays := parseSuggestionWindowDays(os.Getenv("KEYWORD_SUGGESTIONS_WINDOW_DAYS"))
-	feeds.Get("/keyword-suggestions", append(authMiddleware, feedendpoints.SuggestKeywords(articleCtrl, runTx, keywordSuggestionsWindowDays))...)
-	feeds.Get("/:id/articles", append(authMiddleware, feedendpoints.FeedArticles(feedCtrl, afCtrl, outboundCtrl, runTx, clientURL))...)
-	feeds.Get("/:id", append(authMiddleware, feedendpoints.GetFeed(feedCtrl, runTx))...)
-	feeds.Get("", append(authMiddleware, feedendpoints.ListFeeds(feedCtrl, runTx))...)
-	feeds.Put("/:id", append(authMiddleware, feedendpoints.UpdateFeed(feedCtrl, runTx))...)
-	feeds.Delete("/:id", append(authMiddleware, feedendpoints.DeleteFeed(feedCtrl, runTx))...)
+	addRoute(feeds, fiber.MethodGet, "/keyword-suggestions", append(authMiddleware, feedendpoints.SuggestKeywords(articleCtrl, runTx, keywordSuggestionsWindowDays)))
+	addRoute(feeds, fiber.MethodGet, "/:id/articles", append(authMiddleware, feedendpoints.FeedArticles(feedCtrl, afCtrl, outboundCtrl, runTx, clientURL)))
+	addRoute(feeds, fiber.MethodGet, "/:id", append(authMiddleware, feedendpoints.GetFeed(feedCtrl, runTx)))
+	addRoute(feeds, fiber.MethodGet, "", append(authMiddleware, feedendpoints.ListFeeds(feedCtrl, runTx)))
+	addRoute(feeds, fiber.MethodPut, "/:id", append(authMiddleware, feedendpoints.UpdateFeed(feedCtrl, runTx)))
+	addRoute(feeds, fiber.MethodDelete, "/:id", append(authMiddleware, feedendpoints.DeleteFeed(feedCtrl, runTx)))
 
 	if os.Getenv("RSS_FEED_CRON_ACTIVE") == "true" {
 		cronVerbose := os.Getenv("RSS_FEED_CRON_VERBOSE_MODE") == "true"
@@ -323,6 +323,26 @@ func main() {
 // would give every route the same backing array, and each registration would overwrite the previous
 // route's handler in place — the routes would silently end up pointing at whichever handler was
 // registered last.
+// addRoute registers one route from a handler chain (the ones adminRoute and
+// `append(authMiddleware, handler)` build).
+//
+// Fiber v3 changed route registration from v2's fully variadic `Get(path, handlers ...Handler)` to
+// `Get(path, handler any, handlers ...any)`. The parameter names mislead: `Add` does
+// `append([]any{handler}, handlers...)` and registers the result IN ORDER, so this is still a plain
+// ordered chain and the first element still runs first — the split is about requiring at least one
+// handler, not about precedence. Verified in the v3.4.0 source before relying on it, because getting
+// this backwards would run authentication *after* the handler while still compiling.
+//
+// The helper exists because Go cannot spread a single slice across `(first, rest...)`, and doing it
+// by hand at every call site would be 30 chances to get the split wrong.
+func addRoute(router fiber.Router, method, path string, chain []fiber.Handler) {
+	rest := make([]any, 0, len(chain)-1)
+	for _, handler := range chain[1:] {
+		rest = append(rest, handler)
+	}
+	router.Add([]string{method}, path, chain[0], rest...)
+}
+
 func adminRoute(authMiddleware []fiber.Handler, requireAdmin, handler fiber.Handler) []fiber.Handler {
 	chain := make([]fiber.Handler, 0, len(authMiddleware)+2)
 	chain = append(chain, authMiddleware...)

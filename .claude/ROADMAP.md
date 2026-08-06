@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.46.7.0
+0.47.0.0
 
 ## Versão 0.37.3.0
 
@@ -262,7 +262,7 @@ Decisões tomadas durante a execução:
 
 ## Versão 0.47.0.0
 
-- [ ] Migração Fiber v2 → v3
+- [x] Migração Fiber v2 → v3
     - Estamos no v2.52.14; o v3 já está em v3.4.0. É a única dependência uma major inteira atrás, e o
       v2 entra em manutenção com o v3 estável. **Sem CVE aberto hoje** — é dívida crescente, não incêndio.
     - Superfície real medida no nosso código (conferida no fonte do v3.4.0, não na doc): ~58 pontos de
@@ -280,6 +280,19 @@ Decisões tomadas durante a execução:
       que hoje temos em versão própria.
     - Viável porque a suíte é grande (321 `app.Test`, integração e e2e). Troca de framework web sem essa
       cobertura seria temerária; com ela é verificável.
+    - **Feita.** A estimativa acertou os ~58 pontos e os 90 `Context()` passaram intactos (auditada a
+      forma de uso, não só a compilação). A cauda apareceu, como avisado: `DisableStartupMessage` saiu
+      do `Config` (32 sites), o registro de rota mudou para `(path, handler, ...handlers)` (125 sites)
+      e `BodyParser` virou `Bind().Body()` (12). O ponto perigoso é o registro: `Add` preserva a ordem,
+      mas assumir o contrário rodaria a autenticação **depois** do handler, compilando. Centralizado em
+      `addRoute`/`testutils.AddRoute` com a explicação escrita, e auditado por forma. Verificado também
+      com boot real: `/health` 200 e rotas autenticadas 401.
+    - Fora do escopo, corrigido junto: `PROJECT_VERSION` estava três versões atrás nos `.env.*.example`
+      (o `/health` publicava versão errada) e o `services/safehttp` não fora registrado no `structure.md`.
+    - **Propostas, não feitas**: injetar a versão em build time (`-ldflags -X`) em vez de manter
+      `PROJECT_VERSION` em quatro arquivos — a sincronização manual é o motivo de ter derivado; e adotar
+      `group.Use(...)` no lugar dos helpers de cadeia, que é o idioma do v3 (redesenho de wiring, não
+      cabia dentro da migração).
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 

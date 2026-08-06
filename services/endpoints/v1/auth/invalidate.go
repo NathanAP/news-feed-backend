@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/services/controllers"
@@ -13,11 +13,11 @@ type invalidateRequest struct {
 }
 
 func Invalidate(refreshTokenCtrl controllers.RefreshTokenControllerInterface, runTx controllers.TransactionRunner) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
 		var req invalidateRequest
-		if err := c.BodyParser(&req); err != nil || req.RefreshTokenID == "" {
+		if err := c.Bind().Body(&req); err != nil || req.RefreshTokenID == "" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": "refresh_token_id is required",
 			})

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/middlewares"
@@ -25,7 +25,7 @@ import (
 // value other than "true" is ignored, never an error). The response follows the standard paginated
 // envelope ({ docs, pagination }).
 func FeedArticles(feedCtrl controllers.FeedControllerInterface, afCtrl controllers.ArticleFeedControllerInterface, outboundCtrl controllers.ArticleOutboundLinkControllerInterface, runTx controllers.TransactionRunner, clientURL string) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
 

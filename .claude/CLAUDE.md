@@ -81,7 +81,7 @@ Você tem liberdade para acessar qualquer arquivo da pasta `.claude`.
 ## Stack
 
 - `GoLang`: linguagem base.
-- `Fiber`: framework web.
+- `Fiber v3`: framework web.
 - `PostgreSQL`: banco de dados.
 - `pgadmin4`: interface de visualização do banco de dados.
 - `goose`: migrações do banco de dados.

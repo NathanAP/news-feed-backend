@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/services/controllers"
@@ -19,7 +19,7 @@ import (
 // the URL fragment — which never reaches a server or log. The client reads and clears the fragment,
 // then uses the access token as a Bearer header.
 func GoogleCallback(authCtrl controllers.AuthControllerInterface, stateSecret []byte) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
 
@@ -31,7 +31,8 @@ func GoogleCallback(authCtrl controllers.AuthControllerInterface, stateSecret []
 		// The user denied consent (or Google returned an error): bounce back so the client can show
 		// a friendly message instead of a dead end on the API domain.
 		if oauthErr := c.Query("error"); oauthErr != "" {
-			return c.Redirect(appendQueryParam(redirectURI, "error", oauthErr), fiber.StatusTemporaryRedirect)
+			return c.Redirect().Status(fiber.StatusTemporaryRedirect).
+				To(appendQueryParam(redirectURI, "error", oauthErr))
 		}
 
 		code := c.Query("code")
@@ -50,7 +51,7 @@ func GoogleCallback(authCtrl controllers.AuthControllerInterface, stateSecret []
 			"&refresh_token=" + url.QueryEscape(authResponse.RefreshToken) +
 			"&expires_in=" + strconv.Itoa(authResponse.ExpiresIn)
 
-		return c.Redirect(redirectURI+"#"+fragment, fiber.StatusTemporaryRedirect)
+		return c.Redirect().Status(fiber.StatusTemporaryRedirect).To(redirectURI + "#" + fragment)
 	}
 }
 

@@ -3,11 +3,12 @@ package feeds_test
 import (
 	"context"
 	"encoding/json"
+	testutils "github.com/nathanap/news-feed-backend/tests/utils"
 	"net/http"
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -67,10 +68,10 @@ func (m *mockOutboundCtrl) DeleteByArticleID(_ context.Context, _ db.Querier, _ 
 var _ controllers.ArticleOutboundLinkControllerInterface = (*mockOutboundCtrl)(nil)
 
 func buildFeedArticlesApp(feedCtrl controllers.FeedControllerInterface, afCtrl controllers.ArticleFeedControllerInterface) *fiber.App {
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
 	f := app.Group("/v1/feeds")
-	f.Get("/:id/articles", append(authMiddleware, feedendpoints.FeedArticles(feedCtrl, afCtrl, &mockOutboundCtrl{}, fakeTxRunner, ""))...)
+	testutils.AddRoute(f, fiber.MethodGet, "/:id/articles", append(authMiddleware, feedendpoints.FeedArticles(feedCtrl, afCtrl, &mockOutboundCtrl{}, fakeTxRunner, "")))
 	return app
 }
 

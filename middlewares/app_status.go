@@ -1,7 +1,7 @@
 package middlewares
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	db "github.com/nathanap/news-feed-backend/sqlc"
@@ -19,7 +19,7 @@ import (
 // off, which is the rare state. So a healthy application still pays exactly one query per request
 // here, the same as before this exemption existed.
 func NewAppStatusMiddleware(systemCtrl controllers.SystemControllerInterface, runTx controllers.TransactionRunner, adminResolver *AdminResolver) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		var active bool
 		err := runTx(c.Context(), func(q db.Querier) error {
 			system, err := systemCtrl.Get(c.Context(), q)

@@ -2,6 +2,7 @@ package sources_test
 
 import (
 	"encoding/json"
+	"github.com/gofiber/fiber/v3"
 	"net/http"
 	"strings"
 	"testing"
@@ -16,7 +17,7 @@ import (
 const discoveryFeedURL = "https://disc.com/rss.xml"
 
 func seedDiscoverySource(t *testing.T, app interface {
-	Test(*http.Request, ...int) (*http.Response, error)
+	Test(*http.Request, ...fiber.TestConfig) (*http.Response, error)
 }, token string) string {
 	t.Helper()
 	body := `{"name":"Disc News","url":"https://disc.com","url_rss":"` + discoveryFeedURL + `"}`

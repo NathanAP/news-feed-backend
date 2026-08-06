@@ -100,13 +100,16 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 - Endpoints de pesquisa por ID deve sempre seguir o padrão `GET base_url/versao_da_api/modelo/{id}` (Exemplo: `http://localhost:3000/v1/sources/{id}`).
 - Endpoints de pesquisa por múltiplos parâmetros deve sempre seguir o padrão `GET base_url/versao_da_api/modelo?parametro1=valor1&parametro2=valor2` (Exemplo: `http://localhost:3000/v1/sources?url=example&name=example`).
     - O campo `status` nunca deve ser exposto como filtro de busca: registros inativos jamais podem ser retornados, conforme as regras de `status` em `PROJECT.md`.
-    - Os filtros devem ser aplicados **em SQL**, nunca em Go. Um filtro opcional é um parâmetro nulável na query (`sqlc.narg`), onde `NULL` significa "não aplicado" — nunca o zero value do tipo, que filtraria por "string vazia" ou por `false` sem querer.
+    - Os filtros devem ser aplicados em SQL e nunca em Go. Um filtro opcional é um parâmetro nulável na query (`sqlc.narg`), onde `NULL` significa "não aplicado", nunca o zero value do tipo, que filtraria por `""` (string vazia) ou por `false` sem querer.
     - Filtros de substring devem usar `strpos(lower(coluna), lower(parametro)) > 0` e não `ILIKE '%valor%'`, para que `%` e `_` enviados pelo usuário sejam procurados literalmente em vez de virarem curinga.
     - Filtros diferentes na mesma rota se combinam com `AND`.
 - Endpoints de pesquisa por múltiplos parâmetros devem sempre ter a opção de paginação, com os parâmetros `page` e `page_size` (Exemplo: `http://localhost:3000/v1/sources?url=example&name=example&page=1&page_size=20`).
     - Mais detalhes sobre como a paginação é estruturada podem ser encontrados no arquivo `raiz/.claude/PROJECT.md`.
     - A paginação também é feita em SQL (`LIMIT/OFFSET`), acompanhada de uma query de contagem com os mesmos filtros para o `total_count`. As duas queries devem ser mantidas em sincronia: um filtro novo entra nas duas.
-    - Exceção: endpoints que devolvem um **indicador ranqueado** (não uma listagem de registros) não são paginados — usam um `limit` simples. São eles `GET /v1/feeds/check-for-new-articles` e `GET /v1/feeds/keyword-suggestions`. É a mesma isenção que o `PROJECT.md` dá a "relatórios, métricas, indicadores ou afins": ninguém navega até a página 5 de sugestões, e `OFFSET` sobre uma agregação é caro.
+    - Exceção: endpoints que devolvem um indicador ranqueado (ao invés de uma listagem de registros) não são paginados, ou seja, usam um `limit` simples. São eles:
+        - `GET /v1/feeds/check-for-new-articles`
+        - `GET /v1/feeds/keyword-suggestions`.
+    - É a mesma isenção que o `PROJECT.md` dá a "relatórios, métricas, indicadores ou afins": ninguém navega até a página 5 de sugestões, e `OFFSET` sobre uma agregação é caro.
 - Endpoints de recurso aninhado devem seguir o padrão de endpoints de múltiplos parâmetros, seguindo o padrão de URL `GET base_url/versao_da_api/modelo/{id}/recurso` (Exemplo: `http://localhost:3000/v1/feeds/{id}/articles`).
 - Endpoints que necessitam popular dados de tabelas relacionadas opcionalmente devem utilizar o parâmetro de query `with_{related_table_name}=true` (Exemplo: `http://localhost:3000/v1/feeds/{id}/articles?with_sources=true`).
     - Valores diferentes de `true` devem ser ignorados sem gerar erro.
@@ -128,7 +131,7 @@ Aqui estão as convenções de código que devem ser seguidas para garantir um c
 
 - Todas as datas devem ser tratadas como UTC nesta aplicação.
 - Bancos de dados salvam datas sempre no fuso horário UTC.
-- **Datas vindas do banco já são UTC por garantia de tipo**: as colunas `timestamptz` são geradas pelo sqlc como `utctime.Time`/`utctime.NullTime` (pacote `raiz/services/utctime`, plugado via `overrides` no `sqlc.yaml`), cujo `Scan` converte para UTC e cujo `MarshalJSON` sempre emite `Z`. Não é preciso (nem se deve) chamar `.UTC()` nelas de novo.
+- Datas vindas do banco já são UTC por garantia de tipo: as colunas `timestamptz` são geradas pelo sqlc como `utctime.Time`/`utctime.NullTime` (pacote `raiz/services/utctime`, plugado via `overrides` no `sqlc.yaml`), cujo `Scan` converte para UTC e cujo `MarshalJSON` sempre emite `Z`. Não é preciso (nem se deve) chamar `.UTC()` nelas de novo.
     - O motivo de existir: o driver entrega um `timestamptz` como `time.Time` no fuso **local do processo**. Sem o tipo, o formato de data da resposta passaria a depender de como o relógio da máquina está configurado — e um servidor em UTC esconderia o problema até alguém subir num host com outro fuso.
 - **Datas geradas em Go** (não vindas do banco) precisam de `.UTC()` explícito antes de ir para uma resposta ou log — o tipo não alcança elas. Exemplos no código: `time.Now().UTC()` em `health.go`, `cron.go` e no `logger`.
     - Exceções que não precisam: valores usados só para medir duração (`time.Since`) e datas de JWT (`jwt.NewNumericDate` é epoch em segundos, portanto sem fuso).

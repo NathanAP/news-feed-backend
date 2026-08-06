@@ -2,6 +2,7 @@ package articles_test
 
 import (
 	"context"
+	"github.com/gofiber/fiber/v3"
 	"net/http"
 	"testing"
 	"time"
@@ -16,7 +17,7 @@ import (
 )
 
 func markAsRead(t *testing.T, app interface {
-	Test(*http.Request, ...int) (*http.Response, error)
+	Test(*http.Request, ...fiber.TestConfig) (*http.Response, error)
 }, id string, withAuth bool) *http.Response {
 	t.Helper()
 	req, err := http.NewRequest(http.MethodPut, "/v1/articles/"+id+"/read", nil)

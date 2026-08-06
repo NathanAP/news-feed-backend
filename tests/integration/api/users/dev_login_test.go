@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -30,7 +30,7 @@ func setupDevLoginApp(t *testing.T) (*fiber.App, db.Querier) {
 	refreshCtrl := controllers.NewRefreshTokenController(30 * 24 * time.Hour)
 	authCtrl := controllers.NewAuthController(nil, userCtrl, refreshCtrl, prefCtrl, runTx, []byte(jwtmock.TestJWTSecret), time.Hour)
 
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	app.Post("/v1/users/dev-login", userendpoints.DevLogin(userCtrl, prefCtrl, refreshCtrl, authCtrl, runTx, 3600))
 
 	return app, queries

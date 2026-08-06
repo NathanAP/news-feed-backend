@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/schemas"
@@ -35,12 +35,12 @@ import (
 // URLs, not the id form the stored body would have. That block is exercised by the discovery
 // integration tests instead.
 func TreatArticle(keyworders map[string]ai.Keyworder, defaultMode string, detector langdetect.Detector, articleCtrl controllers.ArticleControllerInterface, runTx controllers.TransactionRunner, clientURL string, urlVerbose bool) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
 
 		var req schemas.TreatArticleRequest
-		if err := c.BodyParser(&req); err != nil {
+		if err := c.Bind().Body(&req); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
 		}
 		if strings.TrimSpace(req.Article.Title) == "" {

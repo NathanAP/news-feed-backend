@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -68,14 +68,14 @@ func setupIntegrationAppClient(t *testing.T, clientURL string) (*fiber.App, db.Q
 	refreshTokenCtrl := controllers.NewRefreshTokenController(30 * 24 * time.Hour)
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), refreshTokenCtrl, runTx)
 
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	a := app.Group("/v1/articles")
-	a.Post("/create", append(authMiddleware, articleendpoints.CreateArticle(articleCtrl, runTx))...)
-	a.Put("/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(articleCtrl, afCtrl, runTx))...)
-	a.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, outboundCtrl, runTx, clientURL))...)
-	a.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, outboundCtrl, runTx, clientURL))...)
-	a.Put("/:id", append(authMiddleware, articleendpoints.UpdateArticle(articleCtrl, runTx))...)
-	a.Delete("/:id", append(authMiddleware, articleendpoints.DeleteArticle(articleCtrl, outboundCtrl, runTx))...)
+	testutils.AddRoute(a, fiber.MethodPost, "/create", append(authMiddleware, articleendpoints.CreateArticle(articleCtrl, runTx)))
+	testutils.AddRoute(a, fiber.MethodPut, "/:id/read", append(authMiddleware, articleendpoints.MarkAsRead(articleCtrl, afCtrl, runTx)))
+	testutils.AddRoute(a, fiber.MethodGet, "/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, outboundCtrl, runTx, clientURL)))
+	testutils.AddRoute(a, fiber.MethodGet, "", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, outboundCtrl, runTx, clientURL)))
+	testutils.AddRoute(a, fiber.MethodPut, "/:id", append(authMiddleware, articleendpoints.UpdateArticle(articleCtrl, runTx)))
+	testutils.AddRoute(a, fiber.MethodDelete, "/:id", append(authMiddleware, articleendpoints.DeleteArticle(articleCtrl, outboundCtrl, runTx)))
 
 	return app, queries, database
 }

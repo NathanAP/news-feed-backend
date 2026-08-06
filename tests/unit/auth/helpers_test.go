@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -150,7 +150,7 @@ func setupAppAsRegularUser(authCtrl *mockAuthCtrl, rtCtrl *mockRefreshTokenCtrl)
 }
 
 func setupAppAs(authCtrl *mockAuthCtrl, rtCtrl *mockRefreshTokenCtrl, admin bool) *fiber.App {
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), rtCtrl, fakeTxRunner)
 	requireAdmin := middlewares.NewRequireAdminMiddleware(middlewares.NewAdminResolver(
 		[]byte(jwtmock.TestJWTSecret), rtCtrl, &jwtmock.MockUserController{Admin: admin}, fakeTxRunner,
@@ -160,11 +160,11 @@ func setupAppAs(authCtrl *mockAuthCtrl, rtCtrl *mockRefreshTokenCtrl, admin bool
 	auth.Get("/google", authendpoints.GoogleLogin(testOAuth2Config(), []byte(jwtmock.TestJWTSecret), []string{testutils.TestOAuthRedirectURI}))
 	auth.Get("/google/callback", authendpoints.GoogleCallback(authCtrl, []byte(jwtmock.TestJWTSecret)))
 	auth.Post("/refresh", authendpoints.RefreshToken(authCtrl))
-	auth.Post("/logout", append(authMiddleware, authendpoints.Logout(rtCtrl, fakeTxRunner))...)
+	testutils.AddRoute(auth, fiber.MethodPost, "/logout", append(authMiddleware, authendpoints.Logout(rtCtrl, fakeTxRunner)))
 	// Administrator-only since 0.40: these kill other people's sessions, so before the guard existed
 	// anyone at all could sign every user out.
-	auth.Delete("/invalidate", adminChain(authMiddleware, requireAdmin, authendpoints.Invalidate(rtCtrl, fakeTxRunner))...)
-	auth.Delete("/invalidate-all", adminChain(authMiddleware, requireAdmin, authendpoints.InvalidateAll(rtCtrl, fakeTxRunner))...)
+	testutils.AddRoute(auth, fiber.MethodDelete, "/invalidate", adminChain(authMiddleware, requireAdmin, authendpoints.Invalidate(rtCtrl, fakeTxRunner)))
+	testutils.AddRoute(auth, fiber.MethodDelete, "/invalidate-all", adminChain(authMiddleware, requireAdmin, authendpoints.InvalidateAll(rtCtrl, fakeTxRunner)))
 
 	return app
 }

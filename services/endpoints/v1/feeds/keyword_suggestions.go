@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/nathanap/news-feed-backend/logger"
 	"github.com/nathanap/news-feed-backend/schemas"
@@ -29,7 +29,7 @@ import (
 // this exception, like check-for-new-articles). windowDays bounds the "popular" side to recent
 // articles; it is resolved to a concrete "since" per request.
 func SuggestKeywords(ctrl controllers.ArticleControllerInterface, runTx controllers.TransactionRunner, windowDays int) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
 

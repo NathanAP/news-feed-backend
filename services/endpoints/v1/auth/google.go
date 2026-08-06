@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"golang.org/x/oauth2"
 
 	"github.com/nathanap/news-feed-backend/logger"
@@ -14,7 +14,7 @@ import (
 // validated redirect_uri is bound into a signed state (CSRF, and the vehicle that carries it through
 // the Google round-trip), and we redirect to Google's consent screen with our fixed callback.
 func GoogleLogin(cfg *oauth2.Config, stateSecret []byte, allowedRedirectURIs []string) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		logger.RouteStart(c.Path())
 		defer logger.RouteEnd(c.Path())
 
@@ -28,7 +28,7 @@ func GoogleLogin(cfg *oauth2.Config, stateSecret []byte, allowedRedirectURIs []s
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
 		}
 
-		return c.Redirect(cfg.AuthCodeURL(state), fiber.StatusTemporaryRedirect)
+		return c.Redirect().Status(fiber.StatusTemporaryRedirect).To(cfg.AuthCodeURL(state))
 	}
 }
 

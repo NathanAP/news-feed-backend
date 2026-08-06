@@ -2,10 +2,11 @@ package feeds_test
 
 import (
 	"context"
+	testutils "github.com/nathanap/news-feed-backend/tests/utils"
 	"net/http"
 	"testing"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -17,10 +18,10 @@ import (
 )
 
 func buildCheckNewArticlesApp(afCtrl controllers.ArticleFeedControllerInterface) *fiber.App {
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	authMiddleware := middlewares.NewAuthMiddleware([]byte(jwtmock.TestJWTSecret), &mockRefreshTokenCtrl{}, fakeTxRunner)
 	f := app.Group("/v1/feeds")
-	f.Get("/check-for-new-articles", append(authMiddleware, feedendpoints.CheckForNewArticles(afCtrl, fakeTxRunner))...)
+	testutils.AddRoute(f, fiber.MethodGet, "/check-for-new-articles", append(authMiddleware, feedendpoints.CheckForNewArticles(afCtrl, fakeTxRunner)))
 	return app
 }
 
