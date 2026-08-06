@@ -40,13 +40,21 @@ LIMIT sqlc.arg(result_limit);
 -- narrows which articles get expanded, exactly the shape the 0.37.3 review established. Keep it in
 -- sync with that index. selected drives both the narrowing (which articles) and the exclusion (never
 -- suggest back a keyword the user already picked).
--- selected is a JSON array of lowercase keywords. Same count/order semantics as SuggestPopularKeywords.
+--
+-- selected is a text[] and NOT a JSON array, and that is a planner decision, not a style one (0.46.4).
+-- Reaching a GIN index needs more than the right operator: the right-hand side must also be something
+-- the planner can estimate. Written as `?| ARRAY(SELECT jsonb_array_elements_text($1::jsonb))` the
+-- operand is an InitPlan, opaque at plan time, so the planner falls back to a default selectivity and
+-- prices the index above a seq scan. Measured on 20k articles: the ARRAY(SELECT ...) form planned a
+-- Seq Scan (cost 677, 19999 rows discarded by filter) while `?| $1::text[]` planned a Bitmap Index
+-- Scan (cost 433). Forcing enable_seqscan=off proved the index was usable either way - the planner
+-- simply would not choose it. Do not "simplify" this back into a jsonb subquery.
 SELECT kw.value::text AS keyword, COUNT(*) AS occurrences
 FROM articles a
 CROSS JOIN LATERAL jsonb_array_elements_text(a.keywords) AS kw(value)
 WHERE a.status = TRUE AND a.removed_at IS NULL
-  AND a.keywords ?| ARRAY(SELECT jsonb_array_elements_text(sqlc.arg(selected)::jsonb))
-  AND kw.value <> ALL(ARRAY(SELECT jsonb_array_elements_text(sqlc.arg(selected)::jsonb)))
+  AND a.keywords ?| sqlc.arg(selected)::text[]
+  AND kw.value <> ALL(sqlc.arg(selected)::text[])
 GROUP BY kw.value
 ORDER BY occurrences DESC, keyword ASC
 LIMIT sqlc.arg(result_limit);

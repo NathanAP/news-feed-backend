@@ -214,13 +214,26 @@ tasks:
         cmds:
             - go test ./tests/end-to-end/... -v
 
+    # ONE `go test` invocation on purpose — do not split this back into the three tasks above.
+    #
+    # The throwaway Postgres is shared by name across the packages of a run, and testcontainers' reaper
+    # destroys it when the invocation that owns it exits (measured: gone in under 5s). Three chained
+    # invocations therefore hand the next phase a container that is already sentenced: it attaches via
+    # WithReuseByName, gets a valid DSN, starts running — and then the reaper fires and rips the
+    # container away mid-phase. Every test still to run in that phase dies with
+    # `failed to receive message: unexpected EOF`, which reads like a broken test and is not one.
+    #
+    # A single invocation means a single container lifecycle and no window to lose. It also matches
+    # what CI does (`go test ./...`), so local and CI stop diverging — that divergence WAS the bug.
+    #
+    # The per-layer tasks above stay for focused runs (each is one invocation, so each is safe on its
+    # own). Chaining them by hand — `task ti` immediately followed by `task te2e` — reopens the same
+    # window; use `task ta` when you want everything.
     test-all:
-        desc: Run all tests (unit + integration + end-to-end). Requires Docker running.
+        desc: Run all tests (unit + integration + end-to-end) in one invocation. Requires Docker running.
         aliases: [ta]
         cmds:
-            - task: test-units
-            - task: test-integration
-            - task: test-end-to-end
+            - go test ./tests/... -v
 
     # The suite tears its own container down; this is for when a run is interrupted hard enough
     # that testcontainers' reaper does not get to it and the container is left orphaned.

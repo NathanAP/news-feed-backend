@@ -74,7 +74,7 @@ type Querier interface {
 	// it is a plain join. GROUP BY collapses a feed to one row and COUNT gives its overlap (grouping by
 	// f.id alone is valid because it is the primary key, so the other f.* columns are functionally
 	// dependent on it). The overlap feeds the triage (auto-associate / discard / send-to-AI) in layer 2.
-	// The parameter is the article's keywords as a JSON array.
+	// The parameter is the article's keywords as a text[] (see the planner note below).
 	//
 	// The `?|` predicate ("does f.keywords contain ANY of these keys") is what makes idx_feeds_keywords
 	// (GIN) usable: an index is matched by OPERATOR, and expanding a column through
@@ -87,6 +87,17 @@ type Querier interface {
 	// either way), so it cannot change the result set - it only lets the planner discard non-candidates
 	// before the expensive expansion. It must be kept in sync with the join's matching rule: both sides
 	// compare the same lowercase text keys.
+	//
+	// keywords is a text[] and NOT a JSON array, and that is what makes the index choice reliable
+	// (0.46.4). The right operator is necessary but not sufficient: written as
+	// `?| ARRAY(SELECT jsonb_array_elements_text($1::jsonb))` the operand is an InitPlan, opaque at plan
+	// time, so the planner cannot estimate its selectivity, defaults to a guess, and prices the index
+	// above a seq scan. That makes index usage depend on table size and flip on its own as the table
+	// grows - the 428ms -> 22ms win measured on 60k feeds in 0.37.3 was real at that volume, but it was
+	// never guaranteed. Measured on the mirrored articles query at 20k rows, the same shape planned a
+	// Seq Scan while `?| $1::text[]` planned a Bitmap Index Scan. Passing text[] makes the estimate
+	// correct and the choice deterministic, and it also drops a jsonb round-trip the caller was paying
+	// for nothing (the controller already holds a []string). Do not turn this back into jsonb.
 	FindCandidateFeedsByKeywords(ctx context.Context, arg FindCandidateFeedsByKeywordsParams) ([]FindCandidateFeedsByKeywordsRow, error)
 	FindFeedByIDAndUser(ctx context.Context, arg FindFeedByIDAndUserParams) (Feed, error)
 	FindRefreshTokenByID(ctx context.Context, id string) (RefreshToken, error)
@@ -109,7 +120,13 @@ type Querier interface {
 	// source count to grow past it. HTTP clients must use ListSources, which is always paginated.
 	ListAllSources(ctx context.Context) ([]Source, error)
 	// Every outbound link of the given articles, in one batch, for the read-time swap. The listing/read
-	// endpoints pass the ids of the whole page here (never one query per article — no N+1).
+	// endpoints pass the ids of the whole page here (never one query per article - no N+1).
+	// Stays on ANY(...::text[]) even though it makes sqlc emit pq.Array, which is the only reason lib/pq
+	// is still a dependency alongside the real driver (pgx). Do NOT "clean this up" with sqlc.slice:
+	// tried in 0.46 and it is broken for the postgresql engine - sqlc renders the placeholder as `$1`,
+	// losing the /*SLICE:*/ marker its own generated strings.Replace looks for, and then builds MySQL
+	// style `?` placeholders. Result compiles and passes any test that sends a single id, but fails at
+	// runtime as soon as a page carries two (bind message supplies N parameters, statement requires 1).
 	ListArticleOutboundLinksByArticleIDs(ctx context.Context, articleIds []string) ([]ArticleOutboundLink, error)
 	// Lists the active articles for GET /v1/articles, filtered and paginated in SQL.
 	// The url filter is optional: a NULL param means "no filter" (sqlc.narg), so one query serves both
@@ -190,7 +207,15 @@ type Querier interface {
 	// narrows which articles get expanded, exactly the shape the 0.37.3 review established. Keep it in
 	// sync with that index. selected drives both the narrowing (which articles) and the exclusion (never
 	// suggest back a keyword the user already picked).
-	// selected is a JSON array of lowercase keywords. Same count/order semantics as SuggestPopularKeywords.
+	//
+	// selected is a text[] and NOT a JSON array, and that is a planner decision, not a style one (0.46.4).
+	// Reaching a GIN index needs more than the right operator: the right-hand side must also be something
+	// the planner can estimate. Written as `?| ARRAY(SELECT jsonb_array_elements_text($1::jsonb))` the
+	// operand is an InitPlan, opaque at plan time, so the planner falls back to a default selectivity and
+	// prices the index above a seq scan. Measured on 20k articles: the ARRAY(SELECT ...) form planned a
+	// Seq Scan (cost 677, 19999 rows discarded by filter) while `?| $1::text[]` planned a Bitmap Index
+	// Scan (cost 433). Forcing enable_seqscan=off proved the index was usable either way - the planner
+	// simply would not choose it. Do not "simplify" this back into a jsonb subquery.
 	SuggestRelatedKeywords(ctx context.Context, arg SuggestRelatedKeywordsParams) ([]SuggestRelatedKeywordsRow, error)
 	UpdateArticle(ctx context.Context, arg UpdateArticleParams) (Article, error)
 	// Overwrites only the body, for the 0.45 treatment DB step: right after an article is stored, its

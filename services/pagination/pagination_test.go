@@ -1,6 +1,7 @@
 package pagination_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -36,6 +37,31 @@ func TestParseParams_Negative(t *testing.T) {
 	p := pagination.ParseParams("-5", "-3")
 	assert.Equal(t, 1, p.Page)
 	assert.Equal(t, 1, p.PageSize)
+}
+
+func TestParams_OffsetSaturatesInsteadOfOverflowing(t *testing.T) {
+	// Regression (0.46.3): page has no ceiling, so (page-1)*page_size cast straight to int32 wrapped
+	// negative for pages in the hundreds of millions. Postgres rejects a negative OFFSET, so a query
+	// param became a 500. Offset must saturate, never go negative.
+	for _, tc := range []struct {
+		page, pageSize string
+	}{
+		{"200000000", "20"},
+		{"9999999999", "20"},
+		{"9223372036854775807", "100"}, // MaxInt64: the largest value Atoi will accept at all
+		{"107374184", "20"},            // first page whose raw product exceeds MaxInt32
+	} {
+		p := pagination.ParseParams(tc.page, tc.pageSize)
+		offset := p.Offset()
+		assert.GreaterOrEqual(t, offset, int32(0),
+			"page=%s page_size=%s must never yield a negative OFFSET", tc.page, tc.pageSize)
+		assert.Equal(t, int32(math.MaxInt32), offset,
+			"a page that far out saturates rather than wrapping")
+	}
+
+	// The saturation must not disturb pages that fit: the boundary value is still exact.
+	p := pagination.ParseParams("107374183", "20")
+	assert.Equal(t, int32(2147483640), p.Offset(), "the last page that fits is unchanged")
 }
 
 // Limit/Offset are what the SQL LIMIT/OFFSET is built from, so an error here silently serves the

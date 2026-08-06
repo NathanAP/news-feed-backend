@@ -55,7 +55,7 @@ WHERE user_id = $1 AND status = TRUE AND removed_at IS NULL;
 -- it is a plain join. GROUP BY collapses a feed to one row and COUNT gives its overlap (grouping by
 -- f.id alone is valid because it is the primary key, so the other f.* columns are functionally
 -- dependent on it). The overlap feeds the triage (auto-associate / discard / send-to-AI) in layer 2.
--- The parameter is the article's keywords as a JSON array.
+-- The parameter is the article's keywords as a text[] (see the planner note below).
 --
 -- The `?|` predicate ("does f.keywords contain ANY of these keys") is what makes idx_feeds_keywords
 -- (GIN) usable: an index is matched by OPERATOR, and expanding a column through
@@ -68,6 +68,17 @@ WHERE user_id = $1 AND status = TRUE AND removed_at IS NULL;
 -- either way), so it cannot change the result set - it only lets the planner discard non-candidates
 -- before the expensive expansion. It must be kept in sync with the join's matching rule: both sides
 -- compare the same lowercase text keys.
+--
+-- keywords is a text[] and NOT a JSON array, and that is what makes the index choice reliable
+-- (0.46.4). The right operator is necessary but not sufficient: written as
+-- `?| ARRAY(SELECT jsonb_array_elements_text($1::jsonb))` the operand is an InitPlan, opaque at plan
+-- time, so the planner cannot estimate its selectivity, defaults to a guess, and prices the index
+-- above a seq scan. That makes index usage depend on table size and flip on its own as the table
+-- grows - the 428ms -> 22ms win measured on 60k feeds in 0.37.3 was real at that volume, but it was
+-- never guaranteed. Measured on the mirrored articles query at 20k rows, the same shape planned a
+-- Seq Scan while `?| $1::text[]` planned a Bitmap Index Scan. Passing text[] makes the estimate
+-- correct and the choice deterministic, and it also drops a jsonb round-trip the caller was paying
+-- for nothing (the controller already holds a []string). Do not turn this back into jsonb.
 SELECT f.id, f.status, f.name, f.keywords, f.user_id, f.created_at, f.modified_at, f.removed_at,
        COUNT(DISTINCT fk.value) AS overlap_count
 FROM feeds f
@@ -76,9 +87,9 @@ JOIN users u ON u.id = f.user_id
   AND (sqlc.arg(inactive_days)::int = -1
        OR u.last_active_at > CURRENT_TIMESTAMP - make_interval(days => sqlc.arg(inactive_days)::int))
 CROSS JOIN LATERAL jsonb_array_elements_text(f.keywords) AS fk(value)
-JOIN jsonb_array_elements_text(sqlc.arg(keywords)::jsonb) AS ak(value) ON ak.value = fk.value
+JOIN unnest(sqlc.arg(keywords)::text[]) AS ak(value) ON ak.value = fk.value
 WHERE f.status = TRUE AND f.removed_at IS NULL
-  AND f.keywords ?| ARRAY(SELECT jsonb_array_elements_text(sqlc.arg(keywords)::jsonb))
+  AND f.keywords ?| sqlc.arg(keywords)::text[]
 GROUP BY f.id;
 
 -- name: UpdateFeedByIDAndUser :one

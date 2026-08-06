@@ -133,13 +133,11 @@ func (c *FeedController) FindCandidatesByKeywords(ctx context.Context, q db.Quer
 		return []FeedCandidate{}, nil
 	}
 
-	encodedKeywords, err := encodeKeywords(keywords)
-	if err != nil {
-		return nil, err
-	}
-
+	// text[] rather than a JSON array so the query's `?|` stays estimable and the planner actually
+	// picks idx_feeds_keywords (see the query). normalizeKeywords is the same rule the storage path
+	// uses, so the article's keywords match the feeds' the way they were written.
 	rows, err := q.FindCandidateFeedsByKeywords(ctx, db.FindCandidateFeedsByKeywordsParams{
-		Keywords:     encodedKeywords,
+		Keywords:     normalizeKeywords(keywords),
 		InactiveDays: int32(inactiveDays),
 	})
 	if err != nil {

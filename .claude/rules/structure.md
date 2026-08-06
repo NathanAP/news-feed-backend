@@ -49,7 +49,10 @@ O banco não aparece nesta árvore: desde a 0.37 é PostgreSQL (cliente-servidor
     ├── integration            (testes de integração)
     │   ├── api                (uma pasta por modelo)
     │   ├── cron               (testes do scheduler/descoberta)
-    │   └── discovery          (testes do pipeline de descoberta/tratamento)
+    │   ├── discovery          (testes do pipeline de descoberta/tratamento)
+    │   └── queryplans         (afirma sobre o EXPLAIN, não sobre o resultado: garante que os índices
+    │                           GIN de keywords são de fato escolhidos pelo planner — falha que já
+    │                           ocorreu na 0.37.3 e na 0.46.4 e é invisível a teste de resultado)
     ├── unit                   (testes unitários; uma pasta por modelo)
     ├── fixtures               (helpers reaproveitáveis: criar usuário, feed, source, etc.)
     ├── mocks                  (mocks de integrações e dependências)

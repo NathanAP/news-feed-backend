@@ -8,7 +8,13 @@ RETURNING *;
 
 -- name: ListArticleOutboundLinksByArticleIDs :many
 -- Every outbound link of the given articles, in one batch, for the read-time swap. The listing/read
--- endpoints pass the ids of the whole page here (never one query per article — no N+1).
+-- endpoints pass the ids of the whole page here (never one query per article - no N+1).
+-- Stays on ANY(...::text[]) even though it makes sqlc emit pq.Array, which is the only reason lib/pq
+-- is still a dependency alongside the real driver (pgx). Do NOT "clean this up" with sqlc.slice:
+-- tried in 0.46 and it is broken for the postgresql engine - sqlc renders the placeholder as `$1`,
+-- losing the /*SLICE:*/ marker its own generated strings.Replace looks for, and then builds MySQL
+-- style `?` placeholders. Result compiles and passes any test that sends a single id, but fails at
+-- runtime as soon as a page carries two (bind message supplies N parameters, statement requires 1).
 SELECT * FROM article_outbound_links
 WHERE article_id = ANY(sqlc.arg(article_ids)::text[]);
 

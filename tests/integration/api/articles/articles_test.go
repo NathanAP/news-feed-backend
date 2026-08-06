@@ -10,12 +10,14 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nathanap/news-feed-backend/middlewares"
 	"github.com/nathanap/news-feed-backend/services/controllers"
 	articleendpoints "github.com/nathanap/news-feed-backend/services/endpoints/v1/articles"
+	"github.com/nathanap/news-feed-backend/services/outboundlinks"
 	db "github.com/nathanap/news-feed-backend/sqlc"
 	"github.com/nathanap/news-feed-backend/tests/fixtures"
 	jwtmock "github.com/nathanap/news-feed-backend/tests/mocks/services"
@@ -73,7 +75,7 @@ func setupIntegrationAppClient(t *testing.T, clientURL string) (*fiber.App, db.Q
 	a.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, outboundCtrl, runTx, clientURL))...)
 	a.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, outboundCtrl, runTx, clientURL))...)
 	a.Put("/:id", append(authMiddleware, articleendpoints.UpdateArticle(articleCtrl, runTx))...)
-	a.Delete("/:id", append(authMiddleware, articleendpoints.DeleteArticle(articleCtrl, runTx))...)
+	a.Delete("/:id", append(authMiddleware, articleendpoints.DeleteArticle(articleCtrl, outboundCtrl, runTx))...)
 
 	return app, queries, database
 }
@@ -373,6 +375,90 @@ func TestIntegration_DeleteArticle_Success(t *testing.T) {
 	getResp, err := app.Test(getReq)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusNotFound, getResp.StatusCode)
+}
+
+func TestIntegration_DeleteArticle_RetargetsInboundOutboundLinks(t *testing.T) {
+	requireNotProduction(t)
+
+	// 0.46.1: the "pre-remove cleanup" the 0.45 query comment promised was never wired — only the
+	// retroactive-linking caller of Retarget existed. Without it, an older article keeps an anchor to
+	// the removed article's internal page, which answers 404 because reads exclude removed articles.
+	const clientURL = "https://client.app"
+	app, queries, _ := setupIntegrationAppClient(t, clientURL)
+	token := seedUser(t, queries)
+	sourceID := seedSource(t, queries)
+
+	const doomedURL = "https://e.com/doomed"
+	doomedID := createArticle(t, app, token, doomedURL, sourceID)
+
+	// An older article links the doomed one internally: the row holds the {CLIENT_URL} token form.
+	linkID, err := uuid.NewV7()
+	require.NoError(t, err)
+	linkerID := createArticle(t, app, token, "https://e.com/linker", sourceID)
+	_, err = queries.CreateArticleOutboundLink(t.Context(), db.CreateArticleOutboundLinkParams{
+		ID:        linkID.String(),
+		ArticleID: linkerID,
+		Href:      outboundlinks.InternalHref(doomedID),
+	})
+	require.NoError(t, err)
+
+	delReq, _ := http.NewRequest(http.MethodDelete, "/v1/articles/"+doomedID, nil)
+	delReq.Header.Set("Authorization", "Bearer "+token)
+	resp, err := app.Test(delReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode)
+
+	links, err := queries.ListArticleOutboundLinksByArticleIDs(t.Context(), []string{linkerID})
+	require.NoError(t, err)
+	require.Len(t, links, 1)
+	assert.Equal(t, doomedURL, links[0].Href,
+		"the link must fall back to the source URL, not keep pointing at a page that now 404s")
+	assert.NotContains(t, links[0].Href, "{CLIENT_URL}")
+}
+
+func TestIntegration_DeleteArticle_LeavesUnrelatedOutboundLinksAlone(t *testing.T) {
+	requireNotProduction(t)
+
+	// The retarget matches by exact href, so removing one article must not disturb links pointing
+	// anywhere else — including internal links to a *different* article.
+	const clientURL = "https://client.app"
+	app, queries, _ := setupIntegrationAppClient(t, clientURL)
+	token := seedUser(t, queries)
+	sourceID := seedSource(t, queries)
+
+	doomedID := createArticle(t, app, token, "https://e.com/doomed2", sourceID)
+	otherID := createArticle(t, app, token, "https://e.com/other", sourceID)
+	linkerID := createArticle(t, app, token, "https://e.com/linker2", sourceID)
+
+	externalLinkID, err := uuid.NewV7()
+	require.NoError(t, err)
+	_, err = queries.CreateArticleOutboundLink(t.Context(), db.CreateArticleOutboundLinkParams{
+		ID: externalLinkID.String(), ArticleID: linkerID, Href: "https://external.com/keep",
+	})
+	require.NoError(t, err)
+
+	otherLinkID, err := uuid.NewV7()
+	require.NoError(t, err)
+	_, err = queries.CreateArticleOutboundLink(t.Context(), db.CreateArticleOutboundLinkParams{
+		ID: otherLinkID.String(), ArticleID: linkerID, Href: outboundlinks.InternalHref(otherID),
+	})
+	require.NoError(t, err)
+
+	delReq, _ := http.NewRequest(http.MethodDelete, "/v1/articles/"+doomedID, nil)
+	delReq.Header.Set("Authorization", "Bearer "+token)
+	resp, err := app.Test(delReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode)
+
+	links, err := queries.ListArticleOutboundLinksByArticleIDs(t.Context(), []string{linkerID})
+	require.NoError(t, err)
+	byID := make(map[string]string, len(links))
+	for _, l := range links {
+		byID[l.ID] = l.Href
+	}
+	assert.Equal(t, "https://external.com/keep", byID[externalLinkID.String()], "external link untouched")
+	assert.Equal(t, outboundlinks.InternalHref(otherID), byID[otherLinkID.String()],
+		"internal link to a different article untouched")
 }
 
 func TestIntegration_CreateArticle_AfterSoftDelete(t *testing.T) {

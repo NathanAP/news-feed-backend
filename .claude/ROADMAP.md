@@ -6,7 +6,7 @@ Os níveis de tabulação indicam detalhes do assunto.
 
 # Atual versão
 
-0.45.0.0
+0.46.4.0
 
 ## Versão 0.37.3.0
 
@@ -196,18 +196,77 @@ Decisões tomadas durante a execução:
 
 ## Versão 0.46.0.0
 
-- [ ] Atualização de dependências / bibliotecas
-- [ ] Revisão
+- [x] Atualização de dependências / bibliotecas
+    - Motivada por **segurança**, não por atraso: o `govulncheck` apontava 3 vulnerabilidades com
+      símbolo alcançável; depois desta versão são **zero**. A que importava era o loop infinito do
+      `golang.org/x/text` (GO-2026-5970), alcançável via corpo de RSS remoto em `services/rss`.
+    - Toolchain `go 1.26.4` → `1.26.5` no `go.mod` e só: o Dockerfile (`golang:1.26-alpine`) e o CI
+      (`go-version-file: go.mod`) herdam por construção.
+    - Diretas: `gofeed` 1.4.0, `goose` 3.27.3, `go-retry` 0.4.0, `x/net` 0.57.0, `genai` 1.66.0,
+      `lib/pq` 1.12.3. Indiretas de segurança: `x/text` 0.40.0, `grpc` 1.83.0.
+    - **Remoção do `lib/pq` tentada e revertida**: o `sqlc.slice()` é quebrado para o engine
+      postgresql no sqlc v1.31.1 (perde o marcador `/*SLICE:*/` e gera placeholder `?` de MySQL).
+      Compila, passa no vet e passa em qualquer teste com **um** id — só quebra com dois. Detalhes e
+      proibição explícita de repetir a tentativa no comentário da query e no version file.
+- [ ] Revisão (em andamento, por levas)
+    - **0.46.1.0 — leva 1 (0.45, outboundlinks)**: `toStored` casava domínio sósia (`HasPrefix` sem
+      fronteira de URL: `https://algo.com.br/x` virava token interno — dormente até o `CLIENT_URL`
+      mudar); e o "pre-remove cleanup" que o comentário da 0.45 prometia nunca tinha sido ligado,
+      deixando links para uma página que responde 404. Batch de leitura verificado sem N+1.
+    - **0.46.2.0 — leva 2 (infra de teste)**: `task test-all` eram três invocações de `go test`
+      encadeadas, e o reaper destrói o container quando a invocação que o criou termina. A fase
+      seguinte se anexava a um container já sentenciado e morria no meio com `unexpected EOF`. Agora é
+      uma invocação só, igual ao CI — a divergência entre local e CI *era* o bug. Priorizado à frente
+      da 0.38 porque teste instável corrói a confiança na revisão inteira.
+    - **0.46.3.0 — leva 3 (0.38, filtros/paginação em SQL)**: `Offset()` estourava int32 e virava
+      OFFSET negativo, que o Postgres rejeita — `?page=200000000` devolvia 500 em toda listagem
+      paginada. Agora satura em `MaxInt32`, preservando a semântica de página fora do intervalo.
+      Verificado sem ressalva: os 4 pares `List*`/`Count*` têm filtros idênticos, e os filtros de
+      data normalizam para UTC.
+    - **0.46.4.0 — leva 4 (0.39 + alcance na 0.37.3)**: os índices GIN de keywords existiam, estavam
+      corretos e **não eram escolhidos pelo planner**. O `?|` estava certo, mas o lado direito era um
+      `ARRAY(SELECT ...)` — um `InitPlan` opaco, sem estimativa de seletividade, então o planner
+      precificava o índice acima do seq scan. Alcançar índice exige duas coisas: operador certo **e**
+      operando estimável. Corrigido para `text[]` nas duas queries (sugestão de keywords e camada 1 do
+      julgamento). Teste novo `tests/integration/queryplans/` afirma sobre o `EXPLAIN`, porque essa
+      falha é invisível a teste de resultado e já ocorreu duas vezes.
+    - Escopo: 0.38 → 0.45 (a última revisão foi a 0.37.3, em 17/07 — ~8.800 linhas em 146 arquivos
+      desde então). Ordem por risco: 0.45 (outboundlinks, está no caminho de leitura de toda notícia)
+      → 0.38 (filtros/paginação em SQL, sincronia entre query de dados e query de `Count`) → 0.39
+      (agregação de tabela inteira) → 0.40+0.43 (autorização admin e filtro de inativo na camada 1)
+      → 0.41/0.42 (compose e CI, que nenhum teste cobre).
+    - Dependências vêm **antes** da revisão de propósito: a revisão deve ler o código como ele
+      vai rodar de fato, e uma quebra de dependência não pode se misturar a uma correção de revisão.
+
+## Versão 0.47.0.0
+
+- [ ] Migração Fiber v2 → v3
+    - Estamos no v2.52.14; o v3 já está em v3.4.0. É a única dependência uma major inteira atrás, e o
+      v2 entra em manutenção com o v3 estável. **Sem CVE aberto hoje** — é dívida crescente, não incêndio.
+    - Superfície real medida no nosso código (conferida no fonte do v3.4.0, não na doc): ~58 pontos de
+      edição, dos quais 47 são a troca de assinatura `*fiber.Ctx` → `fiber.Ctx` (o `Ctx` virou interface).
+      Os outros: 3 `c.Redirect(url, status)` → `c.Redirect().Status(s).To(url)` (fluxo de login OAuth),
+      1 config de cors (`AllowMethods` string → `[]string`) e 7 `app.Test(req, timeout)` →
+      `fiber.TestConfig{Timeout:}`.
+    - **O que parecia quebrar e não quebra**: a doc oficial diz que `Context()` foi removido, mas no
+      fonte ele continua existindo — só estreitou o retorno de `*fasthttp.RequestCtx` para
+      `context.Context` (o antigo virou `RequestCtx()`). Como nossos 88 usos são todos
+      `runTx(c.Context(), ...)`, tratando o valor como contexto e nunca como fasthttp cru, compilam sem
+      alteração. Idem `app.Test(req)` sem timeout (314 sites — o config é variádico) e `recover.New()`.
+    - Fazer **antes** de qualquer coisa de SSE/Websocket: o v3 traz `middleware/sse`, e escrever SSE na
+      mão no v2 primeiro seria trabalho jogado fora. Também traz `timeout`, `healthcheck` e `paginate`,
+      que hoje temos em versão própria.
+    - Viável porque a suíte é grande (321 `app.Test`, integração e e2e). Troca de framework web sem essa
+      cobertura seria temerária; com ela é verificável.
 
 Planos que não serão aplicados agora. Use para entender evolução futura do código:
 
 - Aumentar o verbose mode (+++++++++++++++++++++ logs)
 - TlDraw do banco de dados
-- Preparar ambiente staging + production
 - Denunciar conteúdo
 - Multi feed
 - Editar informações básicas do usuário
-- Cascade de tabelas
+- Cascade de tabelas (parcial: a 0.45 fez o de `article_outbound_links`; falta o restante)
 - Limpar o main
 - Transportar a iniciação de endpoints para outro lugar, health para /api
 - Criar uma rota para aceitar sugestões de fontes de notícias
@@ -239,7 +298,6 @@ Planos que não serão aplicados agora. Use para entender evolução futura do c
     - Rota `GET base_url/v1/feeds/check-for-new-articles`
     - Notificações
 - Machine Learning: aprender com leitura/descarte do usuário
-- CI/CD
 - Backup
 - Resumo de notícias
     - Acrescentar cache de resumo via redis

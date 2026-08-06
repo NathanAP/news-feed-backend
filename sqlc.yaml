@@ -3,7 +3,11 @@ sql:
   # sql_package "database/sql" (rather than pgx/v5 native) keeps the generated code on *sql.DB and
   # sql.NullString/sql.NullTime, so controllers/transaction.go, the Querier interface and the test
   # mocks stay driver-agnostic. The driver underneath is still pgx, registered via pgx/v5/stdlib.
-  # Switching to pgx native (pgtype.*) later is this one line plus a regen.
+  #
+  # Switching to pgx native (pgtype.*) is this one line, but NOT a cheap regen: every nullable column
+  # changes type, so the ripple reaches every model, controller, mock and test that touches one. Budget
+  # it as its own version. The upside, if it is ever done, is that pgtype handles arrays natively and
+  # lib/pq (in go.mod only as the pq.Array encoder for article_outbound_links) drops out for free.
   - engine: "postgresql"
     queries: "./sqlc/queries/"
     schema: "./schema.sql"

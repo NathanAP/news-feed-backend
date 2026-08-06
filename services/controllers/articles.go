@@ -191,8 +191,11 @@ func nullString(s *string) sql.NullString {
 // since bounds the "popular" query to a recency window; the caller passes the epoch to disable it.
 // It does not touch "related", which is topical rather than temporal by design (see the query).
 func (c *ArticleController) SuggestKeywords(ctx context.Context, q db.Querier, selected []string, since time.Time, limit int32) ([]schemas.KeywordSuggestion, string, error) {
-	// Normalize the picks once into the lowercase JSON array the queries expect. This same encoding
-	// drives both "which articles are relevant" and "which keywords to exclude from the output".
+	// Normalize the picks once. The same normalized set drives both "which articles are relevant" and
+	// "which keywords to exclude from the output". The two queries want it in different shapes:
+	// "related" takes a text[] (so its `?|` stays estimable and the GIN index is actually chosen — see
+	// the query), while "popular" still takes the JSON array for its exclusion list.
+	normalized := normalizeKeywords(selected)
 	encoded, err := encodeKeywords(selected)
 	if err != nil {
 		return nil, "", err
@@ -200,7 +203,7 @@ func (c *ArticleController) SuggestKeywords(ctx context.Context, q db.Querier, s
 
 	if len(selected) > 0 {
 		related, err := q.SuggestRelatedKeywords(ctx, db.SuggestRelatedKeywordsParams{
-			Selected:    encoded,
+			Selected:    normalized,
 			ResultLimit: limit,
 		})
 		if err != nil {
@@ -234,15 +237,23 @@ func (c *ArticleController) SuggestKeywords(ctx context.Context, q db.Querier, s
 // single storage choke point for both articles and feeds, so it normalizes every keyword to
 // trimmed lowercase (PROJECT.md: "palavras-chave devem ser armazenadas em letras minúsculas").
 func encodeKeywords(keywords []string) (json.RawMessage, error) {
-	normalized := make([]string, 0, len(keywords))
-	for _, k := range keywords {
-		normalized = append(normalized, strings.ToLower(strings.TrimSpace(k)))
-	}
-	data, err := json.Marshal(normalized)
+	data, err := json.Marshal(normalizeKeywords(keywords))
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode keywords: %w", err)
 	}
 	return data, nil
+}
+
+// normalizeKeywords trims and lowercases every keyword. It is the SINGLE normalization rule, shared by
+// the JSONB encoding above (the storage path) and the text[] query parameters (the search path), so a
+// keyword is matched exactly the way it was stored. Splitting the two would let "Metallica" stop
+// matching a stored "metallica" — silently, and only for whichever path drifted.
+func normalizeKeywords(keywords []string) []string {
+	normalized := make([]string, 0, len(keywords))
+	for _, k := range keywords {
+		normalized = append(normalized, strings.ToLower(strings.TrimSpace(k)))
+	}
+	return normalized
 }
 
 // DecodeKeywords parses the JSONB array stored in the DB back into a keyword slice.

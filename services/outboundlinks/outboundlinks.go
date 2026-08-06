@@ -127,11 +127,35 @@ func Resolve(content string, byID map[string]string, clientURL string) string {
 // toStored normalizes an internal href to the token form for storage. A href under the configured
 // clientURL becomes `{CLIENT_URL}` + the remaining path; everything else (external, mailto) is kept
 // literally. clientURL is expected without a trailing slash (main trims it).
+//
+// The prefix must end on a URL boundary. A bare strings.HasPrefix also matches a look-alike domain
+// that merely starts with ours — with clientURL `https://algo.com`, the external
+// `https://algo.com.br/x` would be stored as `{CLIENT_URL}.br/x`. That round-trips while CLIENT_URL is
+// unchanged, so it is invisible until the day the domain moves, at which point an external link
+// silently follows our move (`https://novo.com.br/x`). `.com.br` next to a `.com` is not a contrived
+// case, so the boundary check is required, not defensive.
 func toStored(href, clientURL string) string {
-	if clientURL != "" && strings.HasPrefix(href, clientURL) {
-		return clientURLToken + href[len(clientURL):]
+	if clientURL == "" || !strings.HasPrefix(href, clientURL) {
+		return href
+	}
+	if rest := href[len(clientURL):]; isURLBoundary(rest) {
+		return clientURLToken + rest
 	}
 	return href
+}
+
+// isURLBoundary reports whether what follows the clientURL prefix starts a path, query or fragment
+// (or nothing at all) — i.e. the href really is under our origin rather than a look-alike host.
+func isURLBoundary(rest string) bool {
+	if rest == "" {
+		return true
+	}
+	switch rest[0] {
+	case '/', '?', '#':
+		return true
+	default:
+		return false
+	}
 }
 
 // expand is the inverse of toStored's token step: it puts the configured clientURL back in place of

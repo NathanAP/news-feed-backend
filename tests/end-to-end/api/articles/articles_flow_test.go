@@ -85,7 +85,7 @@ func setupE2EApp(t *testing.T, oauth external.MockGoogleOAuth) (*fiber.App, db.Q
 	a.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, outboundCtrl, runTx, ""))...)
 	a.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, outboundCtrl, runTx, ""))...)
 	a.Put("/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.UpdateArticle(articleCtrl, runTx))...)
-	a.Delete("/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.DeleteArticle(articleCtrl, runTx))...)
+	a.Delete("/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.DeleteArticle(articleCtrl, outboundCtrl, runTx))...)
 
 	return app, queries
 }

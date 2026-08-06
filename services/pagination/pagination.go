@@ -8,7 +8,10 @@
 // rows of the page it is about to serve.
 package pagination
 
-import "strconv"
+import (
+	"math"
+	"strconv"
+)
 
 const (
 	DefaultPage     = 1
@@ -71,10 +74,22 @@ func (p Params) Limit() int32 {
 	return int32(p.PageSize)
 }
 
-// Offset is how many rows to skip to reach the requested page, for the query's OFFSET. Page is
-// always >= 1 (ParseParams clamps it), so this never goes negative.
+// Offset is how many rows to skip to reach the requested page, for the query's OFFSET.
+//
+// It saturates at MaxInt32 instead of overflowing. ParseParams clamps page from below but puts no
+// ceiling on it (by design: an out-of-range page is legal and must echo back in actual_page), so
+// `?page=200000000` reaches here — and the old `int32((page-1)*pageSize)` wrapped that to a NEGATIVE
+// offset, which Postgres rejects outright, turning a query param into a 500. Saturating keeps the
+// documented behaviour instead: a page far past the data is simply a page with no rows.
+//
+// The comparison is done by division rather than by multiplying first, so the guard itself cannot
+// overflow. PageSize is always >= 1 (ParseParams clamps it), so the division is safe.
 func (p Params) Offset() int32 {
-	return int32((p.Page - 1) * p.PageSize)
+	pagesToSkip := int64(p.Page) - 1
+	if pagesToSkip > int64(math.MaxInt32)/int64(p.PageSize) {
+		return math.MaxInt32
+	}
+	return int32(pagesToSkip * int64(p.PageSize))
 }
 
 // BuildResponse wraps a page of rows and the total count of matching rows into the response

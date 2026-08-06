@@ -218,7 +218,7 @@ func buildAppAs(ctrl controllers.ArticleControllerInterface, afCtrl controllers.
 	a.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(ctrl, afCtrl, outboundCtrl, fakeTxRunner, ""))...)
 	a.Get("", append(authMiddleware, articleendpoints.ListArticles(ctrl, outboundCtrl, fakeTxRunner, ""))...)
 	a.Put("/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.UpdateArticle(ctrl, fakeTxRunner))...)
-	a.Delete("/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.DeleteArticle(ctrl, fakeTxRunner))...)
+	a.Delete("/:id", adminChain(authMiddleware, requireAdmin, articleendpoints.DeleteArticle(ctrl, outboundCtrl, fakeTxRunner))...)
 
 	return app
 }

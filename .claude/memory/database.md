@@ -10,6 +10,13 @@ servidor, não num arquivo do repo. A conexão inteira vem de `DATABASE_URL` (DS
 **pgx** (`jackc/pgx/v5/stdlib`) usado através de `database/sql` — o sqlc gera com
 `sql_package: "database/sql"`, então models e controllers seguem em `sql.NullString`/`sql.NullTime`.
 
+O `lib/pq` também aparece no `go.mod`, mas **não é um segundo driver ativo**: entra só como helper de
+encoding, porque o sqlc emite `pq.Array` para o `ANY(...::text[])` de
+`ListArticleOutboundLinksByArticleIDs`. Não tente trocar por `sqlc.slice()` para removê-lo — foi
+tentado na 0.46 e é quebrado para o engine postgresql (perde o marcador `/*SLICE:*/` e gera placeholder
+`?` de MySQL). O sintoma é traiçoeiro: compila, passa no vet e passa em qualquer teste que envie **um**
+id; só quebra com dois ou mais.
+
 Em dev o servidor sobe no docker-compose (`postgres:18-alpine`, volume `postgres_data`, pgAdmin4 na
 `:5050`). A API roda no host (`task ls`) ou no compose (`task ds`) — só o **banco** exige Docker.
 

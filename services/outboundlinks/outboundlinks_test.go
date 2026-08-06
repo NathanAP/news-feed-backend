@@ -44,6 +44,52 @@ func TestAssign_InternalLinkStoredAsToken(t *testing.T) {
 	assert.Contains(t, out, `href="id-1"`)
 }
 
+func TestAssign_LookAlikeDomainStoredLiterally(t *testing.T) {
+	// Regression (0.46.1): a bare HasPrefix also matched a host that merely *starts* with ours, so
+	// `https://client.app.br/x` was stored as `{CLIENT_URL}.br/x`. It round-trips while CLIENT_URL is
+	// unchanged, which is why it went unnoticed — the damage only appears once the domain moves.
+	for _, href := range []string{
+		"https://client.app.br/x",
+		"https://client.appevil.com/x",
+		"https://client.app.evil.com/x",
+	} {
+		out, links, err := Assign(`<a href="`+href+`">x</a>`, "https://client.app", seqIDs())
+		require.NoError(t, err)
+		require.Len(t, links, 1)
+		assert.Equal(t, href, links[0].Href, "look-alike host must stay literal, never become a token")
+		assert.NotContains(t, links[0].Href, clientURLToken)
+		assert.Contains(t, out, `href="id-1"`)
+	}
+}
+
+func TestAssign_InternalLinkBoundariesStillTokenized(t *testing.T) {
+	// The boundary check must not over-correct: the origin itself and query/fragment forms are ours.
+	for href, want := range map[string]string{
+		"https://client.app":              "{CLIENT_URL}",
+		"https://client.app/":             "{CLIENT_URL}/",
+		"https://client.app/articles/abc": "{CLIENT_URL}/articles/abc",
+		"https://client.app?q=1":          "{CLIENT_URL}?q=1",
+		"https://client.app#top":          "{CLIENT_URL}#top",
+	} {
+		_, links, err := Assign(`<a href="`+href+`">x</a>`, "https://client.app", seqIDs())
+		require.NoError(t, err)
+		require.Len(t, links, 1)
+		assert.Equal(t, want, links[0].Href, "href %q is under our origin", href)
+	}
+}
+
+func TestRoundTrip_LookAlikeSurvivesClientURLChange(t *testing.T) {
+	// The actual damage the boundary check prevents: an external link must not follow OUR domain move.
+	_, links, err := Assign(`<a href="https://client.app.br/x">x</a>`, "https://client.app", seqIDs())
+	require.NoError(t, err)
+	require.Len(t, links, 1)
+
+	byID := map[string]string{"id-1": links[0].Href}
+	resolved := Resolve(`<a href="id-1">x</a>`, byID, "https://moved.example")
+	assert.Contains(t, resolved, "https://client.app.br/x", "external target is unaffected by our move")
+	assert.NotContains(t, resolved, "moved.example")
+}
+
 func TestAssign_EmptyClientURLStoresEverythingLiterally(t *testing.T) {
 	// With no client URL, HasPrefix(href, "") must NOT turn every href into a token — external links
 	// would be corrupted. toStored guards on clientURL != "".

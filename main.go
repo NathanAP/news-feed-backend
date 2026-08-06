@@ -253,7 +253,7 @@ func main() {
 	articles.Get("/:id", append(authMiddleware, articleendpoints.GetArticle(articleCtrl, afCtrl, outboundCtrl, runTx, clientURL))...)
 	articles.Get("", append(authMiddleware, articleendpoints.ListArticles(articleCtrl, outboundCtrl, runTx, clientURL))...)
 	articles.Put("/:id", adminRoute(authMiddleware, requireAdmin, articleendpoints.UpdateArticle(articleCtrl, runTx))...)
-	articles.Delete("/:id", adminRoute(authMiddleware, requireAdmin, articleendpoints.DeleteArticle(articleCtrl, runTx))...)
+	articles.Delete("/:id", adminRoute(authMiddleware, requireAdmin, articleendpoints.DeleteArticle(articleCtrl, outboundCtrl, runTx))...)
 
 	// Development-only dry-run tools for the AI pipeline (treatment, judgement). They call the AI
 	// for real (consume quota) and expose internal pipeline behavior, so they must never be reachable
